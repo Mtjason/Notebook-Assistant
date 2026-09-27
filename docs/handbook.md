@@ -1,7 +1,7 @@
 ---
 type: system
 title: Vault Handbook
-version: "2.9"
+version: "2.10"
 scope: personal
 status: active
 created: 2026-09-26
@@ -103,7 +103,9 @@ Attachments/       All embedded files (images, PDFs…). Nothing else.
 
 ### 2.2 Adding folders
 
-A new topic folder in `60-Knowledge/` requires **5+ notes** on the topic; until then, use a tag. No other new top-level or sub-folders are created without amending this handbook.
+**A new topic folder in `60-Knowledge/`** is proposed as soon as the first note needs it: when a capture fits none of the §2.3 topics, the assistant drafts an amendment adding a row to the §2.3 table (folder, what it answers, examples, what's not there), with its MOC. Until that amendment is merged, the note waits in `00-Inbox/` with `needs_review: true` and `handbook_gap` naming the proposed topic (§0.3); it is placed once the rule exists. A note that fits an existing topic never gets a new folder.
+
+No other new top-level or sub-folders are created without amending this handbook.
 
 ### 2.3 Topic folders in `60-Knowledge/`
 
@@ -787,6 +789,8 @@ When you hand a capture to the assistant directly (pasted into chat, or sent wit
 - **Enum**: a property whose value must come from a fixed list.
 
 ## Version history
+
+- **2.10 (2026-09-28):** A new topic folder is proposed with its first note instead of after 5 notes; the note waits in `00-Inbox/` until the amendment is merged (§2.2).
 
 - **2.9 (2026-09-27):** Single source of truth: this file in the repository is the only copy of the rules; the vault keeps a link note instead of a copy, and the code reads its rules from this file's tables (top of the handbook, §14, §15). The folders exempt from the invariants are now stated in §0.1, the structural types `daily`, `moc` and `system` got folder rows in §3, and the task lifecycle in §4.3 includes `archived` (as §13 already allowed); all three were previously known only to the code.
 
