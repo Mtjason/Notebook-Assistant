@@ -17,7 +17,18 @@ class MemoryVault:
             self._put(PurePosixPath(path), raw)
 
     def _put(self, path: PurePosixPath, data: bytes) -> None:
-        self._files[name_key(path.as_posix())] = (path, data)
+        self._files[name_key(path.as_posix())] = (self._spell_folders(path), data)
+
+    def _spell_folders(self, path: PurePosixPath) -> PurePosixPath:
+        """Reuse the spelling of folders that already exist (as NTFS and APFS do)."""
+        parts = list(path.parts)
+        for stored, _ in self._files.values():
+            folders = stored.parts[:-1]
+            for i in range(min(len(folders), len(parts) - 1)):
+                if name_key(folders[i]) != name_key(parts[i]):
+                    break
+                parts[i] = folders[i]
+        return PurePosixPath(*parts)
 
     def _get(self, path: PurePosixPath) -> tuple[PurePosixPath, bytes]:
         try:
@@ -46,7 +57,7 @@ class MemoryVault:
         key = name_key(path.as_posix())
         existing = self._files.get(key)
         # like NTFS: writing to an existing file keeps its original spelling
-        self._files[key] = (existing[0] if existing else path, data)
+        self._files[key] = (existing[0] if existing else self._spell_folders(path), data)
 
     def move(self, src: PurePosixPath, dest: PurePosixPath) -> None:
         stored_src, data = self._get(src)

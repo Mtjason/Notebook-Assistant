@@ -38,6 +38,18 @@ def test_case_insensitive_lookup_keeps_spelling(any_vault: Store) -> None:
         if "Kedro" in p.as_posix() or "kedro" in p.as_posix()
     ]
     assert names == ["10-Tasks/Learn Kedro hooks.md"]
+    assert any_vault.read_text(P("10-Tasks/Learn Kedro hooks.md")) == "x"
+
+
+def test_new_file_uses_existing_folder_spelling(any_vault: Store) -> None:
+    any_vault.write_text(P("10-tasks/New task.md"), "x")
+    any_vault.move(P("30-SOPs/SOP - Install uv.md"), P("10-TASKS/SOP moved.md"))
+    tasks = sorted(p.as_posix() for p in any_vault.iter_files() if p.parts[0].lower() == "10-tasks")
+    assert tasks == [
+        "10-Tasks/Learn Kedro hooks.md",
+        "10-Tasks/New task.md",
+        "10-Tasks/SOP moved.md",
+    ]
 
 
 def test_move_and_refuse_overwrite(any_vault: Store) -> None:

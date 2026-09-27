@@ -52,20 +52,44 @@ class FsVault:
         return self.root.joinpath(*path.parts)
 
     def _find(self, path: PurePosixPath) -> Path | None:
-        """The existing file matching ``path`` case-insensitively, or None."""
-        exact = self._real(path)
-        if exact.is_file():
-            return exact
+        """The existing file matching ``path`` case-insensitively, with its on-disk spelling.
+
+        The spelling must come from the directory listing, never from ``path``: on NTFS and
+        APFS the OS accepts any case, and replacing a file through a differently-cased name
+        silently renames it.
+        """
+        self._real(path)  # rejects paths escaping the vault
         current = self.root
         for part in path.parts:
             if not current.is_dir():
                 return None
+            exact = current / part
+            if exact.exists() and part in os.listdir(current):
+                current = exact
+                continue
             key = name_key(part)
             match = next((c for c in current.iterdir() if name_key(c.name) == key), None)
             if match is None:
                 return None
             current = match
         return current if current.is_file() else None
+
+    def _new_path(self, path: PurePosixPath) -> Path:
+        """Where a new file at ``path`` goes: existing folders keep their on-disk spelling
+        (as NTFS would), and the file name keeps the spelling asked for."""
+        self._real(path)
+        current = self.root
+        for i, part in enumerate(path.parts[:-1]):
+            if not current.is_dir():
+                return current.joinpath(*path.parts[i:])
+            key = name_key(part)
+            match = next(
+                (c for c in current.iterdir() if c.is_dir() and name_key(c.name) == key), None
+            )
+            if match is None:
+                return current.joinpath(*path.parts[i:])
+            current = match
+        return current / path.name
 
     # ----- VaultStore
 
@@ -94,7 +118,7 @@ class FsVault:
         self.write_bytes(path, text.encode("utf-8"))
 
     def write_bytes(self, path: PurePosixPath, data: bytes) -> None:
-        target = self._find(path) or self._real(path)
+        target = self._find(path) or self._new_path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
         tmp = target.with_name(f".{target.name}{TEMP_SUFFIX}")
         try:
@@ -115,7 +139,7 @@ class FsVault:
         case_only = existing is not None and existing.samefile(real_src)
         if existing is not None and not case_only:
             raise FileExistsInVaultError(f"target exists: {dest}")
-        real_dest = self._real(dest)
+        real_dest = self._new_path(dest)
         real_dest.parent.mkdir(parents=True, exist_ok=True)
         if case_only:
             # A case-only rename needs a hop through a temporary name on case-insensitive disks.
