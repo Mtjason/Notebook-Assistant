@@ -1,7 +1,7 @@
 ---
 type: system
 title: Vault Handbook
-version: "2.8"
+version: "2.9"
 scope: personal
 status: active
 created: 2026-09-26
@@ -16,6 +16,8 @@ This is the **golden rule** of the vault: every note, and every change to a note
 - **The note assistant**, which must follow it for every change it proposes.
 
 Nothing is placed ad hoc. When a case isn't covered, the fallback rule (§0.3) applies and the handbook gets amended (§15). A rule is never bent for a single note.
+
+**Single source of truth.** This file, `docs/handbook.md` in the Notebook-Assistant repository, is the only copy of the rules. The vault holds a link to it, never a copy. The assistant's code reads its rules from the tables in this file (§0.1, §2.1, §2.3, §3, §4, §5), so there is no second, hand-written schema. Every other document refers to a rule by its section number instead of restating it.
 
 ---
 
@@ -34,7 +36,7 @@ Every file in the vault satisfies all of these. The lint (§14) checks each one 
 | I-5 | It has **at least one outbound link**: to its MOC, project/area, or source (§7). Exceptions: `00-Inbox/`, `01-Daily/`, `90-Views/`, `98-Templates/`, `99-System/`, and code-tree files (§11). A link inside a property (e.g. `topic`) counts. |
 | I-6 | Its folder is at most **3 levels** below the vault root. Code folders inside projects are exempt (§11). |
 
-The assistant's own state files in `99-System/Assistant/` (changesets, sessions, snapshots, run logs) are machine-managed and exempt from I-1…I-6.
+**Scope:** the invariants apply to every Markdown note except those in `00-Inbox/`, `90-Views/`, `98-Templates/`, `Attachments/` and `99-System/Assistant/`. The Inbox holds unprocessed captures, Views and Templates hold Obsidian's own files, and `99-System/Assistant/` holds the assistant's machine-managed state (changesets, sessions, snapshots, run logs).
 
 A note that breaks an invariant is non-compliant. It gets fixed or flagged; it is never left silently broken.
 
@@ -87,7 +89,7 @@ If no rule decides where something goes, or the assistant's classification is un
 90-Views/          Bases dashboards.
 95-Archive/        Retired notes; mirrors the top-level folders.
 98-Templates/      Obsidian note templates only, one per type.
-99-System/         Handbook, tag registry, changelog, lint reports, and the assistant's state (`Assistant/`).
+99-System/         Link to the handbook, tag registry, changelog, lint reports, and the assistant's state (`Assistant/`).
 Attachments/       All embedded files (images, PDFs…). Nothing else.
 ```
 
@@ -152,6 +154,14 @@ Ask these questions **in order**; the first "yes" wins.
 | 15 | The original raw material something was extracted from? | `source` → `70-Sources/` |
 | — | None of the above | → fallback (§0.3) |
 
+The assistant also maintains three structural types that this decision order never assigns:
+
+| Structural type | Folder |
+|---|---|
+| Daily note (§10) | `daily` → `01-Daily/` |
+| Map of content (§7) | `moc` → `60-Knowledge/<Topic>/` |
+| System note (this handbook's link, tag registry, changelog, lint reports) | `system` → `99-System/` |
+
 ### 3.1 Tie-breakers
 
 - **Mixed notes** (one note containing several types, e.g. setup steps + a password + a hostname + an explanation):
@@ -196,7 +206,7 @@ origin:         # own | ai-chat | web | colleague | course  (default: own)
 needs_review:   # true only while flagged (§0.3)
 assistant:      # skip — the maintenance job never proposes changes to this note (§16.4)
 digest:         # pending | approved | review | graduated — digestion queue (§19)
-id:             # assigned by the assistant the first time it changes the note; never edit (§5.1)
+id:             # assigned by the assistant the first time it changes the note; never edit (§5.2)
 assistant_hash: # fingerprint of the last approved content; managed by the assistant (§16.1)
 ```
 
@@ -237,7 +247,7 @@ assistant_hash: # fingerprint of the last approved content; managed by the assis
 
 | Type | Lifecycle |
 |---|---|
-| `task` | `someday → todo → doing → waiting → done` / `dropped` |
+| `task` | `someday → todo → doing → waiting → done` / `dropped` → `archived` |
 | `idea` | `exploring → shaping → promoted` / `parked` / `dropped` → `archived` |
 | `project` | `active → paused → done` / `dropped` → `archived` |
 | `area` | `active → dormant` → `archived` |
@@ -279,11 +289,22 @@ assistant_hash: # fingerprint of the last approved content; managed by the assis
 Rules:
 - **Unique titles (I-4).** On a collision, first check whether it's a duplicate (merge per §8.2). If the notes are genuinely different, add a qualifier in parentheses: `Kedro hooks (Q&A)`.
 - **No numeric ordering prefixes** (`0.`, `1.`, `2_`) and **no `!` prefixes**. Reading order belongs in MOCs.
-- Never use these characters in titles: `# ^ [ ] | \ : / ?`. Windows forbids some of them in filenames, and Obsidian's link syntax breaks on others. Question-tasks therefore end with the full-width `？` instead of `?`.
+- Title characters follow §5.1. Question-tasks therefore end with the full-width `？` instead of `?`.
 - **Mixed language:** title in the language you'd search first; all other names go in `aliases`.
 - **Knowledge titles:** `<tool or subject> <specific term>`, e.g. `Polars with_columns`, `Kedro hooks`, `Confusion matrix`. The tool name goes first so related notes sort together. Troubleshooting notes name the symptom: `Polars LazyFrame dt error`. No `How to`, `Note on`, dates or version numbers, unless the version is the subject.
 
-### 5.1 Renaming and moving
+### 5.1 File and folder names on every system
+
+The vault syncs between Windows, macOS and Linux, so every name must be valid on all three at once:
+
+- Characters never allowed in a file or folder name: `< > : " / \ | ? *`, and control characters.
+- Characters also never allowed in a note title, because they break Obsidian links: `# ^ [ ]`.
+- Reserved names, in any case and with or without an extension: `CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9`.
+- No name ends with a dot or a space, or starts with a space.
+- Names are compared case-insensitively after Unicode NFC normalization (the composed form), so `Note` and `note`, or `é` written two ways, are the same name.
+- A name is at most **100** characters, and a path from the vault root at most **200**.
+
+### 5.2 Renaming and moving
 
 A note is renamed or moved **only** when:
 1. It is being classified for the first time (raw capture → typed note).
@@ -442,7 +463,7 @@ Links keep working. Archived notes are excluded from default views. To restore a
 ## 14. Enforcement and review
 
 - **Mechanical checks:** the lint validates every invariant (I-1…I-6), required properties, enum values, unregistered tags, duplicate titles, orphans, stubs, orphan attachments, stale SOPs and aging `waiting` tasks.
-- A machine-readable copy of §2–§5 lives in `99-System/schema.yaml` and must match this handbook. **This handbook is the source of truth**; the schema is regenerated from it when it changes.
+- The code reads its rules directly from the tables in this handbook (see *Single source of truth* at the top). There is no separate schema file.
 
 | When | What | Who |
 |---|---|---|
@@ -462,13 +483,14 @@ Links keep working. Archived notes are excluded from default views. To restore a
 5. **Both languages** in `aliases` on every note created or migrated.
 6. **Never quote `sensitive: true` values** in chat.
 7. **Stay out of `95-Archive/`** except to restore, and out of project code (§11).
-8. **Rename and move per §5.1,** rewriting every reference in the same changeset.
+8. **Rename and move per §5.2,** rewriting every reference in the same changeset.
 9. **Log every applied changeset** in `99-System/Changelog.md`: date, operations, reason.
 
 ### Amending the handbook
 
-- Amendments are changesets like any other. They bump `version` (minor for new rules, major for rules that change existing placements) and are logged in *Version history* below.
-- A major change includes a migration changeset for the notes it affects, so the vault never contradicts the handbook.
+- An amendment is a pull request to `docs/handbook.md` in the repository, never an edit in the vault. The assistant may draft one; nothing takes effect until it is merged and the assistant is updated.
+- It bumps `version` (minor for new rules, major for rules that change existing placements) and is logged in *Version history* below.
+- A major change comes with a migration changeset for the notes it affects, so the vault never contradicts the handbook.
 
 ---
 
@@ -765,6 +787,8 @@ When you hand a capture to the assistant directly (pasted into chat, or sent wit
 - **Enum**: a property whose value must come from a fixed list.
 
 ## Version history
+
+- **2.9 (2026-09-27):** Single source of truth: this file in the repository is the only copy of the rules; the vault keeps a link note instead of a copy, and the code reads its rules from this file's tables (top of the handbook, §14, §15). The folders exempt from the invariants are now stated in §0.1, the structural types `daily`, `moc` and `system` got folder rows in §3, and the task lifecycle in §4.3 includes `archived` (as §13 already allowed); all three were previously known only to the code.
 
 - **2.8 (2026-09-27):** Added the instance vs. principle tie-breaker: a capture that teaches a general rule through one case produces both notes (§3.1). Captures handed directly to the assistant are digested proactively in one changeset (§19.6), and digestion drafts generalize (§19.3).
 - **2.7 (2026-09-27):**

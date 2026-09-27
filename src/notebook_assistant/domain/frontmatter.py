@@ -38,7 +38,7 @@ _ORDER_INDEX = {k: i for i, k in enumerate(KEY_ORDER)}
 _TOP_KEY = re.compile(r"^([A-Za-z_][\w-]*)[ \t]*:(?:[ \t]|$)")
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _PLAIN_SAFE = re.compile(r"^[^\s\-?:,\[\]{}#&*!|>'\"%@`][^:#,\[\]{}\n]*$")
-_YAML_WORDS = {"true", "false", "null", "yes", "no", "on", "off", "y", "n", "~"}
+_YAML_WORDS = {"true", "false", "null", "yes", "no", "on", "off", "y", "n", "~", "=", "<<"}
 _NON_PRINTABLE = re.compile(
     # characters YAML refuses, plus the Unicode line breaks it would fold to a space
     f"{yaml.reader.Reader.NON_PRINTABLE.pattern}|[\x85  ]"

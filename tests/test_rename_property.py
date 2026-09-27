@@ -17,7 +17,10 @@ from notebook_assistant.app.apply import apply_changeset, undo_changeset
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.app.rename import plan_move
 from notebook_assistant.domain.names import name_key, validate_path
+from notebook_assistant.handbook import load_rules
 from tests.conftest import NOW
+
+NAMES = load_rules().names
 
 FOLDERS = ["60-Knowledge/ML", "60-Knowledge/Data Science", "10-Tasks"]
 title_chars = st.characters(
@@ -35,7 +38,7 @@ link_forms = st.sampled_from(
 def vaults(draw: st.DrawFn) -> tuple[dict[str, str], str, str]:
     names = draw(
         st.lists(
-            titles.filter(lambda t: not validate_path(PurePosixPath(f"{t}.md"))),
+            titles.filter(lambda t: not validate_path(PurePosixPath(f"{t}.md"), NAMES)),
             min_size=2,
             max_size=6,
             unique_by=name_key,
@@ -66,7 +69,7 @@ def test_random_renames_never_break_links(case: tuple[dict[str, str], str, str])
     taken = {name_key(PurePosixPath(p).stem) for p in files if p != src}
     if name_key(new_title) in taken or name_key(dest.as_posix()) == name_key(src):
         return
-    if validate_path(dest):  # invalid names are refused by the planner (tested elsewhere)
+    if validate_path(dest, NAMES):  # invalid names are refused by the planner (tested elsewhere)
         return
     before = store.snapshot()
     index = VaultIndex.build(store)

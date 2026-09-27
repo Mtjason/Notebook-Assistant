@@ -53,7 +53,9 @@ def cmd_check(args: argparse.Namespace) -> int:
         for n in sorted(index.notes.values(), key=lambda n: n.path.as_posix())
     }
     results = {k: v for k, v in results.items() if v}
-    unparseable = {p: e for p, e in index.unparseable.items() if is_checked(PurePosixPath(p))}
+    unparseable = {
+        p: e for p, e in index.unparseable.items() if is_checked(PurePosixPath(p), facts.rules)
+    }
     if args.json:
         print(json.dumps(results, ensure_ascii=False, indent=2))
     else:
