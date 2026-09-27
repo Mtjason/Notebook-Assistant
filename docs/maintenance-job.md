@@ -41,7 +41,7 @@ Detect → Settle → Lint → Triage → Transform → Validate → Queue → (
 | User move | Known hash at a new path, and the folder type ≠ `type` | Propose a `type` change, or flag `needs_review` |
 | Deletion | Hash vanished | Repoint or remove dangling links |
 | Mechanical lint violation | Lint | Deterministic fix, grouped into one batch |
-| Deep pass | **Deep pass** button | Duplicate candidates, missing links, contradictions, image descriptions |
+| Deep pass | **Deep pass** button | Merge candidates (Handbook §8.2), missing links, contradictions, image descriptions |
 
 A **diff** is the line-by-line difference between two versions of a file. A **hunk** is one contiguous block of changed lines.
 

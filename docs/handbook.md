@@ -1,7 +1,7 @@
 ---
 type: system
 title: Vault Handbook
-version: "2.10"
+version: "2.11"
 scope: personal
 status: active
 created: 2026-09-26
@@ -369,10 +369,34 @@ A **MOC** (Map of Content) is an index note that lists and orders every note on 
 
 **Split** when a note has two or more H2 sections that would each be searched separately, or when it's longer than about 1,500 lines. Course hand-outs are the exception: keep them whole.
 
-**Merge** when any of these applies:
-- **Stubs** (under about 200 bytes) merge into the related note as a section. Facts are the exception.
-- **Platform variants** of one topic become one note with a `platform:` list and a section per OS.
-- **Near-duplicates:** keep the more complete note's title; the other title becomes an alias.
+**Merge** only when a pair of notes passes **all three gates** and matches **one trigger**. Otherwise the notes stay separate and get linked, digested (§19) or reclassified.
+
+**Gates (all must hold):**
+1. **Same subject.** Both notes answer the same question, or one is a sub-part of the other's subject. Sharing a tool, tag or topic folder is not enough.
+2. **Same scope.** Both `work` or both `personal`. A `work` note never merges into a `personal` one: reclassify it instead (e.g. an internal-only command becomes a `fact`). Platform variants are the exception: the result takes the stricter scope.
+3. **The target's type accepts the content** (§3). A fact, credential, person or task is never merged into another type; it is extracted and linked (§3.1).
+
+| Trigger | Test | Result |
+|---|---|---|
+| Stub | Body under about 200 bytes (frontmatter excluded), and a related note passes the gates | A section in the related note. Facts and credentials are exempt. With no related note, the stub stays and goes to digestion (§19) or becomes a `learn` task (§3.1); a note is never created just to hold it |
+| Platform variants | The same procedure or topic, differing only by OS | One note with a `platform:` list and a section per OS |
+| Near-duplicate | Most of the smaller note's content already exists in the larger one | Keep the more complete note's title |
+| Covered by a collection | Every item in the note is already a row of a collection (§8.3), and what's left is a sequence or a tip | The remainder becomes a section of the collection |
+
+**Don't merge** when:
+- each note would be searched on its own: a distinct subject with complete examples (typically over 1 KB), even if related. Link them instead;
+- the two answer different kinds of question on the same topic (a comparison vs. an explanation of why);
+- the result would meet the split rule above;
+- either note is in `15-Incubator/` (§18.3) or `95-Archive/`, or is marked `assistant: skip`.
+
+**How a merge is done** (one changeset):
+- **Target:** the note the trigger names. Between two equal notes, the one with more incoming links. Its title stays unless it breaks §5.
+- **Content:** moved verbatim into a section named after the old note's subject, with headings demoted to fit. Only conversational filler (e.g. an AI's closing question) may be dropped, and only when the review card lists it.
+- **Names and links:** old titles and their aliases join the target's `aliases`. Every reference is rewritten (§5.2); in logs and reports the old name stays as display text: `[[New title|Old title]]`.
+- **Properties:** `tags` are combined (max 3); `scope` and `sensitive` take the stricter value; `digest` takes the less processed state and keeps only the `digest_reason` values still true after the merge (a merged stub is no longer a stub); `created` takes the earlier date, `updated` is today; an SOP's `last_verified` takes the older date.
+- **Record:** the target gets a `## History` line, and the old note is deleted (§8.4). The content-preservation check (§16.4) compares the old notes with the result.
+
+**Finding candidates:** the Deep pass (§16.3) lists merge candidates with the trigger each one matches; nothing is merged without approval.
 
 ### 8.3 Collections
 
@@ -383,7 +407,7 @@ A list of like items (vocabulary, commands, installed packages, quotes, SQL snip
 Delete only:
 - Zero-byte notes and empty folders.
 - Byte-identical duplicate attachments (hash-verified), after repointing their links.
-- Stubs whose entire content was merged elsewhere.
+- Notes whose entire content was merged into another note (§8.2).
 - Inbox captures judged to be noise (no information worth keeping), **with your approval**.
 - Assistant chat sessions (`99-System/Assistant/Sessions/`) older than 90 days, in one approved batch. Changesets that came from them keep the session's title and date as text.
 
@@ -790,6 +814,7 @@ When you hand a capture to the assistant directly (pasted into chat, or sent wit
 
 ## Version history
 
+- **2.11 (2026-09-28):** Merge criteria (§8.2): three gates (same subject, same scope, the target's type accepts the content), four triggers (stub, platform variants, near-duplicate, covered by a collection), when not to merge, and how a merge is carried out. Any fully merged note may be deleted, not only stubs (§8.4).
 - **2.10 (2026-09-28):** A new topic folder is proposed with its first note instead of after 5 notes; the note waits in `00-Inbox/` until the amendment is merged (§2.2).
 
 - **2.9 (2026-09-27):** Single source of truth: this file in the repository is the only copy of the rules; the vault keeps a link note instead of a copy, and the code reads its rules from this file's tables (top of the handbook, §14, §15). The folders exempt from the invariants are now stated in §0.1, the structural types `daily`, `moc` and `system` got folder rows in §3, and the task lifecycle in §4.3 includes `archived` (as §13 already allowed); all three were previously known only to the code.
