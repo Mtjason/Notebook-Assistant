@@ -1,0 +1,1326 @@
+<title>Vault Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F2F3EF; --surface:#FFFFFF; --sunk:#E8EAE4; --ink:#1B2130; --muted:#5B6372; --rule:#D5D9D0;
+  --accent:#2B47C4; --accent-ink:#FFFFFF; --accent-soft:#E3E8FB;
+  --pending:#A35A0B; --pending-soft:#FBEBD6; --review:#2B47C4; --review-soft:#E3E8FB;
+  --done:#1F7A45; --done-soft:#DDF1E4; --warn-soft:#FFF4D6; --warn-rule:#E2B84B;
+  --code:#F6F7F4;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, "Microsoft JhengHei", monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#12151C; --surface:#1A1F29; --sunk:#232937; --ink:#E7E9EE; --muted:#9AA2B1; --rule:#2E3544;
+    --accent:#8FA2F5; --accent-ink:#10131A; --accent-soft:#232C4D;
+    --pending:#F0AE5E; --pending-soft:#3A2A16; --review:#8FA2F5; --review-soft:#232C4D;
+    --done:#6FD39A; --done-soft:#17321F; --warn-soft:#33290F; --warn-rule:#8A6A1C; --code:#161A22;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#12151C; --surface:#1A1F29; --sunk:#232937; --ink:#E7E9EE; --muted:#9AA2B1; --rule:#2E3544;
+  --accent:#8FA2F5; --accent-ink:#10131A; --accent-soft:#232C4D;
+  --pending:#F0AE5E; --pending-soft:#3A2A16; --review:#8FA2F5; --review-soft:#232C4D;
+  --done:#6FD39A; --done-soft:#17321F; --warn-soft:#33290F; --warn-rule:#8A6A1C; --code:#161A22;
+}
+*{box-sizing:border-box}
+.two>*,.cols>*,.hero>*,.app>*{min-width:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--body);padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:1080px;margin:0 auto}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.1;margin:0}
+h2{font-size:clamp(1.6rem,3.2vw,2.2rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+code,.mono{font-family:var(--mono);font-size:.88em}
+.eyebrow{font:500 .74rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+section{padding-block:56px 0}
+.lead{color:var(--muted);max-width:62ch}
+/* header */
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:20px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.brand{font:500 .95rem var(--mono)}
+.brand b{color:var(--accent);font-weight:500}
+.nav{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem}
+.nav a{color:var(--muted);text-decoration:none}
+.nav a:hover,.nav a:focus-visible{color:var(--ink)}
+/* hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding-block:56px 8px}
+.hero h1{font-size:clamp(2.3rem,5.4vw,3.9rem);font-weight:700;letter-spacing:-.02em}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .lead{margin-top:18px;font-size:1.08rem}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.chip{font:500 .8rem/1 var(--mono);padding:7px 10px;border-radius:6px;background:var(--sunk);color:var(--ink);font-variant-numeric:tabular-nums}
+.transform{display:grid;gap:10px}
+.file{background:var(--surface);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.file header{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--rule);font:500 .76rem var(--mono);color:var(--muted)}
+.file pre{margin:0;padding:12px 14px;font:.82rem/1.55 var(--mono);white-space:pre-wrap;word-break:break-word;background:var(--code)}
+.arrow{font:500 .78rem var(--mono);color:var(--muted);text-align:center}
+.k{color:var(--accent)} .s{color:var(--done)} .c{color:var(--muted)}
+/* demo app */
+.demo-note{margin-top:10px;font-size:.88rem;color:var(--muted)}
+.app{margin-top:24px;display:grid;grid-template-columns:280px 1fr;border:1px solid var(--rule);border-radius:12px;background:var(--surface);overflow:hidden;min-height:520px}
+.side{border-right:1px solid var(--rule);background:var(--bg);display:flex;flex-direction:column;min-width:0}
+.side h3{font:500 .74rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 16px 8px}
+.items{list-style:none;margin:0;padding:0 8px 12px;display:grid;gap:4px}
+.item{width:100%;text-align:left;border:1px solid transparent;background:none;color:var(--ink);padding:10px;border-radius:8px;cursor:pointer;display:grid;gap:4px;font:inherit}
+.item:hover{background:var(--sunk)}
+.item[aria-current="true"]{background:var(--surface);border-color:var(--rule)}
+.item:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.item .name{font-weight:600;font-size:.92rem;line-height:1.3;word-break:break-word}
+.item .where{font:.74rem var(--mono);color:var(--muted);word-break:break-all}
+.pill{justify-self:start;font:500 .7rem/1 var(--mono);padding:4px 7px;border-radius:999px;letter-spacing:.02em}
+.st-raw{background:var(--sunk);color:var(--muted)}
+.st-pending{background:var(--pending-soft);color:var(--pending)}
+.st-approved{background:var(--review-soft);color:var(--review)}
+.st-review{background:var(--review-soft);color:var(--review)}
+.st-graduated{background:var(--done-soft);color:var(--done)}
+.main{padding:22px;display:grid;gap:18px;align-content:start;min-width:0}
+.main-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.main-head h3{font-size:1.3rem}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 .88rem var(--body);padding:9px 14px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn:hover{background:var(--sunk)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-width:0}
+.panel{border:1px solid var(--rule);border-radius:10px;overflow:hidden;min-width:0}
+.panel > .ph{padding:8px 12px;border-bottom:1px solid var(--rule);font:500 .74rem var(--mono);color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.panel pre{margin:0;padding:12px;font:.8rem/1.55 var(--mono);white-space:pre-wrap;word-break:break-word;background:var(--code);max-height:360px;overflow:auto}
+.rendered{padding:14px 16px;font-size:.92rem;display:grid;gap:10px;max-height:420px;overflow:auto}
+.rendered h4{font:700 1rem var(--display);margin:4px 0 0}
+.rendered .props{font:.76rem/1.6 var(--mono);color:var(--muted);background:var(--code);border-radius:6px;padding:8px 10px}
+.callout{border-left:3px solid var(--warn-rule);background:var(--warn-soft);padding:8px 10px;border-radius:0 6px 6px 0;font-size:.86rem}
+.callout b{display:block;font-size:.78rem;letter-spacing:.02em}
+.cite{font:.72rem var(--mono);color:var(--accent);white-space:nowrap}
+.shot{display:inline-flex;align-items:center;gap:6px;font:.74rem var(--mono);background:var(--sunk);border-radius:6px;padding:4px 8px;color:var(--muted)}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.steps li{display:flex;gap:10px;align-items:center;font-size:.9rem;color:var(--muted)}
+.steps li .dot{width:10px;height:10px;border-radius:50%;background:var(--rule);flex:none}
+.steps li.run{color:var(--ink)} .steps li.run .dot{background:var(--accent);animation:pulse 1s infinite}
+.steps li.ok{color:var(--ink)} .steps li.ok .dot{background:var(--done)}
+@keyframes pulse{50%{opacity:.35}}
+.proposal{display:grid;gap:8px}
+.op{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline;font-size:.9rem;padding:8px 10px;border:1px solid var(--rule);border-radius:8px;background:var(--bg)}
+.op .verb{font:500 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.op .detail{min-width:0;word-break:break-word}
+.op code{font-size:.8rem}
+.log{font:.78rem/1.6 var(--mono);color:var(--muted);border-top:1px dashed var(--rule);padding-top:10px}
+.confirm{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:14px;display:grid;gap:10px}
+.confirm label{font-size:.85rem;color:var(--muted);display:grid;gap:4px}
+.confirm input{font:.85rem var(--mono);padding:7px 9px;border:1px solid var(--rule);border-radius:6px;background:var(--surface);color:var(--ink);width:100%}
+/* vault map */
+.map{margin-top:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.folder{border:1px solid var(--rule);border-radius:10px;padding:14px;background:var(--surface);display:grid;gap:6px;align-content:start}
+.folder .path{font:500 .85rem var(--mono)}
+.folder .count{font:700 1.5rem var(--display);font-variant-numeric:tabular-nums}
+.folder .count small{font:400 .78rem var(--body);color:var(--muted);margin-left:4px}
+.folder p{font-size:.86rem;color:var(--muted)}
+.folder.hot{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+/* decision list */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:24px}
+.order{margin:0;padding-left:1.4em;display:grid;gap:6px;font-size:.93rem}
+.order li::marker{font:500 .8rem var(--mono);color:var(--muted)}
+.order b{font-weight:600}
+.order .to{font:.8rem var(--mono);color:var(--muted)}
+.diagram{overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--surface);padding:12px}
+.guards{margin-top:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.guard{display:grid;gap:6px;padding-top:12px;border-top:2px solid var(--ink)}
+.guard p{font-size:.9rem;color:var(--muted)}
+.road{margin-top:24px;display:grid;gap:0;border-top:1px solid var(--rule)}
+.road div{display:grid;grid-template-columns:120px 1fr;gap:16px;padding-block:12px;border-bottom:1px solid var(--rule);font-size:.93rem}
+.road .state{font:500 .78rem var(--mono)}
+.road .state.ok{color:var(--done)} .road .state.next{color:var(--accent)} .road .state.later{color:var(--muted)}
+footer{margin-top:56px;font-size:.82rem;color:var(--muted)}
+@media (max-width:860px){
+  .hero,.two,.cols{grid-template-columns:1fr}
+  .app{grid-template-columns:1fr}
+  .side{border-right:0;border-bottom:1px solid var(--rule)}
+  .items{grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);overflow-x:auto}
+}
+
+/* app mockup */
+.shell{margin-top:24px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);overflow:hidden;display:grid;grid-template-columns:200px minmax(0,1fr) 270px;min-height:640px}
+.shell > *{min-width:0}
+.snav{background:var(--bg);border-right:1px solid var(--rule);padding:14px 10px;display:grid;align-content:start;gap:2px;font-size:.9rem}
+.snav .lbl{font:500 .7rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 8px 6px}
+.snav a{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:7px;color:var(--ink);text-decoration:none}
+.snav a.on{background:var(--surface);box-shadow:0 0 0 1px var(--rule)}
+.snav a .n{font:500 .72rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.snav a.sess{color:var(--muted);font-size:.84rem;line-height:1.3}
+.thread{display:grid;grid-template-rows:auto 1fr auto;min-height:0}
+.thead{padding:12px 18px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.thead b{font:700 1rem var(--display)}
+.thead span{font:.74rem var(--mono);color:var(--muted)}
+.msgs{padding:18px;display:grid;gap:16px;align-content:start;overflow:auto}
+.msg{display:grid;gap:8px;max-width:680px}
+.msg.you{display:block;justify-self:end;background:var(--sunk);border-radius:12px 12px 2px 12px;padding:10px 14px;font-size:.93rem}
+.msg.ai{font-size:.93rem}
+.who{font:500 .72rem var(--mono);color:var(--muted)}
+.cit{font:500 .82rem var(--body);color:var(--accent);background:var(--accent-soft);border:0;border-radius:5px;padding:1px 6px;cursor:pointer}
+.cit:focus-visible{outline:2px solid var(--accent)}
+.trace{font:.76rem var(--mono);color:var(--muted);border-left:2px solid var(--rule);padding:4px 10px;display:grid;gap:2px}
+.cs{border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.cs .csh{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:9px 12px;border-bottom:1px solid var(--rule);background:var(--bg);font:500 .78rem var(--mono)}
+.cs .row{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:baseline;padding:9px 12px;border-bottom:1px solid var(--rule);font-size:.86rem}
+.cs .row:last-of-type{border-bottom:0}
+.cs input{accent-color:var(--accent)}
+.cs .foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-top:1px solid var(--rule)}
+.cs .checks{font:.74rem var(--mono);color:var(--muted)}
+.cred{border:1px solid var(--rule);border-radius:10px;padding:12px;display:grid;gap:8px;max-width:420px}
+.cred .line{display:flex;justify-content:space-between;gap:8px;font:.84rem var(--mono);flex-wrap:wrap}
+.cred small{color:var(--muted);font-size:.8rem}
+.composer{border-top:1px solid var(--rule);padding:12px 14px;display:grid;gap:8px}
+.composer .box{border:1px solid var(--rule);border-radius:10px;padding:10px 12px;color:var(--muted);font-size:.92rem;background:var(--bg)}
+.composer .tools{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font:500 .74rem var(--mono);border:1px solid var(--rule);border-radius:6px;padding:3px 8px;color:var(--muted);background:var(--surface)}
+.ctx{border-left:1px solid var(--rule);background:var(--bg);padding:14px;display:grid;align-content:start;gap:12px}
+.ctx .lbl{font:500 .7rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ctx ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.ctx li button{width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:7px;padding:7px 8px;color:var(--ink);font:500 .84rem var(--body);cursor:pointer}
+.ctx li button[aria-pressed="true"]{background:var(--surface);border-color:var(--rule)}
+.ctx li button small{display:block;font:.72rem var(--mono);color:var(--muted);font-weight:400}
+.preview{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:12px;display:grid;gap:8px;font-size:.84rem}
+.preview .props{font:.72rem/1.6 var(--mono);color:var(--muted);background:var(--code);border-radius:6px;padding:6px 8px}
+.preview h4{font:700 .95rem var(--display);margin:0}
+.anno{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.anno div{font-size:.88rem;color:var(--muted);border-top:2px solid var(--accent);padding-top:8px}
+.anno b{color:var(--ink);display:block;margin-bottom:2px}
+/* backend */
+.stack{margin-top:24px;display:grid;gap:8px}
+.band{border:1px solid var(--rule);border-radius:10px;background:var(--surface);padding:12px 14px;display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center}
+.band .layer{font:500 .8rem var(--mono)}
+.band .layer small{display:block;font:.72rem var(--body);color:var(--muted)}
+.cells{display:flex;flex-wrap:wrap;gap:6px}
+.cell{font:.8rem var(--mono);background:var(--sunk);border-radius:6px;padding:5px 9px}
+.band.core{border-color:var(--accent);background:var(--accent-soft)}
+.band.core .cell{background:var(--surface)}
+.down{text-align:center;font:.74rem var(--mono);color:var(--muted)}
+.adapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.adapter{border:1px dashed var(--rule);border-radius:8px;padding:8px 10px;font-size:.82rem;background:var(--bg)}
+.adapter b{font:500 .78rem var(--mono);display:block}
+.adapter span{color:var(--muted)}
+table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.tblwrap{overflow-x:auto;margin-top:16px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+.tbl th,.tbl td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+.tbl th{font:500 .74rem var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tree{margin:0;padding:14px;font:.8rem/1.65 var(--mono);white-space:pre;overflow-x:auto;background:var(--code);border-radius:10px;border:1px solid var(--rule)}
+.tree .c{color:var(--muted)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+.duo > *{min-width:0}
+.tier{font:500 .72rem var(--mono);padding:3px 7px;border-radius:999px;white-space:nowrap}
+.t-read{background:var(--sunk);color:var(--muted)} .t-prop{background:var(--review-soft);color:var(--review)} .t-apply{background:var(--done-soft);color:var(--done)} .t-ext{background:var(--pending-soft);color:var(--pending)}
+@media (max-width:980px){ .shell{grid-template-columns:1fr} .snav{grid-auto-flow:column;grid-auto-columns:max-content;overflow-x:auto;border-right:0;border-bottom:1px solid var(--rule)} .snav .lbl,.snav a.sess{display:none} .ctx{border-left:0;border-top:1px solid var(--rule)} }
+@media (max-width:860px){ .duo{grid-template-columns:1fr} .band{grid-template-columns:1fr} }
+
+@media (prefers-reduced-motion:reduce){.steps li.run .dot{animation:none}}
+/* ---------- Frontend UI schematic ---------- */
+.wf{--wf-line:color-mix(in srgb,var(--muted) 55%,transparent);border:1.5px solid var(--ink);border-radius:10px;background:var(--surface);overflow:hidden;font:500 .74rem/1.35 var(--mono);color:var(--muted)}
+.wf .r{position:relative;border:1.5px dashed var(--wf-line);border-radius:6px;padding:8px;background:var(--bg);min-width:0}
+.wf .r.solid{border-style:solid}
+.wf .r.acc{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.wf .r.pend{border-color:var(--pending);background:var(--pending-soft);color:var(--ink)}
+.wf .r.ok{border-color:var(--done);background:var(--done-soft);color:var(--ink)}
+.wf .t{font-weight:600;color:var(--ink);display:block;margin-bottom:4px}
+.wf .ln{height:6px;border-radius:3px;background:var(--wf-line);opacity:.55;margin:5px 0}
+.wf .ln.s{width:45%}.wf .ln.m{width:70%}.wf .ln.l{width:92%}
+.wf .b{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:top;border:1.5px solid var(--ink);border-radius:5px;padding:2px 7px;margin:3px 3px 0 0;color:var(--ink);background:var(--surface);white-space:nowrap}
+.wf .b.p{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.wf .wstack{display:grid;gap:6px;align-content:start}
+.wf .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.bd{position:absolute;top:-9px;left:-9px;width:20px;height:20px;border-radius:50%;background:var(--ink);color:var(--bg);font:700 .7rem/20px var(--mono);text-align:center;z-index:1}
+.wf-shell{display:grid;grid-template-columns:19% minmax(0,1fr) 24%;grid-template-rows:auto 1fr auto;gap:10px;padding:14px;min-height:440px}
+.wf-shell .wf-top{grid-column:1/-1}
+.wf-shell .wf-nav{grid-row:2/4}
+.wf-shell .wf-main{grid-column:2}
+.wf-shell .ctxp{grid-column:3;grid-row:2/4}
+.wf-shell .comp{grid-column:2}
+.legend{display:grid;gap:12px;align-content:start;counter-reset:lg}
+.legend div{display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:.9rem}
+.legend .bd{position:static;display:inline-block}
+.legend b{display:block}
+.legend small{color:var(--muted);font:.76rem var(--mono)}
+.ui-top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px;margin-top:24px;align-items:start}
+.scr-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:28px}
+.scr-tabs button{font:500 .84rem var(--body);border:1px solid var(--rule);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer}
+.scr-tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.scr-tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scr{display:none;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;margin-top:16px;align-items:start}
+.scr.on{display:grid}
+.scr .wf{padding:12px;display:grid;gap:8px;min-height:360px;align-content:start}
+.scr h3{font:700 1.15rem var(--display);margin-bottom:6px}
+.scr .spec p{font-size:.92rem;color:var(--muted);margin-bottom:12px}
+.scr .spec h4{font:500 .7rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.scr .spec ul{margin:0;padding-left:18px;font-size:.9rem;display:grid;gap:4px}
+.api{list-style:none;padding:0!important;font:.78rem/1.4 var(--mono)!important}
+.api li{display:grid;grid-template-columns:52px 1fr;gap:8px;padding:4px 0;border-bottom:1px solid var(--rule)}
+.api .m{font-weight:600;color:var(--accent)}
+.api .m.sse{color:var(--done)}
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gside{display:grid;grid-template-columns:34% minmax(0,1fr);gap:8px}
+.tree{font:.8rem/1.55 var(--mono);background:var(--code);border:1px solid var(--rule);border-radius:10px;padding:16px;overflow:auto;white-space:pre;margin:0}
+.tree .c{color:var(--muted)}
+.tree .h{color:var(--accent);font-weight:600}
+@media (max-width:860px){
+  .ui-top,.scr{grid-template-columns:1fr}
+  .wf-shell{grid-template-columns:24% minmax(0,1fr);min-height:0}
+  .wf-shell .ctxp{grid-column:1/-1;grid-row:auto}
+  .wf-shell .wf-nav{grid-row:2/4}
+}
+.wf .wstack .b{display:block;margin:0}
+@media (max-width:560px){.gside,.g3{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">notebook-<b>assistant</b></div>
+    <nav class="nav" aria-label="Sections">
+      <a href="#ui">UI</a><a href="#app">Chat</a><a href="#try">Digest</a><a href="#split">Split</a><a href="#vault">Vault</a><a href="#rules">Rules</a><a href="#data">Data</a><a href="#backend">Backend</a><a href="#platforms">Platforms</a><a href="#search">Search</a><a href="#road">Roadmap</a>
+    </nav>
+  </div>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Personal knowledge assistant for Obsidian</div>
+      <h1 style="margin-top:14px">Write raw.<br><em>Approve</em> what it files.</h1>
+      <p class="lead">You capture anything, anywhere in the vault. The assistant classifies it, digests screenshots and half-finished notes into real knowledge, and keeps every note consistent with one handbook. Nothing in the vault changes until you click.</p>
+      <div class="facts">
+        <span class="chip">Handbook v2.8</span>
+        <span class="chip">171 notes · 147 images</span>
+        <span class="chip">32 in digestion queue</span>
+        <span class="chip">2 PCs · 0 local state</span>
+      </div>
+    </div>
+    <div class="transform" aria-label="Example: a raw capture becomes a task">
+      <div class="file">
+        <header><span>01-Daily/2026-09-26.md</span><span>you typed</span></header>
+<pre>- [ ] 問 Amy 關於 recipe access 下週五前
+要學 Kedro hooks
+為什麼 polars lazyframe 不能 .dt？</pre>
+      </div>
+      <div class="arrow">↓ proposed, then approved</div>
+      <div class="file">
+        <header><span>10-Tasks/Learn Kedro hooks.md</span><span>assistant</span></header>
+<pre><span class="c">---</span>
+<span class="k">type</span>: task
+<span class="k">kind</span>: learn
+<span class="k">status</span>: todo
+<span class="k">priority</span>: p2
+<span class="k">topic</span>: <span class="s">"[[MOC - Software]]"</span>
+<span class="k">source</span>: <span class="s">"[[2026-09-26]]"</span>
+<span class="c">---</span></pre>
+      </div>
+    </div>
+  </div>
+
+
+  <section id="ui">
+    <div class="eyebrow">Frontend UI schematic</div>
+    <h2 style="margin-top:10px">The app shell, every screen, and what each one calls</h2>
+    <p class="lead" style="margin-top:12px">A wireframe (a layout drawing with boxes instead of real content) of the local web app. Five regions stay fixed; the main pane swaps between eight screens. Every button that changes the vault sends a request to the local service and gets back a changeset for you to approve.</p>
+
+    <div class="ui-top">
+      <div class="wf wf-shell" role="img" aria-label="Wireframe of the app shell with six numbered regions">
+        <div class="r solid wf-top"><span class="bd">1</span>
+          <div class="row" style="justify-content:space-between">
+            <span class="t" style="margin:0">notebook-assistant</span>
+            <span class="b">⌘K search notes + sessions</span>
+            <span class="row"><span class="b">personal-pc</span><span class="b">$4.10 / $30 this month</span><span class="b">jobs 1 ⟳</span></span>
+          </div>
+        </div>
+        <div class="r wf-nav"><span class="bd">2</span>
+          <span class="t">Screens</span>
+          <div class="wstack"><span class="b p">Chat</span><span class="b">Inbox · 0</span><span class="b">Digest · 32</span><span class="b">Review · 1</span><span class="b">Incubator · 3</span><span class="b">Tasks · 6</span><span class="b">Sessions</span><span class="b">Settings</span></div>
+          <span class="t" style="margin-top:10px">Recent sessions</span>
+          <div class="ln l"></div><div class="ln m"></div><div class="ln l"></div><div class="ln s"></div>
+        </div>
+        <div class="r wf-main"><span class="bd">3</span>
+          <span class="t">Main pane: the active screen</span>
+          <div class="ln m"></div><div class="ln l"></div>
+          <div class="r acc" style="margin:8px 0"><span class="t">Changeset card</span><div class="ln m"></div><div class="ln s"></div><span class="b p">Apply selected</span><span class="b">Reject</span></div>
+          <div class="ln l"></div><div class="ln m"></div>
+          <div class="r pend" style="margin-top:8px"><span class="t">Credential card</span><span class="b">Copy password</span></div>
+        </div>
+        <div class="r ctxp"><span class="bd">4</span>
+          <span class="t">Context panel</span>
+          <span class="b">cited note</span><span class="b">cited note</span>
+          <div class="r solid" style="margin-top:8px"><span class="t">Note preview</span><div class="ln l"></div><div class="ln m"></div><div class="ln l"></div><span class="b">Open in Obsidian</span></div>
+          <span class="t" style="margin-top:8px">Pinned</span><div class="ln s"></div>
+        </div>
+        <div class="r solid comp"><span class="bd">5</span>
+          <div class="row"><span style="flex:1">Ask or request a change…</span><span class="b">@</span><span class="b">/</span><span class="b">📎</span><span class="b p">Send</span></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div><span class="bd">1</span><span><b>Top bar</b>Global search (notes and past sessions), which PC this is, AI spend this month against the cap in <code>Config.md</code>, and the job tray showing running digests and sweeps.<br><small>GET /api/status · GET /api/search?q=</small></span></div>
+        <div><span class="bd">2</span><span><b>Nav rail</b>Eight screens with live counts, then recent sessions grouped by Today / This week.<br><small>GET /api/counts · GET /api/sessions?limit=20</small></span></div>
+        <div><span class="bd">3</span><span><b>Main pane</b>The active screen. All Markdown renders the same way everywhere: wikilinks, callouts, math, Mermaid, code, and HTML in a sandboxed frame (an isolated frame that can't touch the page or your files).</span></div>
+        <div><span class="bd">4</span><span><b>Context panel</b>Notes cited in the current answer or selected in a list, previewed without leaving the app. Collapses on narrow windows.<br><small>GET /api/notes/{id}</small></span></div>
+        <div><span class="bd">5</span><span><b>Composer</b>Shown on Chat, and on Inbox for captures. <code>@</code> pins a note as context, <code>/</code> runs a command (/capture /digest /sop /undo), 📎 attaches a screenshot, PDF, email or transcript.</span></div>
+      </div>
+    </div>
+
+    <div class="scr-tabs" role="tablist" aria-label="Screens">
+      <button role="tab" aria-selected="true" aria-controls="scr-chat" id="t-chat">Chat</button>
+      <button role="tab" aria-selected="false" aria-controls="scr-inbox" id="t-inbox">Inbox</button>
+      <button role="tab" aria-selected="false" aria-controls="scr-digest" id="t-digest">Digest</button>
+      <button role="tab" aria-selected="false" aria-controls="scr-review" id="t-review">Review</button>
+      <button role="tab" aria-selected="false" aria-controls="scr-inc" id="t-inc">Incubator</button>
+      <button role="tab" aria-selected="false" aria-controls="scr-tasks" id="t-tasks">Tasks</button>
+      <button role="tab" aria-selected="false" aria-controls="scr-sess" id="t-sess">Sessions</button>
+      <button role="tab" aria-selected="false" aria-controls="scr-set" id="t-set">Settings</button>
+    </div>
+
+    <!-- Chat -->
+    <div class="scr on" id="scr-chat" role="tabpanel" aria-labelledby="t-chat">
+      <div class="wf" role="img" aria-label="Chat screen wireframe">
+        <div class="r solid"><span class="t">Session header</span>title · PC · scope ▾ · saved to Sessions/2026/09/…</div>
+        <div class="r" style="justify-self:end;width:60%"><span class="t">You</span><div class="ln l"></div></div>
+        <div class="r"><span class="t">Assistant</span>
+          <div class="r solid" style="margin-bottom:6px">tool trace ▸ search → read_note → propose_merge</div>
+          <div class="ln l"></div><div class="ln m"></div><span class="b">[[cited note]]</span><span class="b">[[cited note]]</span>
+          <div class="r acc" style="margin-top:8px"><span class="t">Changeset card · 3 ops</span>☑ patch ☑ alias ☑ delete<div class="row" style="margin-top:4px"><span class="b p">Apply selected</span><span class="b">Reject</span><span>checks ✓</span></div></div>
+        </div>
+        <div class="r solid"><span class="t">Composer</span>@ pin · / command · 📎 attach · scope ▾</div>
+      </div>
+      <div class="spec">
+        <h3>Chat</h3>
+        <p>Ask questions answered from your notes, or ask for changes. Answers stream in word by word. The chat has read and propose tools only, so any change arrives as a changeset card. <a href="#app">See the rendered example ↓</a></p>
+        <h4>Components</h4>
+        <ul><li>SessionHeader, MessageList, ToolTrace (collapsible)</li><li>MarkdownView with citation chips</li><li>ChangesetCard, CredentialCard</li><li>Composer with @-mention and slash-command menus</li></ul>
+        <h4>Calls</h4>
+        <ul class="api">
+          <li><span class="m">POST</span>/api/sessions → new session note</li>
+          <li><span class="m">POST</span>/api/sessions/{id}/turns</li>
+          <li><span class="m sse">SSE</span>/api/sessions/{id}/stream · token, tool, changeset, done</li>
+          <li><span class="m">POST</span>/api/changesets/{id}/apply {ops, base_hash}</li>
+          <li><span class="m">POST</span>/api/secrets/{item}/copy → clipboard only</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Inbox -->
+    <div class="scr" id="scr-inbox" role="tabpanel" aria-labelledby="t-inbox">
+      <div class="wf" role="img" aria-label="Inbox screen wireframe">
+        <div class="r acc" style="text-align:center;padding:18px"><span class="t">Drop zone</span>paste text · drop screenshot · .eml / chat export · audio transcript</div>
+        <div class="gside">
+          <div class="r"><span class="t">00-Inbox (raw)</span><div class="wstack"><span class="b">2026-09-27 1402.md</span><span class="b">Screenshot 0931.png</span><span class="b">Meeting notes.txt</span></div></div>
+          <div class="r"><span class="t">Proposed placement</span>
+            <div class="r solid" style="margin-bottom:6px">→ 10-Tasks/Ask Amy about recipe access.md<br>type: task · kind: action · due 10-02</div>
+            <div class="r solid" style="margin-bottom:6px">→ 60-Knowledge/Software/Kedro hooks.md<br>type: concept · digest: pending</div>
+            <div class="row"><span class="b p">Apply selected</span><span class="b">Edit</span><span class="b">Leave in Inbox</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="spec">
+        <h3>Inbox</h3>
+        <p>Where anything unorganized lands: captures you drop here, plus raw notes you created in Obsidian's 00-Inbox. Processing one proposes where each piece goes; a capture may split into several notes (Handbook §3, §8).</p>
+        <h4>Components</h4>
+        <ul><li>CaptureDropZone (text, image, email, transcript)</li><li>InboxList</li><li>PlacementProposal: one row per resulting note, with a diff</li></ul>
+        <h4>Calls</h4>
+        <ul class="api">
+          <li><span class="m">POST</span>/api/capture (multipart) → note in 00-Inbox</li>
+          <li><span class="m">GET</span>/api/inbox</li>
+          <li><span class="m">POST</span>/api/inbox/{id}/process → changeset</li>
+          <li><span class="m sse">SSE</span>/api/jobs/{job}/events</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Digest -->
+    <div class="scr" id="scr-digest" role="tabpanel" aria-labelledby="t-digest">
+      <div class="wf" role="img" aria-label="Digest screen wireframe">
+        <div class="row"><span class="b p">pending 32</span><span class="b">running 1</span><span class="b">review 2</span><span class="b">graduated</span><span class="b">reason ▾</span></div>
+        <div class="gside">
+          <div class="wstack">
+            <div class="r pend"><span class="t">Terminal setup</span>screenshot-only<div class="row"><span class="b p">Approve to digest</span><span class="b">Graduate as-is</span></div></div>
+            <div class="r"><span class="t">Life of a wafer.canvas</span>finished drawing<div class="row"><span class="b">Approve to digest</span><span class="b p">Graduate as-is</span></div></div>
+            <div class="r acc"><span class="t">Confusion matrix</span>review ready</div>
+          </div>
+          <div class="r solid"><span class="t">Review: Confusion matrix</span>
+            <div class="g2">
+              <div class="r"><span class="t">Original + screenshots</span><div class="ln l"></div><div class="r" style="height:48px;margin:4px 0">🖼</div><div class="ln m"></div></div>
+              <div class="r ok"><span class="t">Draft</span><div class="ln l"></div><div class="ln m"></div><div class="r pend" style="margin:4px 0">⚠ Unverified</div><div class="ln l"></div></div>
+            </div>
+            <div class="row" style="margin-top:6px"><span class="b p">Approve to graduate</span><span class="b">Send back + feedback</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="spec">
+        <h3>Digest</h3>
+        <p>The queue of notes that aren't finished knowledge yet. Each item has its own buttons; clicking <b>Approve to digest</b> starts that item immediately on this PC, with live steps. Finished canvases or notes skip straight to <b>Graduate as-is</b> (Handbook §19). <a href="#try">Try it ↓</a></p>
+        <h4>Components</h4>
+        <ul><li>DigestQueue with state and reason filters</li><li>DigestItem with per-item buttons</li><li>ProgressSteps (fed by SSE)</li><li>SideBySide: original and screenshots vs. draft, with Unverified callouts</li><li>GraduateDialog: placement confirm for unplaced notes; companion note for canvases</li></ul>
+        <h4>Calls</h4>
+        <ul class="api">
+          <li><span class="m">GET</span>/api/digest?state=pending</li>
+          <li><span class="m">POST</span>/api/digest/{id} {base_hash} → job</li>
+          <li><span class="m sse">SSE</span>/api/jobs/{job}/events · step, draft, error</li>
+          <li><span class="m">POST</span>/api/digest/{id}/graduate</li>
+          <li><span class="m">POST</span>/api/digest/{id}/send-back {feedback}</li>
+          <li><span class="m">POST</span>/api/graduate/{id} (as-is)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Review -->
+    <div class="scr" id="scr-review" role="tabpanel" aria-labelledby="t-review">
+      <div class="wf" role="img" aria-label="Review screen wireframe">
+        <div class="row"><span class="b p">Pending 1</span><span class="b">History</span><span class="b">source: sweep · chat · inbox ▾</span><span class="b">Accept all mechanical fixes</span></div>
+        <div class="gside">
+          <div class="wstack">
+            <div class="r acc"><span class="t">cs-01J8Q · chat</span>merge Ubuntu notes · 3 ops</div>
+            <div class="r"><span class="t">cs-01J8R · sweep</span>12 lint fixes</div>
+            <div class="r"><span class="t">cs-01J8M · applied</span><span class="b">Undo</span></div>
+          </div>
+          <div class="r solid"><span class="t">Operations</span>
+            ☑ patch · Ubuntu home directory files<br>☑ alias · Ubuntu folder explanation<br>☐ delete · Ubuntu folder explanation
+            <div class="g2" style="margin-top:6px">
+              <div class="r"><span class="t">before</span><div class="ln l"></div><div class="ln m"></div></div>
+              <div class="r ok"><span class="t">after</span><div class="ln l"></div><div class="ln m"></div><div class="ln s"></div></div>
+            </div>
+            <div class="row" style="margin-top:6px">checks: nothing lost ✓ links ✓ rules ✓ base hash ✓</div>
+            <div class="row"><span class="b p">Apply selected</span><span class="b">Reject</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="spec">
+        <h3>Review</h3>
+        <p>Every proposed change, from any source, in one place. Tick operations one by one, see a side-by-side diff (a before/after view of the changed lines), and apply. History keeps applied changesets with Undo, which applies the stored reverse operations.</p>
+        <h4>Components</h4>
+        <ul><li>ChangesetList (pending / history)</li><li>OperationList with checkboxes</li><li>DiffView (side-by-side, word-level)</li><li>ChecksBar: preservation, links, invariants, base hash</li></ul>
+        <h4>Calls</h4>
+        <ul class="api">
+          <li><span class="m">GET</span>/api/changesets?status=pending</li>
+          <li><span class="m">GET</span>/api/changesets/{id} → ops, diffs, checks</li>
+          <li><span class="m">POST</span>/api/changesets/{id}/apply {ops}</li>
+          <li><span class="m">POST</span>/api/changesets/{id}/reject</li>
+          <li><span class="m">POST</span>/api/changesets/{id}/revert (Undo)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Incubator -->
+    <div class="scr" id="scr-inc" role="tabpanel" aria-labelledby="t-inc">
+      <div class="wf" role="img" aria-label="Incubator board wireframe">
+        <div class="g3">
+          <div class="r"><span class="t">exploring</span><div class="r solid">Self-healing AI agent<br><span class="b">open</span></div></div>
+          <div class="r"><span class="t">shaping</span><div class="r solid">Vault assistant<div class="row"><span class="b p">Promote</span></div></div></div>
+          <div class="r"><span class="t">parked</span><div class="r solid">Idea C<div class="row"><span class="b">Revive</span><span class="b">Drop</span></div></div></div>
+        </div>
+        <div class="r solid"><span class="t">Idea preview</span>question · next_step · linked captures<div class="ln l"></div><div class="ln m"></div></div>
+      </div>
+      <div class="spec">
+        <h3>Incubator</h3>
+        <p>Ideas without a roadmap yet, as a board by stage (Handbook §18). Dragging a card or clicking Promote proposes the property change; Promote also proposes a new project note in 20-Projects.</p>
+        <h4>Components</h4>
+        <ul><li>Board with stage columns</li><li>IdeaCard, IdeaPreview</li></ul>
+        <h4>Calls</h4>
+        <ul class="api">
+          <li><span class="m">GET</span>/api/views/incubator</li>
+          <li><span class="m">POST</span>/api/changesets {intent: promote | park | drop}</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Tasks -->
+    <div class="scr" id="scr-tasks" role="tabpanel" aria-labelledby="t-tasks">
+      <div class="wf" role="img" aria-label="Tasks screen wireframe">
+        <div class="row"><span class="b p">All</span><span class="b">action</span><span class="b">question</span><span class="b">learn</span><span class="b">priority ▾</span><span class="b">topic ▾</span><span class="b">due ▾</span></div>
+        <div class="r"><span class="t">Due this week</span>☐ Ask Amy about recipe access · p1 · 10-02<br>☐ Why can't a LazyFrame use .dt? · question</div>
+        <div class="r"><span class="t">To learn</span>☐ Learn Kedro hooks · Software<br>☐ Finish Terminal setup · produced → digest</div>
+        <div class="r acc"><span class="t">Inline confirm</span>Mark done: status todo → done <span class="b p">Apply</span><span class="b">Cancel</span></div>
+      </div>
+      <div class="spec">
+        <h3>Tasks</h3>
+        <p>To-dos, open questions and things to learn, grouped and filtered (Handbook §17). Ticking a task is still a change, so it shows a one-line inline confirm instead of a full review.</p>
+        <h4>Components</h4>
+        <ul><li>TaskFilters, TaskGroup, TaskRow</li><li>InlineConfirm (single-operation changeset)</li></ul>
+        <h4>Calls</h4>
+        <ul class="api">
+          <li><span class="m">GET</span>/api/views/tasks?kind=&amp;topic=</li>
+          <li><span class="m">POST</span>/api/changesets {ops:[set status]} → apply</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Sessions -->
+    <div class="scr" id="scr-sess" role="tabpanel" aria-labelledby="t-sess">
+      <div class="wf" role="img" aria-label="Session search wireframe">
+        <div class="r solid"><span class="t">Search sessions</span>"kedro credentials" · date ▾ · PC ▾ · has changeset ☐</div>
+        <div class="r"><span class="t">Kedro credentials in catalog · 09-24 · work-pc</span>…store the <b>credentials</b> in conf/local, not the <b>catalog</b>…<div class="row"><span class="b">Open</span><span class="b">Continue</span></div></div>
+        <div class="r"><span class="t">Frontend and backend design · 09-27 · personal-pc</span><div class="ln l"></div></div>
+        <div class="r pend">Sessions older than 90 days are queued for deletion by a daily job, for your approval. It is the only automatic job (Handbook §16.6).</div>
+      </div>
+      <div class="spec">
+        <h3>Sessions</h3>
+        <p>Every past conversation, searchable by keyword (Chinese words split by jieba, a Chinese word segmenter) and, if enabled, by meaning. Continue any session on either PC, because the transcript is a note in the vault.</p>
+        <h4>Components</h4>
+        <ul><li>SessionSearch with filters</li><li>ResultRow with highlighted snippet</li></ul>
+        <h4>Calls</h4>
+        <ul class="api">
+          <li><span class="m">GET</span>/api/sessions?q=&amp;from=&amp;pc=</li>
+          <li><span class="m">GET</span>/api/sessions/{id}</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="scr" id="scr-set" role="tabpanel" aria-labelledby="t-set">
+      <div class="wf" role="img" aria-label="Settings screen wireframe">
+        <div class="g2">
+          <div class="r"><span class="t">This PC (not synced)</span>vault path ✓<br>ANTHROPIC_API_KEY ✓ env<br>Bitwarden CLI: locked <span class="b">Unlock</span><br>search: keyword · e5-small ▾<br>index: 171 notes · rebuilt 09-27</div>
+          <div class="r"><span class="t">Shared (Config.md)</span>models per task: classify · transform · digest · chat ▾<br>spend cap: $30 / month<br>sweep: manual only<br>settle time: 30 min<br>session retention: 90 d</div>
+        </div>
+        <div class="row"><span class="b">Rebuild index</span><span class="b">Sweep changes</span><span class="b">Lint</span><span class="b">Deep pass</span><span class="b">Archive check</span><span class="b">Open Handbook</span></div>
+      </div>
+      <div class="spec">
+        <h3>Settings</h3>
+        <p>Split in two on purpose. The left side belongs to this PC and never syncs; the right side is <code>99-System/Assistant/Config.md</code>, which both PCs read. Editing it produces a changeset like any other note.</p>
+        <h4>Calls</h4>
+        <ul class="api">
+          <li><span class="m">GET</span>/api/status</li>
+          <li><span class="m">POST</span>/api/index/rebuild</li>
+          <li><span class="m">POST</span>/api/sweep/run</li>
+          <li><span class="m">POST</span>/api/secrets/unlock</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="two" style="margin-top:40px">
+      <div>
+        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">Component tree</h3>
+<pre class="tree"><span class="h">App</span>
+├─ TopBar ── SearchPalette · PcBadge · SpendBadge · JobTray
+├─ NavRail ── ScreenLink ×8 (counts) · SessionList
+├─ <span class="h">Screen</span> (router)
+│  ├─ ChatScreen ── MessageList · ToolTrace · Composer
+│  ├─ InboxScreen ── CaptureDropZone · PlacementProposal
+│  ├─ DigestScreen ── DigestQueue · ProgressSteps · SideBySide
+│  ├─ ReviewScreen ── ChangesetList · OperationList · DiffView
+│  ├─ IncubatorScreen ── Board · IdeaCard
+│  ├─ TasksScreen ── TaskFilters · TaskGroup · InlineConfirm
+│  ├─ SessionsScreen ── SessionSearch · ResultRow
+│  └─ SettingsScreen
+└─ ContextPanel ── CitationList · NotePreview · Pinned
+
+<span class="c">shared building blocks</span>
+MarkdownView   <span class="c">wikilinks, callouts, KaTeX, Mermaid, Shiki</span>
+HtmlFrame      <span class="c">sandboxed iframe for HTML output</span>
+ChangesetCard  CredentialCard  ChecksBar  DiffView</pre>
+      </div>
+      <div>
+        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">How data moves</h3>
+        <ul style="padding-left:18px;display:grid;gap:10px;font-size:.93rem">
+          <li><b>Reads</b> go through TanStack Query (a library that fetches, caches and refreshes server data), so counts and lists stay current without manual reloads.</li>
+          <li><b>Long work</b> (a chat answer, a digest, a sweep) returns a job id at once; progress arrives over SSE (server-sent events, a one-way stream from the service to the page).</li>
+          <li><b>Writes</b> are always two steps: propose → changeset, then apply with the note's base hash. If the note changed in between, apply refuses and asks you to re-run.</li>
+          <li><b>No state in the browser.</b> Sessions, changesets and settings are notes in the vault, so reloading the page or switching PCs shows the same thing.</li>
+          <li><b>Secrets</b> never reach the page. The Copy button asks the service to pipe Bitwarden output to the clipboard.</li>
+          <li><b>Opening in Obsidian</b> uses an <code>obsidian://open</code> link (a URL that tells Obsidian which note to open).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="app">
+    <div class="eyebrow">Rendered example · Chat screen</div>
+    <h2 style="margin-top:10px">Chat with your vault, approve what it changes</h2>
+    <p class="lead" style="margin-top:12px">A local web app, the same on both PCs. Ask questions answered from your notes, or ask for changes. Changes come back as a card you approve. Click a citation or tick the operations to try it.</p>
+    <p class="demo-note">Drawn mock-up with sample content. The conversation shown is an example.</p>
+
+    <div class="shell" aria-label="Mock-up of the assistant's chat screen">
+      <nav class="snav" aria-label="App navigation (mock-up)">
+        <a class="on" href="#app">Chat</a>
+        <a href="#app">Inbox <span class="n">0</span></a>
+        <a href="#try">Digest <span class="n">32</span></a>
+        <a href="#app">Review <span class="n">1</span></a>
+        <a href="#app">Incubator <span class="n">3</span></a>
+        <a href="#app">Tasks <span class="n">6</span></a>
+        <div class="lbl">Today</div>
+        <a class="sess on" href="#app">Polars fix and Ubuntu notes</a>
+        <a class="sess" href="#app">Frontend and backend design</a>
+        <div class="lbl">This week</div>
+        <a class="sess" href="#app">Kedro credentials in catalog</a>
+        <a class="sess" href="#app">TOEFL notes to archive</a>
+      </nav>
+
+      <div class="thread">
+        <div class="thead"><b>Polars fix and Ubuntu notes</b><span>personal-pc · scope: All · 99-System/Assistant/Sessions/2026/09/…</span></div>
+        <div class="msgs">
+          <div class="msg you">How did I fix the Polars <code>.dt</code> error? Also merge my two Ubuntu folder notes.</div>
+          <div class="msg ai">
+            <div class="who">Assistant</div>
+            <div class="trace"><span>search("polars dt error") → 3 notes</span><span>read_note("Polars LazyFrame dt error")</span><span>propose_merge(2 notes) → changeset cs-01J8Q…</span></div>
+            <p>You called <code>.dt</code> on the LazyFrame itself. <code>.dt</code> works only on an expression, so the fix was to move <code>.dt.total_seconds()</code> inside <code>with_columns(…)</code> <button class="cit" data-note="lazy">Polars LazyFrame dt error</button>. The same pattern appears in <button class="cit" data-note="withcol">Polars with_columns</button>.</p>
+            <p>For the Ubuntu notes, here's the change I'd make:</p>
+            <div class="cs" id="cs">
+              <div class="csh"><span>Changeset cs-01J8Q · 3 operations</span><span id="cs-status" class="pill st-pending">pending</span></div>
+              <label class="row"><input type="checkbox" checked data-op> <span class="tier t-prop">patch</span><span>Add a <b>.local folder</b> section to <button class="cit" data-note="ubuntu">Ubuntu home directory files</button></span></label>
+              <label class="row"><input type="checkbox" checked data-op> <span class="tier t-prop">alias</span><span>Add <code>Ubuntu folder explanation</code> as an alias, so the old name still finds it</span></label>
+              <label class="row"><input type="checkbox" checked data-op> <span class="tier t-prop">delete</span><span>Remove <code>Ubuntu folder explanation</code> after repointing its 2 links</span></label>
+              <div class="foot"><button class="btn primary" id="cs-apply">Apply selected</button><button class="btn" id="cs-reject">Reject</button><span class="checks" id="cs-checks">checks: nothing lost ✓ · links ✓ · rules ✓</span></div>
+            </div>
+          </div>
+          <div class="msg you">What's my work VM login?</div>
+          <div class="msg ai">
+            <div class="who">Assistant</div>
+            <div class="cred">
+              <div class="line"><b>Cred - Work VM</b><span class="pill st-pending">sensitive</span></div>
+              <div class="line"><span>username</span><span>a12•••••</span></div>
+              <div class="actions"><button class="btn" data-copy="Username copied">Copy username</button><button class="btn primary" data-copy="Password copied from Bitwarden · clears in 30 s">Copy password</button></div>
+              <small id="cred-msg">The password goes straight to your clipboard. It isn't shown here or sent to the model.</small>
+            </div>
+          </div>
+        </div>
+        <div class="composer">
+          <div class="box">Ask or request a change…</div>
+          <div class="tools"><span class="tag">@ pin a note</span><span class="tag">/capture /digest /sop /undo</span><span class="tag">attach screenshot or PDF</span><span class="tag">scope: All ▾</span></div>
+        </div>
+      </div>
+
+      <aside class="ctx" aria-label="Context panel (mock-up)">
+        <div class="lbl">Cited in this answer</div>
+        <ul id="ctx-list">
+          <li><button data-note="lazy" aria-pressed="true">Polars LazyFrame dt error<small>troubleshooting · Software</small></button></li>
+          <li><button data-note="withcol" aria-pressed="false">Polars with_columns<small>snippet · Software</small></button></li>
+          <li><button data-note="ubuntu" aria-pressed="false">Ubuntu home directory files<small>concept · Systems</small></button></li>
+        </ul>
+        <div class="preview" id="ctx-preview"></div>
+        <div class="lbl">Pinned</div>
+        <p style="font-size:.84rem;color:var(--muted)">None. Type @ in the composer to pin a note.</p>
+      </aside>
+    </div>
+
+    <div class="anno">
+      <div><b>Answers cite notes</b>Every claim links a note. Clicking opens a preview here, with Open in Obsidian.</div>
+      <div><b>Requests become changesets</b>The chat can't write. It proposes, you tick operations and apply, and the checks run first.</div>
+      <div><b>Secrets skip the model</b>Credential cards copy from Bitwarden to the clipboard. The value never appears on screen or in the prompt.</div>
+      <div><b>Sessions are notes</b>Each conversation is saved in the vault, searchable in Obsidian, and continues on your other PC. Kept 90 days.</div>
+    </div>
+  </section>
+
+  <section id="try">
+    <div class="eyebrow">Try it</div>
+    <h2 style="margin-top:10px">The assistant's Digest screen</h2>
+    <p class="lead" style="margin-top:12px">Pick an item on the left and use its buttons. Every item goes the same way: capture, placement, digestion, graduation. <b>Graduate as-is</b> skips digestion for notes that are already finished.</p>
+    <p class="demo-note">Simulated in this page with sample notes from your vault. No AI runs here, and the drafts shown are examples.</p>
+
+    <div class="app">
+      <div class="side">
+        <h3>Queue</h3>
+        <ul class="items" id="items"></ul>
+      </div>
+      <div class="main" id="main" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="split">
+    <div class="eyebrow">Extraction</div>
+    <h2 style="margin-top:10px">One capture, every note it yields</h2>
+    <p class="lead" style="margin-top:12px">Splitting a capture into the right notes is a core requirement, as important as losing nothing. One planner (<code>app/extract.py</code>) serves every entry point: paste into chat, <b>Approve to digest</b>, the Inbox and emails, and <b>Sweep changes</b>. The model proposes a typed <b>split plan</b>; code validates it and compiles it into a changeset.</p>
+
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>#</th><th>Step</th><th>AI?</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td><b>Segment</b></td><td>yes</td><td>Break the capture into atoms: one step, one explanation, one fact, one credential, one task, one general rule</td></tr>
+          <tr><td class="num">2</td><td><b>Classify</b></td><td>yes</td><td>Each atom through the decision order (Handbook §3) and the topic folders (§2.3)</td></tr>
+          <tr><td class="num">3</td><td><b>Generalize</b></td><td>yes</td><td>Does this explanation hold beyond this case? Then it's a <b>principle</b> for a knowledge note; the specific case keeps only what's unique (§3.1 instance vs. principle)</td></tr>
+          <tr><td class="num">4</td><td><b>Match</b></td><td>no, then yes</td><td>Existing notes by title, alias, key, then search. <b>Patch before create</b>: a new section, collection rows, a History line</td></tr>
+          <tr><td class="num">5</td><td><b>Plan</b></td><td>—</td><td>Atom → target note → operation → role (instance, principle, extracted), plus links both ways and to the MOC</td></tr>
+          <tr><td class="num">6</td><td><b>Verify</b></td><td>partly</td><td>Corrections only with a cited source; anything unsupported goes in an <i>Unverified</i> box; <code>origin: ai-chat</code> stays</td></tr>
+          <tr><td class="num">7</td><td><b>Validate</b></td><td>no</td><td>Every atom lands in exactly one note; nothing lost across the set; no explanation duplicated; links resolve both ways; every note passes the invariants</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="two">
+      <div>
+        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">Split map: the uv install answer</h3>
+        <p style="font-size:.92rem;color:var(--muted);margin-bottom:10px">A pasted AI answer explaining <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code> and <code>source ~/.bashrc</code>. This is the first fixture capture and the regression baseline.</p>
+        <div class="tblwrap" style="margin-top:0">
+          <table class="tbl">
+            <thead><tr><th>Atom</th><th>Role</th><th>Goes to</th></tr></thead>
+            <tbody>
+              <tr><td>Install uv, reload PATH, verify</td><td>instance</td><td><code>SOP - Install uv (Linux)</code> · patch</td></tr>
+              <tr><td>What <code>-L -s -S -f</code> do, and why</td><td>principle</td><td><code>curl pipe to shell install</code> · new, Systems</td></tr>
+              <tr><td><code>| sh</code> runs the script</td><td>principle</td><td>same note</td></tr>
+              <tr><td>Why <code>source</code>; bash vs. zsh</td><td>principle</td><td>same note</td></tr>
+              <tr><td>One-line entries per flag</td><td>extracted</td><td><code>Bash commands</code> · rows added</td></tr>
+              <tr><td>"source ~/.bashrc" is imprecise</td><td>correction</td><td>both notes, citing the uv docs</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">What the review card shows</h3>
+        <ul style="padding-left:18px;display:grid;gap:10px;font-size:.93rem">
+          <li><b>The split map first:</b> the capture on the left, the notes it produced on the right, one line per atom with its role and whether it's new or a patch.</li>
+          <li><b>Reassign or reject an atom</b> before applying. The plan is typed data, so code recompiles it into operations with no second model call.</li>
+          <li><b>Per-note diffs</b> follow, then the usual checks and Apply.</li>
+          <li><b>Pasted captures digest right away</b> (Handbook §19.6), but the changeset still needs your approval, and nothing becomes solid knowledge without <b>Approve to graduate</b>.</li>
+          <li><b>Must not happen:</b> everything filed under uv with no principle note (the first attempt's mistake), explanations duplicated into the SOP, a new uv note when one exists, the blog references treated as verified sources.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="vault">
+    <div class="eyebrow">The vault after migration</div>
+    <h2 style="margin-top:10px">Folders say what a note is</h2>
+    <p class="lead" style="margin-top:12px">Each folder holds one type of note. Everything else (topic, status, links) lives in properties. These are the actual counts from the reorganized copy of your vault.</p>
+    <div class="map">
+      <div class="folder hot"><div class="path">00-Inbox/</div><div class="count">0<small>waiting</small></div><p>Where new notes land. Write here without thinking about names or folders.</p></div>
+      <div class="folder"><div class="path">10-Tasks/</div><div class="count">6<small>tasks</small></div><p>Actions, questions and things to learn. Learn tasks close only when they produce knowledge.</p></div>
+      <div class="folder"><div class="path">15-Incubator/</div><div class="count">3<small>ideas</small></div><p>Thinking without a roadmap yet: Self-healing AI agent, EBM, Knowledge lakehouse.</p></div>
+      <div class="folder"><div class="path">20-Projects/ · 25-Areas/</div><div class="count">3 + 1</div><p>Efforts with an end, and ongoing responsibilities. Code stays inside its project.</p></div>
+      <div class="folder"><div class="path">30-SOPs/</div><div class="count">13<small>procedures</small></div><p>How to do things: install, set up, submit. Linux and Windows kept apart by property.</p></div>
+      <div class="folder"><div class="path">40-Reference/</div><div class="count">5<small>facts, creds, links</small></div><p>Single values you look up. Credentials are marked <code>sensitive</code>.</p></div>
+      <div class="folder"><div class="path">60-Knowledge/</div><div class="count">91<small>notes · 8 topics</small></div><p>Understanding: concepts, snippets, fixes, course notes. Each topic has an index note.</p></div>
+      <div class="folder"><div class="path">95-Archive/</div><div class="count">31<small>retired</small></div><p>TOEFL prep, unused tools, the cancelled PC purchase. Links still work.</p></div>
+    </div>
+  </section>
+
+  <section id="rules">
+    <div class="eyebrow">The golden rule</div>
+    <h2 style="margin-top:10px">One handbook decides everything</h2>
+    <div class="two">
+      <div>
+        <h3>Where does a note go? First yes wins.</h3>
+        <ol class="order" style="margin-top:14px">
+          <li><b>Unprocessed or uncertain</b> <span class="to">→ 00-Inbox</span></li>
+          <li><b>Something to do, find out or learn</b> <span class="to">→ task</span></li>
+          <li><b>Still forming, no goal yet</b> <span class="to">→ idea</span></li>
+          <li><b>An effort with an end</b> <span class="to">→ project</span></li>
+          <li><b>An ongoing responsibility</b> <span class="to">→ area</span></li>
+          <li><b>Steps to reproduce an outcome</b> <span class="to">→ SOP</span></li>
+          <li><b>Login or access info</b> <span class="to">→ credential</span></li>
+          <li><b>A single value to look up</b> <span class="to">→ fact</span></li>
+          <li><b>A pointer to something external</b> <span class="to">→ resource</span></li>
+          <li><b>An explanation, snippet or fix</b> <span class="to">→ knowledge</span></li>
+          <li><b>None of the above</b> <span class="to">→ back to inbox, flagged for you</span></li>
+        </ol>
+        <p class="lead" style="margin-top:14px;font-size:.9rem">Shortened from 15 steps (Handbook §3). Every note must also pass six checks: one type, the right folder, required properties, a unique title, at least one link, and at most three folders deep.</p>
+      </div>
+      <div>
+        <h3>Life of a captured note</h3>
+        <div class="diagram" style="margin-top:14px">
+<pre class="mermaid">
+stateDiagram-v2
+  direction TB
+  [*] --> Inbox: you write
+  Inbox --> Placed: approve placement
+  Placed --> Pending: needs digestion
+  Placed --> Graduated: Graduate as-is
+  Pending --> Digesting: Approve to digest
+  Digesting --> Review: draft written
+  Review --> Graduated: Approve to graduate
+  Review --> Pending: Send back + feedback
+  Graduated --> [*]
+</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="data">
+    <div class="eyebrow">Data</div>
+    <h2 style="margin-top:10px">The vault is the database</h2>
+    <p class="lead" style="margin-top:12px">Anything that can't be recomputed lives in the vault as Markdown and syncs to both PCs. Anything that can be recomputed is a cache on each PC that can be deleted at any time.</p>
+    <div class="duo">
+      <div>
+        <h3>In the vault · synced</h3>
+<pre class="tree" style="margin-top:12px">99-System/Assistant/
+├─ Config.md            <span class="c">shared settings</span>
+├─ Preferences.md       <span class="c">conventions learned from your approvals</span>
+├─ Sessions/2026/09/    <span class="c">one note per chat · searchable · 90 days</span>
+├─ Changesets/2026-09/  <span class="c">every change: diff + undo · hidden from search</span>
+├─ Snapshots/           <span class="c">last approved body per note · hidden</span>
+├─ Runs/2026-09.md      <span class="c">one line per job · hidden</span>
+└─ Lease.md             <span class="c">which PC runs the daily retention job</span></pre>
+        <p class="lead" style="margin-top:12px;font-size:.9rem">Per-note state (digest, review, sensitive, id) lives in each note's own properties.</p>
+      </div>
+      <div>
+        <h3>On each PC · cache</h3>
+<pre class="tree" style="margin-top:12px">%LOCALAPPDATA%\notebook-assistant\
+└─ index.sqlite
+   ├─ full-text index   <span class="c">BM25, Chinese split with jieba</span>
+   ├─ vectors           <span class="c">optional, per PC</span>
+   ├─ link graph        <span class="c">links, backlinks, embeds</span>
+   └─ tree + properties <span class="c">for fast filtering</span></pre>
+        <p class="lead" style="margin-top:12px;font-size:.9rem">Rebuilt from the vault in seconds. Not stored in the vault because it would go stale between syncs, bloat Obsidian Sync, and conflict when both PCs write it.</p>
+      </div>
+    </div>
+    <div class="duo">
+      <div class="file">
+        <header><span>Sessions/2026/09/2026-09-27 0302 Polars fix and Ubuntu notes.md</span><span>append-only</span></header>
+<pre><span class="c">---</span>
+<span class="k">type</span>: system
+<span class="k">kind</span>: session
+<span class="k">device</span>: personal-pc
+<span class="k">notes_cited</span>: [<span class="s">"[[Polars LazyFrame dt error]]"</span>, …]
+<span class="k">changesets</span>: [<span class="s">"[[cs-01J8Q…]]"</span>]
+<span class="k">tokens</span>: {in: 18240, out: 910}
+<span class="c">---</span>
+## 03:02 · You
+How did I fix the Polars .dt error? …
+## 03:02 · Assistant
+You called .dt on the LazyFrame itself …
+&gt; [!tool]- search("polars dt error") → 3 notes</pre>
+      </div>
+      <div class="file">
+        <header><span>Changesets/2026-09/cs-01J8Q….md</span><span>applied · undoable</span></header>
+<pre><span class="c">---</span>
+<span class="k">status</span>: applied
+<span class="k">created_by</span>: <span class="s">"[[2026-09-27 0302 Polars fix and Ubuntu notes]]"</span>
+<span class="k">base_hash</span>: {ubuntu-home: 9f2c…, ubuntu-folder: 41ab…}
+<span class="c">---</span>
+```json
+[{"op":"patch","note":"ubuntu-home", …},
+ {"op":"delete","note":"ubuntu-folder","repoint":2}]
+```
+```diff
++ ## .local folder
++ …
+```
+## Undo
+reverse operations, replayed if the notes are unchanged</pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="backend">
+    <div class="eyebrow">Backend</div>
+    <h2 style="margin-top:10px">One core, every tool defined once</h2>
+    <p class="lead" style="margin-top:12px">The chat agent, the web API and background jobs all call the same typed tools. The core has no file or network access. Files, Claude, Bitwarden and the index plug in from outside, so each can be swapped or faked in tests. New features are new tool files; the core doesn't change.</p>
+    <div class="stack">
+      <div class="band"><div class="layer">Entry points<small>who starts work</small></div><div class="cells"><span class="cell">Web UI · HTTP + SSE</span><span class="cell">daily retention job</span><span class="cell">CLI</span></div></div>
+      <div class="down">↓</div>
+      <div class="band"><div class="layer">api/<small>FastAPI routes, streaming</small></div><div class="cells"><span class="cell">/sessions</span><span class="cell">/changesets</span><span class="cell">/digest</span><span class="cell">/graduate</span><span class="cell">/search</span><span class="cell">/events</span></div></div>
+      <div class="down">↓</div>
+      <div class="band"><div class="layer">app/<small>use cases</small></div><div class="cells"><span class="cell">Ask</span><span class="cell">Capture</span><span class="cell">Classify</span><span class="cell">Digest</span><span class="cell">Graduate</span><span class="cell">ApplyChangeset</span><span class="cell">Undo</span><span class="cell">Sweep</span></div></div>
+      <div class="down">↓</div>
+      <div class="band"><div class="layer">tools/<small>typed registry</small></div><div class="cells"><span class="cell">read ×7</span><span class="cell">propose ×5</span><span class="cell">apply ×2</span><span class="cell">external ×2</span><span class="cell">+ plugins</span></div></div>
+      <div class="down">↓</div>
+      <div class="band core"><div class="layer">domain/<small>pure logic, no I/O</small></div><div class="cells"><span class="cell">Note</span><span class="cell">Changeset</span><span class="cell">Handbook rules (§)</span><span class="cell">invariants</span><span class="cell">links</span><span class="cell">content preservation</span></div></div>
+      <div class="down">↓ interfaces</div>
+      <div class="adapters">
+        <div class="adapter"><b>VaultStore</b><span>vault files on disk</span></div>
+        <div class="adapter"><b>StateStore</b><span>sessions, changesets in the vault</span></div>
+        <div class="adapter"><b>LLM</b><span>Claude API, prompt caching</span></div>
+        <div class="adapter"><b>Index</b><span>SQLite FTS5 + vectors</span></div>
+        <div class="adapter"><b>Secrets</b><span>Bitwarden CLI</span></div>
+        <div class="adapter"><b>Events</b><span>progress → SSE</span></div>
+      </div>
+    </div>
+
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>Tier</th><th>Tools</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tier t-read">read</span></td><td><code>search</code> <code>read_note</code> <code>read_image</code> <code>tree</code> <code>backlinks</code> <code>query_properties</code> <code>read_session</code></td><td>Always allowed</td></tr>
+          <tr><td><span class="tier t-prop">propose</span></td><td><code>propose_create</code> <code>propose_patch</code> <code>propose_move</code> <code>propose_merge</code> <code>propose_archive</code></td><td>Return a changeset; nothing is written</td></tr>
+          <tr><td><span class="tier t-apply">apply</span></td><td><code>apply_changeset</code> <code>undo_changeset</code></td><td>Only through your approval. The model can't call these</td></tr>
+          <tr><td><span class="tier t-ext">external</span></td><td><code>bw_find_item</code> <code>bw_copy_password</code></td><td>Model sees metadata only; secrets never enter the prompt</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="duo">
+      <div>
+        <h3>A chat turn, end to end</h3>
+        <div class="diagram" style="margin-top:12px">
+<pre class="mermaid">
+sequenceDiagram
+  participant U as You
+  participant W as Web UI
+  participant A as Agent loop
+  participant I as Index
+  participant C as Claude
+  participant V as Vault
+  U->>W: question or request
+  W->>A: POST /sessions/{id}/turns
+  A->>I: search (keyword + vectors)
+  A->>C: cached rules + notes + turn
+  C-->>A: tool call: propose_merge
+  A->>V: write changeset (pending)
+  A->>C: tool result
+  C-->>A: answer with citations
+  A->>V: append turn to session
+  A-->>W: stream answer + changeset card
+  U->>W: Apply selected
+  W->>A: POST /changesets/{id}/apply
+  A->>V: checks pass, write notes, mark applied
+</pre>
+        </div>
+      </div>
+      <div>
+        <h3>Package layout</h3>
+<pre class="tree" style="margin-top:12px">notebook-assistant/
+├─ src/notebook_assistant/
+│  ├─ domain/    <span class="c">names, frontmatter, note, links, schema</span>
+│  │             <span class="c">invariants, preserve, changeset, ids</span>
+│  ├─ app/       <span class="c">index, rename, apply (+undo), canvas</span>
+│  │             <span class="c">next: extract (split planner), digest, capture, sweep</span>
+│  ├─ ports/     <span class="c">vault · next: llm, index, secrets</span>
+│  ├─ adapters/  <span class="c">fs_vault, memory_vault · next: Claude, SQLite, bw</span>
+│  ├─ store/     <span class="c">changesets, lease, runs, snapshots</span>
+│  ├─ cli.py     <span class="c">check, links, plan-move, apply, undo</span>
+│  └─ <span class="c">branch 2+: api/, platform/, jobs/, agent/, tools/, web/</span>
+├─ frontend/     <span class="c">React + TypeScript (branch 2)</span>
+├─ docs/         <span class="c">architecture, handbook copy, maintenance job, design.html</span>
+└─ tests/        <span class="c">unit · contract · property · fixture captures · golden (local)</span></pre>
+        <p class="lead" style="margin-top:12px;font-size:.9rem">Your notes never go into the repo. Golden tests read your vault locally (read-only): every note passes the rules and re-renders byte-identically. Fixture captures with expected split plans guard the extraction planner.</p>
+      </div>
+    </div>
+  </section>
+  <section id="arch">
+    <div class="eyebrow">Two PCs</div>
+    <h2 style="margin-top:10px">Stateless on two PCs</h2>
+    <p class="lead" style="margin-top:12px">The same install runs on the personal PC and the work PC. All state lives in the vault as ordinary Markdown, so Obsidian Sync carries it and either PC can pick up where the other left off.</p>
+    <div class="diagram" style="margin-top:20px">
+<pre class="mermaid">
+flowchart LR
+  subgraph PC1["Personal PC"]
+    UI1["Web UI<br/>localhost"] --> S1["notebook-assistant<br/>service"]
+  end
+  subgraph PC2["Work PC"]
+    UI2["Web UI<br/>localhost"] --> S2["notebook-assistant<br/>service"]
+  end
+  S1 <--> V1[("Vault copy")]
+  S2 <--> V2[("Vault copy")]
+  V1 <-->|Obsidian Sync| V2
+  S1 --> C["Claude API"]
+  S2 --> C
+  S1 --> B["Bitwarden CLI<br/>secret to clipboard only"]
+  O["Obsidian<br/>edit and read"] <--> V1
+</pre>
+    </div>
+    <div class="guards">
+      <div class="guard"><h3>Every change is approved</h3><p>The assistant writes proposals. You accept them per item, or all mechanical fixes at once.</p></div>
+      <div class="guard"><h3>Nothing is lost</h3><p>Before any proposal reaches you, code checks that every code block, URL, number, link and sentence of the original still exists.</p></div>
+      <div class="guard"><h3>Your edits win</h3><p>If a note changes while a job runs, the result is thrown away. Notes edited in the last 30 minutes are left alone by the sweep, and the sweep only runs when you click it.</p></div>
+      <div class="guard"><h3>Secrets stay out of the AI</h3><p>Passwords go from Bitwarden straight to the clipboard, and notes marked <code>sensitive</code> are never quoted in chat.</p></div>
+    </div>
+  </section>
+  <section id="platforms">
+    <div class="eyebrow">Platforms</div>
+    <h2 style="margin-top:10px">One codebase: Windows, WSL, Linux, macOS</h2>
+    <p class="lead" style="margin-top:12px">At startup the service detects its host and picks a profile, a set of adapters for file watching, clipboard, opening Obsidian and start-at-login. Only the <code>platform/</code> package knows which OS it's on. Switch to Linux or a Mac later and you install the same package; no code changes.</p>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>Profile</th><th>Chosen when</th><th>Change detection</th><th>Clipboard</th><th>Start at login</th><th>Used on</th></tr></thead>
+        <tbody>
+          <tr><td><b>windows</b></td><td>Windows</td><td>native events</td><td>Win32 API</td><td>Task Scheduler</td><td>personal PC (daily), work PC</td></tr>
+          <tr><td><b>wsl-drvfs</b></td><td>WSL with the vault on <code>/mnt/c</code></td><td>polling (Linux can't see Windows edits)</td><td><code>clip.exe</code></td><td>Task Scheduler → <code>wsl.exe</code></td><td>personal PC, optional</td></tr>
+          <tr><td><b>linux</b></td><td>Linux, vault on a Linux disk</td><td>inotify</td><td><code>wl-copy</code> / <code>xclip</code></td><td>systemd user unit</td><td>development; future PC</td></tr>
+          <tr><td><b>macos</b></td><td>macOS</td><td>FSEvents</td><td><code>pbcopy</code></td><td>launchd</td><td>future PC</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="two">
+      <div>
+        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">Same file rules on every host</h3>
+        <ul style="padding-left:18px;display:grid;gap:8px;font-size:.93rem">
+          <li>Names follow the strictest combination of Windows, macOS and Linux: no <code>&lt;&gt;:"/\|?*</code>, no reserved names like <code>CON</code>, and case-insensitive uniqueness even on Linux.</li>
+          <li>Unicode is normalized to NFC (the composed form; macOS may hand back the decomposed form NFD), so one name never exists twice.</li>
+          <li>Always UTF-8. Traditional-Chinese Windows otherwise defaults to Big5 (cp950), which would corrupt 中文 notes.</li>
+          <li>Each file keeps its line endings. Writes go to a temp file first and replace the original in one step; if Windows reports the file as locked, the write is retried.</li>
+          <li>Each install has its own <code>machine_id</code>, so WSL and Windows on one PC count as two machines.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">Develop anywhere, release once</h3>
+<pre class="tree">dev machine (WSL today)
+  └─ push ─▶ GitHub Actions
+             ├─ tests on <span class="h">ubuntu · windows · macos</span>
+             ├─ build frontend (Node, CI only)
+             ├─ build one wheel, py3-none-any
+             ├─ install + smoke test on each OS
+             └─ attach to a GitHub Release
+every PC
+  ├─ uv tool install &lt;wheel URL&gt;
+  ├─ notebook-assistant doctor     <span class="c"># detected profile, checks</span>
+  └─ notebook-assistant autostart install</pre>
+        <p class="demo-note" style="margin-top:8px">A wheel is a prebuilt Python package. <code>py3-none-any</code> means one file for every OS. Target PCs need uv only, no Node.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="search">
+    <div class="eyebrow">Search</div>
+    <h2 style="margin-top:10px">Keyword first, meaning-based search per PC</h2>
+    <p class="lead" style="margin-top:12px">Everything runs on the CPU. No GPU or PyTorch needed. Each PC picks its own option because the index is a cache, not shared state.</p>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>Option</th><th>Size</th><th>RAM while indexing</th><th>First index (~200 notes)*</th><th>Finds</th></tr></thead>
+        <tbody>
+          <tr><td><b>Keyword</b> · BM25 + jieba · v1 default</td><td class="num">a few MB</td><td class="num">&lt; 200 MB</td><td class="num">seconds</td><td>exact terms; aliases in both languages help</td></tr>
+          <tr><td><b>multilingual-e5-small</b> · int8 ONNX</td><td class="num">~120 MB</td><td class="num">~0.5 GB</td><td class="num">~1–3 min</td><td>meaning, Chinese and English · good</td></tr>
+          <tr><td><b>bge-m3</b> · int8 ONNX</td><td class="num">~0.6 GB</td><td class="num">~1.5–2 GB</td><td class="num">~5–15 min</td><td>meaning, Chinese and English · best</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="demo-note" style="margin-top:10px">* Estimates. After the first run only changed notes are re-embedded, which takes seconds. The service measures the real figures on each PC at setup.</p>
+  </section>
+
+
+  <section id="road">
+    <div class="eyebrow">Roadmap</div>
+    <h2 style="margin-top:10px">Build order</h2>
+    <div class="road">
+      <div><span class="state ok">Done</span><span>Handbook v2.8: types, naming and renames, topic folders, instance vs. principle, archive, incubator, learning, digestion, graduation, manual-only sweep</span></div>
+      <div><span class="state ok">Done</span><span>Vault reorganized: 372 files applied to the real vault, byte-verified, full backup kept</span></div>
+      <div><span class="state ok">Merged</span><span><code>1 feat/core-vault</code>: note model, rules as code, link-safe rename and move, changesets with apply and undo. Your vault: 0 violations, byte-identical re-render. CI green on Linux, Windows, macOS</span></div>
+      <div><span class="state next">Next</span><span><code>2 feat/service-shell</code>: local service, web app shell, platform profiles, <code>doctor</code>, release wheel. Then <b>checkpoint 1</b></span></div>
+      <div><span class="state later">Then</span><span><code>3 feat/review</code>: changesets end to end, including the split map</span></div>
+      <div><span class="state later">Then</span><span><code>4a feat/extract</code>: the split planner, validators, fixture captures, eval runner, <code>digest --text</code>. Then <b>checkpoint 2</b></span></div>
+      <div><span class="state later">Then</span><span><code>4b feat/digest</code> (Digest screen), <code>5 feat/capture</code> (Inbox, <code>.eml</code>/<code>.msg</code>), <code>6 feat/sweep</code>. Then <b>checkpoint 3</b></span></div>
+      <div><span class="state later">Later</span><span><code>7 feat/views</code>, <code>8 feat/search</code>, <code>9 feat/chat</code> (then <b>checkpoint 4</b>), optional <code>10 feat/embeddings</code></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>Decided</th><th>Choice</th></tr></thead>
+        <tbody>
+          <tr><td>UI</td><td>Standalone local web app. Obsidian stays the editor</td></tr>
+          <tr><td>State</td><td>All durable state in the vault; per-PC caches only</td></tr>
+          <tr><td>Changes</td><td>Always proposed as changesets and approved, with undo</td></tr>
+          <tr><td>Sessions</td><td>Searchable in Obsidian and by the agent; kept 90 days</td></tr>
+          <tr><td>Search</td><td>Keyword in v1; optional CPU embeddings per PC</td></tr>
+          <tr><td>Install</td><td>One wheel per GitHub Release, <code>uv tool install</code>, same on every PC</td></tr>
+          <tr><td>Platforms</td><td>Windows, WSL, Linux, macOS from one codebase; work PC runs native Windows</td></tr>
+          <tr><td>Note processing</td><td>Manual only. The one automatic job queues old sessions for deletion</td></tr>
+          <tr><td>Models</td><td>Configured per task in <code>Config.md</code>, with a monthly spend cap</td></tr>
+          <tr><td>Capture</td><td>Text, screenshots, <code>.eml</code> and <code>.msg</code>; no meeting audio</td></tr>
+          <tr><td>Bitwarden</td><td>Personal PC only</td></tr>
+          <tr><td>Workflow</td><td>One feature branch at a time, merged when CI is green on Linux, Windows and macOS</td></tr>
+          <tr><td>Splitting</td><td>One shared planner for every entry point; instance and principle become separate notes, linked both ways</td></tr>
+          <tr><td>Testing with you</td><td>Four hands-on checkpoints: after branches 2, 4a, 6 and 9</td></tr>
+          <tr><td>Development</td><td>Claude Code in WSL on the personal PC; this page lives in the repo as <code>docs/design.html</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>notebook-assistant · design demo · sample data from Jason's vault, September 2026</footer>
+</div>
+
+<script>
+const ITEMS = [
+  {
+    id: "terminal",
+    raw: {path: "00-Inbox/Untitled.md", text: "Tmux config\nfast grep\nnvim???\n\n![[Pasted image 20260908031156.png]]\n![[Pasted image 20260908031442.png]]\n\n![[Pasted image 20260908031808.png]]"},
+    placement: {
+      name: "Learn terminal setup from agentic workflow video",
+      path: "10-Tasks/Learn terminal setup from agentic workflow video.md",
+      ops: [
+        ["classify", "Unfinished capture from a video → <code>task</code>, <code>kind: learn</code> (Handbook §3.1)"],
+        ["rename", "<code>Untitled</code> → <code>Learn terminal setup from agentic workflow video</code>"],
+        ["move", "<code>00-Inbox/</code> → <code>10-Tasks/</code>"],
+        ["props", "<code>topic: [[MOC - Systems]]</code>, <code>priority: p2</code>, <code>origin: course</code>"],
+        ["images", "3 screenshots renamed to <code>… - 1.png</code> to <code>… - 3.png</code>"]
+      ],
+      reason: "raw-capture"
+    },
+    steps: ["Reading the note (3 lines, 3 embeds)", "Reading 3 screenshots", "Drafting with Handbook §19.3", "Checking nothing was lost: 3/3 lines, 3/3 embeds", "Draft ready"],
+    draft: {
+      title: "Terminal setup for agentic coding",
+      path: "60-Knowledge/Systems/Terminal setup for agentic coding.md",
+      html: `
+        <div class="props">type: knowledge · kind: concept · topic: [[MOC - Systems]] · digest: review</div>
+        <h4>Summary</h4>
+        <p>A terminal layout for working next to a coding agent: tmux keeps the agent and the editor side by side, nvim edits the agent's instruction file, and a fast search tool finds code. <span class="cite">screenshots 1–3</span></p>
+        <h4>tmux</h4>
+        <p>Two windows named <code>1: Claude Code</code> and <code>2: nvim</code> <span class="cite">screenshot 1</span>. A split view puts the file on the left and the agent on the right <span class="cite">screenshot 3</span>.</p>
+        <div class="callout"><b>UNVERIFIED</b>Your own tmux config wasn't captured. Add your <code>.tmux.conf</code> before graduating.</div>
+        <h4>Global agent instruction file</h4>
+        <p><code>AGENTS.md</code> holds rules the agent follows everywhere, in three sections: General Guidelines, Opinions, Voice Profile <span class="cite">screenshot 1</span>.</p>
+        <h4>fast grep</h4>
+        <div class="callout"><b>UNVERIFIED</b>Your note only says “fast grep”. Tools like ripgrep (<code>rg</code>) fit, but nothing in the note or screenshots names one.</div>
+        <p class="c" style="font-size:.8rem">Original capture kept in the task's Raw capture section.</p>`
+    }
+  },
+  {
+    id: "confusion",
+    raw: {path: "60-Knowledge/Statistics/Confusion matrix.md", text: "Accuracy, Precision and Recall\n![[Confusion matrix - 1.png]]", props: "status: seed · digest: pending · digest_reason: [stub, screenshot-only]"},
+    placed: true,
+    steps: ["Reading the note (1 line, 1 embed)", "Reading 1 screenshot", "Drafting with Handbook §19.3", "Checking nothing was lost: 1/1 lines, 1/1 embeds", "Draft ready"],
+    draft: {
+      title: "Confusion matrix",
+      path: "60-Knowledge/Statistics/Confusion matrix.md (rewritten in place)",
+      html: `
+        <div class="props">type: knowledge · kind: concept · topic: [[MOC - Statistics]] · digest: review</div>
+        <h4>Summary</h4>
+        <p>A table of predicted against actual classes for a classifier, with the metrics read from it: accuracy, precision and recall.</p>
+        <h4>What the image shows</h4>
+        <p><span class="shot">▣ Confusion matrix - 1.png</span> A 2×2 matrix with the metric formulas next to it. <span class="cite">screenshot 1</span></p>
+        <div class="callout"><b>UNVERIFIED</b>Formulas are transcribed from the image. Check them against the picture before graduating.</div>
+        <p class="c" style="font-size:.8rem">Your original line is kept at the bottom in a collapsed “Original capture” box.</p>`
+    }
+  },
+  {
+    id: "wafer",
+    raw: {path: "60-Knowledge/Semiconductor/Life of a wafer.canvas", text: "Canvas · 8 groups · 31 text cards · 23 images\n\nGroups: Litho system, Scanner (TwinScan), Measure site,\nExposure site, Alignment sensor, Track, Alignment mark, Load port\n\nCards include: Spin-coating · Soft baking · Post exposure baking\n· develop · After develop inspection (ADI) · Etching\n· After etching inspection (AEI) · Corrections: CPE, iHOPC …"},
+    placed: true, canvas: true,
+    companion: {
+      name: "Life of a wafer",
+      path: "60-Knowledge/Semiconductor/Life of a wafer.md",
+      summary: "Companion note for the canvas. Stages covered by its cards: track (spin-coating, soft bake, post-exposure bake, develop), scanner measure and exposure sites, alignment, after-develop inspection (ADI), etching and after-etch inspection (AEI), and lot corrections."
+    }
+  }
+];
+const state = {}; ITEMS.forEach(i => state[i.id] = i.placed ? (i.canvas ? "finished" : "pending") : "raw");
+let current = "terminal", busy = false, showConfirm = false, stepIndex = -1;
+const LABEL = {raw:"in inbox", pending:"needs digestion", approved:"digesting…", review:"ready to graduate", graduated:"graduated", finished:"finished, not graduated"};
+const PILL = {raw:"st-raw", pending:"st-pending", approved:"st-approved", review:"st-review", graduated:"st-graduated", finished:"st-raw"};
+const esc = s => s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const logs = {terminal:[], confusion:[], wafer:[]};
+const now = () => new Date().toTimeString().slice(0,8);
+function log(id, msg){ logs[id].push(now()+"  "+msg); }
+
+function itemPath(it){
+  const s = state[it.id];
+  if (it.id==="terminal" && s!=="raw") return it.placement.path;
+  if (it.id==="wafer" && s==="graduated") return it.companion.path;
+  return it.raw.path;
+}
+function itemName(it){
+  if (it.id==="terminal") return state.terminal==="raw" ? "Untitled" : it.placement.name;
+  if (it.id==="wafer") return "Life of a wafer";
+  return "Confusion matrix";
+}
+function renderList(){
+  const ul = document.getElementById("items"); ul.innerHTML = "";
+  ITEMS.forEach(it => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.className = "item"; b.setAttribute("aria-current", it.id===current ? "true":"false");
+    b.innerHTML = `<span class="name">${esc(itemName(it))}</span><span class="where">${esc(itemPath(it))}</span><span class="pill ${PILL[state[it.id]]}">${LABEL[state[it.id]]}</span>`;
+    b.addEventListener("click", () => { if(!busy){ current = it.id; showConfirm=false; render(); } });
+    li.appendChild(b); ul.appendChild(li);
+  });
+}
+function btn(label, cls, fn, disabled){
+  const b = document.createElement("button"); b.className = "btn "+(cls||""); b.textContent = label;
+  if (disabled) b.disabled = true; b.addEventListener("click", fn); return b;
+}
+function renderMain(){
+  const it = ITEMS.find(i => i.id===current), s = state[it.id], m = document.getElementById("main");
+  m.innerHTML = "";
+  const head = document.createElement("div"); head.className = "main-head";
+  head.innerHTML = `<div><div class="eyebrow">${esc(itemPath(it))}</div><h3 style="margin-top:6px">${esc(itemName(it))}</h3></div>`;
+  const act = document.createElement("div"); act.className = "actions";
+  if (s==="raw"){
+    act.append(btn("Approve placement","primary",()=>{ state.terminal="pending"; log("terminal","placement approved → "+it.placement.path); log("terminal","flagged digest: pending (raw-capture)"); render(); }), btn("Reject",""+"",()=>{ log("terminal","placement rejected; stays in inbox, won't be proposed again"); render(); }));
+  } else if (s==="pending"){
+    act.append(btn("Approve to digest","primary",()=>digest(it), busy), btn("Graduate as-is","",()=>{ showConfirm=true; render(); }, busy));
+  } else if (s==="review"){
+    act.append(btn("Approve to graduate","primary",()=>{ state[it.id]="graduated"; log(it.id, it.id==="terminal" ? "task → done · produced: [["+it.draft.title+"]] · knowledge → evergreen" : "status → evergreen · origin → own · linked from MOC"); render(); }), btn("Send back","",()=>{ state[it.id]="pending"; stepIndex=-1; log(it.id,"sent back with feedback → pending"); render(); }));
+  } else if (s==="finished"){
+    act.append(btn("Graduate as-is","primary",()=>{ showConfirm=true; render(); }), btn("Approve to digest","",()=>{},true));
+  }
+  head.appendChild(act); m.appendChild(head);
+
+  if (s==="raw"){
+    const cols = document.createElement("div"); cols.className="cols";
+    cols.innerHTML = `<div class="panel"><div class="ph"><span>What you wrote</span><span>no properties</span></div><pre>${esc(it.raw.text)}</pre></div>
+      <div class="panel"><div class="ph"><span>Proposed changes</span><span>${it.placement.ops.length} operations</span></div><div class="rendered proposal">${it.placement.ops.map(o=>`<div class="op"><span class="verb">${o[0]}</span><span class="detail">${o[1]}</span></div>`).join("")}</div></div>`;
+    m.appendChild(cols);
+  } else if (s==="pending" || s==="approved" || s==="finished"){
+    const cols = document.createElement("div"); cols.className="cols";
+    const left = `<div class="panel"><div class="ph"><span>${it.canvas ? "Canvas contents" : "Current note"}</span><span>${it.raw.props ? "" : ""}</span></div><pre>${esc(it.id==="terminal" ? "## Raw capture\n\n"+it.raw.text : it.raw.text)}${it.raw.props ? "\n\n"+esc(it.raw.props) : ""}</pre></div>`;
+    let right;
+    if (it.steps && (s==="approved" || stepIndex>=0) && s!=="finished"){
+      right = `<div class="panel"><div class="ph"><span>Digesting</span><span>${s==="approved"?"running":"done"}</span></div><div class="rendered"><ul class="steps">${it.steps.map((t,i)=>`<li class="${i<stepIndex?"ok":(i===stepIndex?"run":"")}"><span class="dot"></span>${esc(t)}</li>`).join("")}</ul></div></div>`;
+    } else if (it.canvas){
+      right = `<div class="panel"><div class="ph"><span>Why no digestion</span></div><div class="rendered"><p>You drew this canvas and it's finished. <b>Graduate as-is</b> keeps it exactly as drawn. Because canvases can't store properties, a companion note holds them.</p></div></div>`;
+    } else {
+      right = `<div class="panel"><div class="ph"><span>Digest reasons</span></div><div class="rendered"><p>${it.id==="terminal" ? "<b>raw-capture</b>: a list of topics from a video, not yet explained." : "<b>stub</b> and <b>screenshot-only</b>: one line of text, and the information is inside an image search can't read."}</p><p class="c" style="font-size:.86rem">Approve to digest reads the note and its screenshots and writes a draft for you to review. Graduate as-is marks it finished without changes.</p></div></div>`;
+    }
+    cols.innerHTML = left + right; m.appendChild(cols);
+  } else if (s==="review" || s==="graduated"){
+    if (it.draft){
+      const cols = document.createElement("div"); cols.className="cols";
+      cols.innerHTML = `<div class="panel"><div class="ph"><span>Before</span></div><pre>${esc(it.raw.text)}</pre></div>
+        <div class="panel"><div class="ph"><span>${s==="review"?"Draft":"Solid knowledge"} · ${esc(it.draft.title)}</span><span>${s==="review"?"review":"evergreen"}</span></div><div class="rendered">${it.draft.html.replace("digest: review", s==="review"?"digest: review":"status: evergreen · digest: graduated")}</div></div>`;
+      m.appendChild(cols);
+    } else {
+      const p = document.createElement("div"); p.className="panel";
+      p.innerHTML = `<div class="ph"><span>${esc(it.companion.path)}</span><span>evergreen</span></div><div class="rendered"><div class="props">type: knowledge · topic: [[MOC - Semiconductor]] · status: evergreen · graduated_via: direct</div><h4>Summary</h4><p>${esc(it.companion.summary)}</p><p><span class="shot">▦ ![[Life of a wafer.canvas]]</span></p></div>`;
+      m.appendChild(p);
+    }
+  }
+
+  if (showConfirm){
+    const c = document.createElement("div"); c.className="confirm";
+    const placeTxt = it.canvas ? it.companion.path : it.raw.path;
+    c.innerHTML = `<div><b>Graduate as-is</b><div style="font-size:.86rem;color:var(--muted);margin-top:4px">${it.canvas ? "Creates a companion note that holds the properties and embeds the canvas. Its summary is built only from the canvas's own text cards." : "Marks the note finished without changing its text."}</div></div>
+      <label for="grad-path">Note that will hold the properties<input id="grad-path" value="${esc(placeTxt)}"></label>
+      ${it.canvas ? `<div class="callout" style="border-left-color:var(--accent);background:var(--surface)"><b>SUMMARY TO BE WRITTEN</b>${esc(it.companion.summary)}</div>` : ""}`;
+    const a = document.createElement("div"); a.className="actions";
+    a.append(btn("Confirm","primary",()=>{ state[it.id]="graduated"; showConfirm=false; log(it.id, it.canvas ? "companion note created · status → evergreen · graduated_via: direct" : "status → evergreen · graduated_via: direct"); render(); }), btn("Cancel","",()=>{ showConfirm=false; render(); }));
+    c.appendChild(a); m.appendChild(c);
+  }
+
+  if (logs[it.id].length){
+    const l = document.createElement("div"); l.className="log";
+    l.innerHTML = logs[it.id].map(esc).join("<br>"); m.appendChild(l);
+  }
+}
+function digest(it){
+  busy = true; state[it.id]="approved"; stepIndex=0; log(it.id,"digest: approved · digest_runner: personal-pc");
+  render();
+  const tick = () => {
+    stepIndex++;
+    if (stepIndex < it.steps.length){ render(); setTimeout(tick, 750); }
+    else { busy=false; state[it.id]="review"; stepIndex=-1; log(it.id, it.id==="terminal" ? "draft written → "+it.draft.path+" · digest_draft linked" : "draft written in place · digest: review"); render(); }
+  };
+  setTimeout(tick, 750);
+}
+function render(){ renderList(); renderMain(); }
+render();
+
+const NOTES = {
+  lazy: {title:"Polars LazyFrame dt error", props:"type: knowledge · kind: troubleshooting · topic: [[MOC - Software]] · origin: ai-chat", body:"這個錯誤是因為你試圖直接對 LazyFrame 呼叫 .dt 存取器，但 .dt 只能作用於 Series 或運算式（Expr）。修正方法：將 .dt.total_seconds() 移入 with_columns 的括號內。"},
+  withcol: {title:"Polars with_columns", props:"type: knowledge · kind: snippet · topic: [[MOC - Software]]", body:"使用字典 (Dictionary) 映射 (適合大量類別)… with_columns 內建立新欄位的常見寫法。"},
+  ubuntu: {title:"Ubuntu home directory files", props:"type: knowledge · kind: concept · topic: [[MOC - Systems]] · sensitive: true", body:"Ubuntu 根目錄檔案系統說明表：.cache、.bashrc、.profile、.bash_history…"}
+};
+function showNote(k){
+  const n = NOTES[k], p = document.getElementById("ctx-preview");
+  p.innerHTML = `<div class="props">${esc(n.props)}</div><h4>${esc(n.title)}</h4><p>${esc(n.body)}</p><button class="btn" type="button">Open in Obsidian</button>`;
+  document.querySelectorAll("#ctx-list button").forEach(b => b.setAttribute("aria-pressed", b.dataset.note===k ? "true":"false"));
+}
+document.querySelectorAll("[data-note]").forEach(b => b.addEventListener("click", () => showNote(b.dataset.note)));
+showNote("lazy");
+document.getElementById("cs-apply").addEventListener("click", () => {
+  const ops = [...document.querySelectorAll("[data-op]")], n = ops.filter(o => o.checked).length, st = document.getElementById("cs-status");
+  if (!n){ document.getElementById("cs-checks").textContent = "Select at least one operation to apply."; return; }
+  st.className = "pill st-graduated"; st.textContent = "applied · " + n + "/" + ops.length;
+  ops.forEach(o => o.disabled = true);
+  document.getElementById("cs-checks").textContent = "Applied. Saved to Changesets/2026-09 · /undo reverts it";
+});
+document.getElementById("cs-reject").addEventListener("click", () => {
+  const st = document.getElementById("cs-status"); st.className = "pill st-raw"; st.textContent = "rejected";
+  document.getElementById("cs-checks").textContent = "Rejected. It won't be proposed again for the same content.";
+});
+document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => { document.getElementById("cred-msg").textContent = b.dataset.copy + " (demo: nothing was copied)."; }));
+
+(function(){
+  const tabs=[...document.querySelectorAll('.scr-tabs [role=tab]')];
+  function sel(t,focus){tabs.forEach(b=>{const on=b===t;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1;document.getElementById(b.getAttribute('aria-controls')).classList.toggle('on',on)});if(focus)t.focus()}
+  tabs.forEach((b,i)=>{b.addEventListener('click',()=>sel(b));b.addEventListener('keydown',e=>{const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(d){e.preventDefault();sel(tabs[(i+d+tabs.length)%tabs.length],true)}})});
+  sel(tabs[0]);
+})();
+</script>
