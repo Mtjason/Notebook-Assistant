@@ -371,14 +371,26 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 |---|---|---|
 | 1 | `feat/core-vault` | Note model, frontmatter, handbook rules as code, invariant checker, content-preservation check, link-safe rename/move, vault-backed store (changesets, snapshots, runs, lease) |
 | 2 | `feat/service-shell` | FastAPI service, SSE, web app shell (nav, top bar, context panel, Markdown renderer), platform profiles, `doctor`, CI and release wheel |
-| 3 | `feat/review` | Changesets end to end: Review screen, diff view, apply with base-hash check, undo |
-| 4 | `feat/digest` | Extraction planner (`app/extract.py`: segment, classify, generalize, match, validate) with fixture captures. Digest screen: Approve to digest (note + screenshots), Approve to graduate, Send back, Graduate as-is |
+| 3 | `feat/review` | Changesets end to end: Review screen, diff view, apply with base-hash check, undo. Changesets can carry a typed **split plan**; the Review screen shows it as the split map, and reassigning or rejecting an atom recompiles the plan into operations in code (no model call) |
+| 4a | `feat/extract` | Extraction planner (`app/extract.py`: segment, classify, generalize, match, plan, verify, validate), LLM port with a fake for tests, split-plan schema, validators (coverage, no duplicated explanation, links both ways), fixture captures and an eval runner. CLI `notebook-assistant digest --text <file>` for paste-to-digest before chat exists. **Test checkpoint 2 follows this branch** |
+| 4b | `feat/digest` | Digest screen on top of the planner: Approve to digest (note + screenshots), Approve to graduate, Send back, Graduate as-is |
 | 5 | `feat/capture` | Inbox: text, screenshots, `.eml` and `.msg` → Markdown source notes, split through the extraction planner into placement proposals |
 | 6 | `feat/sweep` | Manual Sweep changes, Lint, Deep pass, Archive check; daily session retention |
 | 7 | `feat/views` | Tasks and Incubator screens |
 | 8 | `feat/search` | Per-PC index (FTS5 + jieba), global search, Sessions screen |
 | 9 | `feat/chat` | Chat with citations and changeset cards; credential cards on the personal PC |
 | 10 | `feat/embeddings` | Optional CPU embeddings per PC |
+
+### 5.4.2 Test checkpoints with you
+
+Short hands-on sessions (20–30 min) right after the branch that first makes something usable, so problems surface before later branches build on them. Each pull request carries a checklist; findings go into a test-log note in `99-System/Assistant/` and are fixed in a small follow-up branch before the next feature branch.
+
+| # | After | What you test | Where |
+|---|---|---|---|
+| 1 | 2 `service-shell` | Install the wheel, `doctor`, open the app, browse notes, approve and undo a rename, start at login | Both PCs (the TI one first) |
+| 2 | 4a `extract` | Digest real captures with `notebook-assistant digest`: is the split right (atoms, instance vs. principle, patch vs. create)? | Personal PC, then TI |
+| 3 | 6 `sweep` | Inbox with raw notes, `.eml`, `.msg`, screenshots; hand edits then Sweep and Lint; two-PC sync | Both |
+| 4 | 9 `chat` | A week of normal use: chat, search, sessions, paste-to-digest, credential cards (personal PC) | Both |
 
 ### 5.5 CLI
 
@@ -410,7 +422,7 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 | Digesting and splitting | One shared extraction planner for chat, Digest, Inbox and Sweep. Captures are split into atoms; a general principle taught through a specific case gets its own knowledge note, linked both ways (Handbook §3.1, §19.6) |
 | Meeting audio | Not supported; meetings are text only |
 | Bitwarden | Personal PC only |
-| Build order | Feature branches 1–10 (§5.4.1); chat last |
+| Build order | Feature branches 1–10, with 4 split into 4a `extract` and 4b `digest` (§5.4.1); chat last |
 | Embeddings | v1 keyword only; optional CPU embeddings per PC (§4.3) |
 | Platforms | One codebase, host profiles `windows` · `wsl-drvfs` · `linux` · `macos`, detected at startup (§5) |
 | Vault file rules | Strictest combined rules (Windows + macOS + Linux) on every host |

@@ -157,7 +157,7 @@ One feature branch at a time, in the order listed in *Assistant architecture* §
 1. core vault;
 2. service shell;
 3. review;
-4. digest;
+4. extract (the shared planner), then digest (the screen);
 5. capture (including `.eml`/`.msg`);
 6. sweep and retention;
 7. views;
