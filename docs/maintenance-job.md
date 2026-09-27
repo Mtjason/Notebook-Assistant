@@ -25,9 +25,9 @@ Detect → Settle → Lint → Triage → Transform → Validate → Queue → (
 | **Triage** | No | Route each changed or non-compliant note to a handler (table below). Mechanical violations get deterministic fixes, with no AI involved. |
 | **Transform** | Yes | For notes that need judgment: send the note (plus the diff, for edits), the handbook, the tag registry, the MOC list and the top-k related notes (for dedupe and links) to Claude. It returns a **structured changeset**: a list of typed operations, not free text. For raw captures this goes through the **extraction planner** (see *Extraction: digesting and splitting captures*). |
 | **Validate** | No | Reject the changeset if it fails: the schema check, the invariant check on the *resulting* state, or the content-preservation check (below). |
-| **Queue** | No | Store the proposal with the note's **base hash** (its fingerprint at the time the proposal was made). Surface it in the sidebar review UI. |
+| **Queue** | No | Store the proposal with the note's **base hash** (its fingerprint at the time the proposal was made). Surface it on the Review screen (`design.html`). |
 | **Apply** | No | Only after approval, and only if the note's current hash still equals the base hash (otherwise the proposal is stale). Renames and moves rewrite every link to the note in the same operation, and the invariant checker verifies no link broke. |
-| **Record** | No | Write the new `assistant_hash` and snapshot into the vault and append to `99-System/Changelog.md`. |
+| **Record** | No | Write the new `assistant_hash` and snapshot into the vault and mark the changeset record `applied`; the changelog is a view over those records (Handbook §15.9). |
 
 `top-k related notes` means the k most similar existing notes found by search (keyword plus embeddings), usually k = 5–10.
 
@@ -95,14 +95,14 @@ The first pass missed the principle note: it filed everything under uv. That's e
 
 ## State
 
-All job state lives in the vault: see *Assistant architecture* §4.1.
+All job state lives in the vault: see `architecture.md` §4.1.
 
 ## Two PCs, no coordinator
 
 Both PCs run the same service. Correctness never depends on only one of them running:
 
-- **Clicks run where you click.** Approve to digest immediately sets `digest: approved` and `digest_runner: <machine>` plus a start time. The other PC sees that and skips the item. A run that hasn't finished within 15 minutes counts as abandoned, and either PC may retry it.
-- **Sweeps run where you click them.** A sweep writes `sweep_runner: <machine>` into its run record; if the other PC shows a sweep running, the button is disabled there until it finishes or goes stale (15 minutes).
+- **Clicks run where you click.** Approve to digest immediately sets `digest: approved` and `digest_runner: <machine>` plus a start time. The other PC sees that and skips the item. A run that hasn't finished within `coordination.stale_run_minutes` (`Config.md`, `architecture.md` §4.1.1) counts as abandoned, and either PC may retry it.
+- **Sweeps run where you click them.** A sweep writes `sweep_runner: <machine>` into its run record; if the other PC shows a sweep running, the button is disabled there until it finishes or goes stale (the same limit).
 - **The daily retention job takes a lease.** Before running, a PC writes itself into `Lease.md` with an expiry time, and a PC that sees an unexpired lease held by the other skips it.
 - **Duplicates are harmless anyway.** Sync lag can let both PCs act within the same few seconds. Every write carries a base-hash check (is the note unchanged since the job read it?), and proposals are deduplicated by fingerprint. A double run therefore produces one result, never a conflict.
 
@@ -112,7 +112,7 @@ Before any proposal reaches you, it must pass a check that nothing was lost:
 
 1. Split the original into atomic units: sentences, list items, table cells, code blocks, URLs, numbers, embeds and wikilinks.
 2. Every **code block, URL, number, embed and link** must appear **exactly** somewhere in the resulting note(s).
-3. Every **sentence or list item** must match some sentence in the result above the similarity threshold (`SIMILARITY` in `domain/preserve.py`; normalized, so reformatting is fine but dropped content is not).
+3. Every **sentence or list item** must match some sentence in the result above the similarity threshold (`checks.preservation_similarity` in `Config.md`, `architecture.md` §4.1.1; normalized, so reformatting is fine but dropped content is not).
 4. Any failure discards the proposal and logs it. The note is retried once; after that it's flagged `needs_review`.
 
 This check is deterministic code. It doesn't rely on the model saying it kept everything.
@@ -126,7 +126,7 @@ This check is deterministic code. It doesn't rely on the model saying it kept ev
 
 ## Runtime, distribution and build order
 
-See *Assistant architecture* §5.4 (release and install) and §5.4.1 (feature branches).
+See `architecture.md` §5.4 (release and install) and §5.4.1 (feature branches).
 
 ## Digest button flow
 
