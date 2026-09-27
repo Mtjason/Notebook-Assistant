@@ -1,7 +1,7 @@
 ---
 type: system
 title: Vault Handbook
-version: "2.11"
+version: "2.12"
 scope: personal
 status: active
 created: 2026-09-26
@@ -178,7 +178,7 @@ The assistant also maintains three structural types that this decision order nev
 - **Unfinished learning capture vs. knowledge:** a note that mostly lists things to look into, or fragments from a video, course or article you haven't digested yet, is not knowledge. It becomes a `learn` task (§17) that carries the raw capture as its context, with a checklist of what's left and a "done when" line. It's finished when the understanding is written into a knowledge note and linked in `produced`. A `knowledge` note with `status: seed` must already explain something, even if roughly.
 - **Writing vs. knowledge:** writing is *your* output for an audience. Knowledge is understanding for *your own* use. A framework for writing speeches is knowledge; a speech you wrote is writing.
 - **Obsidian templates vs. other templates:** `98-Templates/` holds only templates used by Obsidian's Templates plugin. Code templates and document templates (e.g. a project README template) are `knowledge` with `kind: snippet`.
-- **One capture, many notes:** a single inbox item may produce several notes of different types. Each lands in its own folder, and all link to the same `source`.
+- **One capture, many notes:** a single inbox item may produce several notes of different types. Each lands in its own folder, and all link to the same `source` when there is one. A pasted AI answer has none (§12), so its notes link to each other instead.
 - **Instance vs. principle:** when a capture teaches a general rule through one concrete case (installing uv with `curl -LsSf … | sh` also teaches the general `curl … | sh` install pattern), record **both**: the concrete case as its own type (usually an `sop` or a `fact`), and the general rule as a `knowledge` note in its topic folder. The concrete note keeps only what is specific to it and links to the general note for the explanation. The general note uses the case as an example and links back. If a general note already exists, patch it instead of creating a new one (§15.3).
 
 ---
@@ -236,7 +236,7 @@ assistant_hash: # fingerprint of the last approved content; managed by the assis
 | `meeting` | `date` | `attendees`, `project`, `area`, `decisions` |
 | `writing` | `kind: essay\|story\|speech\|post\|draft` | `audience`, `project` |
 | `knowledge` | `kind: concept\|snippet\|troubleshooting\|collection\|course-note`, `topic` | `platform`; troubleshooting notes add `symptom`, `fix` |
-| `source` | `kind: text\|email\|chat\|image\|meeting-audio\|transcript\|ai-chat\|file`, `captured` | `processed` |
+| `source` | `kind: text\|email\|chat\|image\|meeting-audio\|transcript\|file`, `captured` | `processed` |
 | `moc` | `topic` | — |
 | `daily` | `date` | — |
 | `system` | — | `version` |
@@ -452,9 +452,9 @@ Delete only:
 
 ## 12. Sources and capture
 
-- **Create a `source` note** for non-text captures (image, audio, email, file) and for long text captures (a transcript, or pasted text over about 30 lines). The original is embedded or attached.
+- **Create a `source` note** for non-text captures (image, audio, email, file) and for long text captures (a transcript, or pasted text over about 30 lines), except pasted AI answers. The original is embedded or attached.
 - **Short typed captures** don't get a source note: the extracted notes cite the daily note (`source: "[[2026-09-26]]"`).
-- **Pasted AI answers** become a `source` of `kind: ai-chat` only if they're long. Extracted knowledge notes always get `origin: ai-chat`.
+- **Pasted AI answers never get a `source` note**, however long: what's kept is the digested understanding, not the chat. The extracted notes always get `origin: ai-chat`, and every correction the assistant made to the answer is recorded in their `## History`.
 - **Emails** (`.eml`, or Outlook `.msg`) are always converted to a Markdown `source` note (`YYYY-MM-DD email <subject>`): sender, recipients, date and subject as properties, the body as Markdown, and attachments saved to `Attachments/` and embedded. The original file is attached too. Tasks, facts and SOP steps in the email are then extracted like any other capture. Credentials in an email follow §3.1.
 - **Meetings** are captured as text only (your notes, or a transcript your meeting app produced). There is no audio capture.
 
@@ -814,6 +814,7 @@ When you hand a capture to the assistant directly (pasted into chat, or sent wit
 
 ## Version history
 
+- **2.12 (2026-09-28):** Pasted AI answers never get a `source` note, whatever their length; their notes keep `origin: ai-chat` and record corrections in `## History` (§12). `ai-chat` removed from the source `kind` values (§4.2), and §3.1 says what the notes of a source-less capture link to.
 - **2.11 (2026-09-28):** Merge criteria (§8.2): three gates (same subject, same scope, the target's type accepts the content), four triggers (stub, platform variants, near-duplicate, covered by a collection), when not to merge, and how a merge is carried out. Any fully merged note may be deleted, not only stubs (§8.4).
 - **2.10 (2026-09-28):** A new topic folder is proposed with its first note instead of after 5 notes; the note waits in `00-Inbox/` until the amendment is merged (§2.2).
 
