@@ -122,10 +122,10 @@ src/notebook_assistant/
 ├─ adapters/   implementations (filesystem and in-memory vault; later Claude, SQLite, Bitwarden,
 │              email import, SSE)
 ├─ store/      vault-backed state (§4.1)
-├─ platform/   the only OS-aware code (§5)                      · branch 2
-├─ jobs/       queue and the one scheduled job                  · branch 2
-├─ api/ web/   HTTP + SSE service and the built frontend        · branch 2
-└─ tools/ agent/  tool registry and tool-use loop               · branches 4a, 9
+├─ platform/   the only OS-aware code (§5)
+├─ jobs/       queue and the one scheduled job
+├─ api/ web/   HTTP + SSE service and the built frontend
+└─ tools/ agent/  tool registry and tool-use loop
 frontend/      React source · tests/ unit, contract, property-based, fixture captures, golden (local)
 ```
 
@@ -360,17 +360,19 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 
 | # | Branch | Delivers |
 |---|---|---|
-| 1 | `feat/core-vault` | Note model, frontmatter, handbook rules as code, invariant checker, content-preservation check, link-safe rename/move, vault-backed store (changesets, snapshots, runs, lease) |
-| 2 | `feat/service-shell` | FastAPI service, SSE, web app shell (nav, top bar, context panel, Markdown renderer), platform profiles, `doctor`, CI and release wheel |
-| 3 | `feat/review` | Changesets end to end: Review screen, diff view, apply with base-hash check, undo. Changesets can carry a typed **split plan**; the Review screen shows it as the split map, and reassigning or rejecting an atom recompiles the plan into operations in code (no model call) |
-| 4a | `feat/extract` | Extraction planner (`app/extract.py`: segment, classify, generalize, match, plan, verify, validate), LLM port with a fake for tests, split-plan schema, validators (coverage, no duplicated explanation, links both ways), fixture captures and an eval runner. CLI `notebook-assistant digest --text <file>` for paste-to-digest before chat exists. **Test checkpoint 2 follows this branch** |
-| 4b | `feat/digest` | Digest screen on top of the planner: Approve to digest (note + screenshots), Approve to graduate, Send back, Graduate as-is |
-| 5 | `feat/capture` | Inbox: text, screenshots, `.eml` and `.msg` → Markdown source notes, split through the extraction planner into placement proposals |
-| 6 | `feat/sweep` | Manual Sweep changes, Lint, Deep pass, Archive check; daily session retention |
-| 7 | `feat/views` | Tasks and Incubator screens |
-| 8 | `feat/search` | Per-PC index (FTS5 + jieba), global search, Sessions screen |
-| 9 | `feat/chat` | Chat with citations and changeset cards; credential cards on the personal PC |
-| 10 | `feat/embeddings` | Optional CPU embeddings per PC |
+| 1 | `feat/core-vault` | Note model, frontmatter, rules parsed from the handbook, invariant checker, content-preservation check, link-safe rename/move, vault-backed store (changesets, snapshots, runs, lease) |
+| 2 | `feat/extract` | Paste-to-digest first. Extraction planner (`app/extract.py`: segment, classify, generalize, match, plan, verify, validate), LLM port with a fake for tests, split-plan schema, validators (coverage, no duplicated explanation, links both ways), fixture captures and an eval runner, and the CLI `notebook-assistant digest --text <file>` that turns a capture into a pending changeset. **Apply re-checks the rules:** a changeset whose resulting notes break any handbook rule (`check_note`) is rejected, whatever produced it. Verification (step 6) cites a source to correct, otherwise marks Unverified; a capture that fits no topic produces a §2.2 topic amendment draft and an Inbox placement |
+| 3 | `feat/service-shell` | FastAPI service, SSE, web app shell (nav, top bar, context panel, Markdown renderer), platform profiles, `doctor`, CI and release wheel |
+| 4 | `feat/review` | Changesets end to end in the UI: Review screen, diff view, apply, undo. Changesets can carry a typed **split plan**; the Review screen shows it as the split map, and reassigning or rejecting an atom recompiles the plan into operations in code (no model call) |
+| 5 | `feat/digest` | Digest screen on top of the planner: Approve to digest (note + screenshots), Approve to graduate, Send back, Graduate as-is |
+| 6 | `feat/capture` | Inbox: text, screenshots, `.eml` and `.msg` → Markdown source notes, split through the extraction planner into placement proposals |
+| 7 | `feat/sweep` | Manual Sweep changes, Lint, Deep pass, Archive check; daily session retention |
+| 8 | `feat/views` | Tasks and Incubator screens |
+| 9 | `feat/search` | Per-PC index (FTS5 + jieba), global search, Sessions screen |
+| 10 | `feat/chat` | Chat with citations and changeset cards; credential cards on the personal PC |
+| 11 | `feat/embeddings` | Optional CPU embeddings per PC |
+
+**Deferred decision (lock when the feature set is settled):** only the assistant writes to the vault; other AI tools, including Claude chats, may read it but not edit it. Until then, run `notebook-assistant check` after any edit made outside the assistant.
 
 ### 5.4.2 Test checkpoints with you
 
@@ -378,10 +380,10 @@ Short hands-on sessions (20–30 min) right after the branch that first makes so
 
 | # | After | What you test | Where |
 |---|---|---|---|
-| 1 | 2 `service-shell` | Install the wheel, `doctor`, open the app, browse notes, approve and undo a rename, start at login | Both PCs (the TI one first) |
-| 2 | 4a `extract` | Digest real captures with `notebook-assistant digest`: is the split right (atoms, instance vs. principle, patch vs. create)? | Personal PC, then TI |
-| 3 | 6 `sweep` | Inbox with raw notes, `.eml`, `.msg`, screenshots; hand edits then Sweep and Lint; two-PC sync | Both |
-| 4 | 9 `chat` | A week of normal use: chat, search, sessions, paste-to-digest, credential cards (personal PC) | Both |
+| 1 | 2 `extract` | Digest real captures with `notebook-assistant digest`: is the split right (atoms, instance vs. principle, patch vs. create)? Approve and undo the changesets | Personal PC (WSL) |
+| 2 | 3 `service-shell` | Install the wheel, `doctor`, open the app, browse notes, start at login | Both PCs (the TI one first) |
+| 3 | 7 `sweep` | Inbox with raw notes, `.eml`, `.msg`, screenshots; hand edits then Sweep and Lint; two-PC sync | Both |
+| 4 | 10 `chat` | A week of normal use: chat, search, sessions, paste-to-digest, credential cards (personal PC) | Both |
 
 ### 5.5 CLI
 
