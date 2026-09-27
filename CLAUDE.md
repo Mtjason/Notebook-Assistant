@@ -25,6 +25,8 @@ Notebook-Assistant keeps Jason's Obsidian vault organized under the Vault Handbo
 
 ## Workflow
 
+- **Keep `docs/design.html` current.** It is the page the developer uses to evaluate the design. When a branch changes the UI, the data layout, the pipeline or the roadmap, update the page in the same pull request.
+
 - One feature branch at a time: `feat/<name>` off `main`, merged by pull request when CI is
   green on Linux, Windows and macOS. Order: docs/architecture.md §5.4.1.
 - Before pushing: `uv run ruff format src tests && uv run ruff check src tests && uv run mypy && uv run pytest`.

@@ -6,6 +6,7 @@ from your notes. **Nothing in the vault changes until you approve it.**
 
 - Rules: [`docs/handbook.md`](docs/handbook.md) (the vault's copy in `99-System/Handbook.md` is the source of truth)
 - Design: [`docs/architecture.md`](docs/architecture.md) · [`docs/maintenance-job.md`](docs/maintenance-job.md)
+- Design review page: [`docs/design.html`](docs/design.html) — open it in a browser to evaluate the current design (UI schematic, split planner, data, backend, roadmap)
 
 ## Status
 
@@ -13,9 +14,9 @@ Built one feature branch at a time (docs/architecture.md §5.4.1):
 
 | # | Branch | State |
 |---|---|---|
-| 1 | `feat/core-vault` | **this branch**: notes, frontmatter, links, handbook rules, link-safe rename/move, changesets with apply/undo, vault-backed state |
-| 2 | `feat/service-shell` | next: service, web app shell, platform profiles, `doctor`, release wheel |
-| 3–10 | review · digest · capture · sweep · views · search · chat · embeddings | later |
+| 1 | `feat/core-vault` | merged: notes, frontmatter, links, handbook rules, link-safe rename/move, changesets with apply/undo, vault-backed state |
+| 2 | `feat/service-shell` | **next**: service, web app shell, platform profiles, `doctor`, release wheel |
+| 3–10 | review · 4a extract · 4b digest · capture · sweep · views · search · chat · embeddings | later |
 
 ## Development (WSL or any Linux/macOS)
 
