@@ -53,6 +53,7 @@ Three parts: a **web UI** (chat plus approval screens), a **backend** that owns 
 | `@` mentions | Pin notes as context: `@Polars LazyFrame`. Autocompletes titles and aliases in both languages |
 | `/` commands | `/capture`, `/find`, `/digest <note>`, `/summarize <folder>`, `/sop`, `/undo` |
 | Drop files | Screenshots, PDFs, emails. Saved to `Attachments/` and captured as a `source` note (Handbook §12), then usable in the conversation |
+| Paste to digest | Knowledge pasted into chat (or `/digest`) is digested **immediately** (Handbook §19.6): the extraction planner splits it into every note it yields, including the general principle behind a specific case (§3.1). The result is one changeset card with a split map (*Maintenance job design*, Extraction) |
 | Scope | All / Work / Personal / a folder. Limits both retrieval and actions |
 | Save to vault | On any answer. Creates a knowledge draft (`digest: review`) with `source` pointing to the session |
 | Credentials | Credential cards with **Copy username** / **Copy password**. The secret goes from Bitwarden to the clipboard and is never shown or sent to the model |
@@ -115,7 +116,7 @@ notebook-assistant/
 │  ├─ domain/          names.py · frontmatter.py · note.py · links.py · schema.py (handbook as data)
 │  │                   · invariants.py · preserve.py · changeset.py · ids.py        (pure, no I/O)
 │  ├─ app/             index.py (files + link graph) · rename.py · apply.py (+undo) · canvas.py
-│  │                   · later: ask.py · capture.py · classify.py · digest.py · graduate.py · sweep.py
+│  │                   · later: extract.py (split planner, shared) · ask.py · capture.py · classify.py · digest.py · graduate.py · sweep.py
 │  ├─ tools/           registry.py · read/ · propose/ · external/     (one file per tool)
 │  ├─ agent/           loop.py (tool-use loop) · prompts/ · context.py (retrieval, prompt-cache layout)
 │  ├─ ports/           vault.py · later: llm.py · index.py · secrets.py · events.py   (interfaces)
@@ -171,6 +172,7 @@ Every tool is a class with a Pydantic input/output schema, a description (which 
 ### 3.6 Quality bar
 
 - **Domain:** 100% unit-tested. Rules are data plus small functions, one per handbook rule, each naming its section (`§4.2`).
+- **Extraction tests:** fixture captures with expected split plans, plus a digestion eval set (*Maintenance job design*, Extraction). Splitting correctly is a requirement, not a nice-to-have.
 - **Golden tests:** run locally against your real vault (`NA_REAL_VAULT`): every note passes the handbook checks, and every untouched note re-renders byte-identically. Rule or prompt changes are judged by the difference they make there.
 - **Property-based tests** for link rewriting (random renames must never break a link). Property-based testing generates many random inputs to check that a stated property always holds.
 - **Contract tests** per adapter, so the fake and real vault/LLM/index behave the same.
@@ -370,8 +372,8 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 | 1 | `feat/core-vault` | Note model, frontmatter, handbook rules as code, invariant checker, content-preservation check, link-safe rename/move, vault-backed store (changesets, snapshots, runs, lease) |
 | 2 | `feat/service-shell` | FastAPI service, SSE, web app shell (nav, top bar, context panel, Markdown renderer), platform profiles, `doctor`, CI and release wheel |
 | 3 | `feat/review` | Changesets end to end: Review screen, diff view, apply with base-hash check, undo |
-| 4 | `feat/digest` | Digest screen: Approve to digest (note + screenshots), Approve to graduate, Send back, Graduate as-is |
-| 5 | `feat/capture` | Inbox: text, screenshots, `.eml` and `.msg` → Markdown source notes, placement proposals |
+| 4 | `feat/digest` | Extraction planner (`app/extract.py`: segment, classify, generalize, match, validate) with fixture captures. Digest screen: Approve to digest (note + screenshots), Approve to graduate, Send back, Graduate as-is |
+| 5 | `feat/capture` | Inbox: text, screenshots, `.eml` and `.msg` → Markdown source notes, split through the extraction planner into placement proposals |
 | 6 | `feat/sweep` | Manual Sweep changes, Lint, Deep pass, Archive check; daily session retention |
 | 7 | `feat/views` | Tasks and Incubator screens |
 | 8 | `feat/search` | Per-PC index (FTS5 + jieba), global search, Sessions screen |
@@ -405,6 +407,7 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 | Note processing | Manual only: nothing runs on a timer or on file changes |
 | Models and limits | Configuration in `Config.md`, one model per task, monthly spend cap (§4.1.1) |
 | Email capture | `.eml` and `.msg` converted to Markdown source notes |
+| Digesting and splitting | One shared extraction planner for chat, Digest, Inbox and Sweep. Captures are split into atoms; a general principle taught through a specific case gets its own knowledge note, linked both ways (Handbook §3.1, §19.6) |
 | Meeting audio | Not supported; meetings are text only |
 | Bitwarden | Personal PC only |
 | Build order | Feature branches 1–10 (§5.4.1); chat last |

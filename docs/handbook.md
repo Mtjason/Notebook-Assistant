@@ -1,7 +1,7 @@
 ---
 type: system
 title: Vault Handbook
-version: "2.7"
+version: "2.8"
 scope: personal
 status: active
 created: 2026-09-26
@@ -167,6 +167,7 @@ Ask these questions **in order**; the first "yes" wins.
 - **Writing vs. knowledge:** writing is *your* output for an audience. Knowledge is understanding for *your own* use. A framework for writing speeches is knowledge; a speech you wrote is writing.
 - **Obsidian templates vs. other templates:** `98-Templates/` holds only templates used by Obsidian's Templates plugin. Code templates and document templates (e.g. a project README template) are `knowledge` with `kind: snippet`.
 - **One capture, many notes:** a single inbox item may produce several notes of different types. Each lands in its own folder, and all link to the same `source`.
+- **Instance vs. principle:** when a capture teaches a general rule through one concrete case (installing uv with `curl -LsSf … | sh` also teaches the general `curl … | sh` install pattern), record **both**: the concrete case as its own type (usually an `sop` or a `fact`), and the general rule as a `knowledge` note in its topic folder. The concrete note keeps only what is specific to it and links to the general note for the explanation. The general note uses the case as an example and links back. If a general note already exists, patch it instead of creating a new one (§15.3).
 
 ---
 
@@ -679,6 +680,7 @@ Approving step 2 authorizes the assistant to write the draft. Nothing becomes so
 - **Knowledge notes** (stub, screenshot-only, AI-unverified) are rewritten in place into the §8.1 skeleton. The original text is kept at the bottom in a folded `> [!quote]- Original capture` box, so nothing is lost and you can compare.
 - **Learn tasks** (raw capture) produce a **new knowledge note** in the right `60-Knowledge/<Topic>/` folder, linked from the task as `digest_draft`. The task keeps the raw capture.
 - **Screenshots** are read and described in text; each claim taken from an image cites it ("screenshot 2").
+- **Generalize:** if the material teaches a general rule through an example, the draft also proposes the general knowledge note (§3.1, instance vs. principle).
 - **Anything not supported by your note, its screenshots or its linked sources** is marked in a `> [!question] Unverified` box. The assistant doesn't fill gaps with confident-sounding guesses.
 - The content-preservation check (§16.4) still applies to every draft.
 
@@ -702,6 +704,14 @@ Some notes are already finished when you make them, e.g. a canvas you've complet
   - If not, the assistant creates a knowledge note with the canvas's name. It holds the properties, embeds the canvas, and gets a short `## Summary` built only from the canvas's own text cards, so the canvas becomes searchable. That summary is the only text the assistant writes, and it's shown in the confirmation.
 - **Excalidraw drawings** hold their own properties, so they're graduated directly.
 - **Checks still apply:** the invariants (§0.1) and the link check. A graduation that would break a rule shows what's missing instead of proceeding.
+
+### 19.6 Proactive digestion of direct captures
+
+When you hand a capture to the assistant directly (pasted into chat, or sent with "digest this"), the assistant digests it **right away** instead of queueing it:
+
+- In one changeset it extracts every note the capture yields (§3.1, including instance vs. principle), writes each in its type's final skeleton (§8.1), and patches existing notes rather than duplicating them (§15.3).
+- New knowledge notes from it get `digest: review` (ready to graduate), not `pending`. They keep `origin: ai-chat` if the material came from an AI.
+- Only the extraction is proactive. The changeset still needs your approval (§15.1), and nothing becomes solid knowledge without **Approve to graduate** (§19.2).
 
 ---
 
@@ -756,6 +766,7 @@ Some notes are already finished when you make them, e.g. a canvas you've complet
 
 ## Version history
 
+- **2.8 (2026-09-27):** Added the instance vs. principle tie-breaker: a capture that teaches a general rule through one case produces both notes (§3.1). Captures handed directly to the assistant are digested proactively in one changeset (§19.6), and digestion drafts generalize (§19.3).
 - **2.7 (2026-09-27):**
   - Added topic-folder definitions and tie-breakers for `60-Knowledge/` (§2.3). Moved 12 notes accordingly:
     - pandas and Polars notes, and Data profiling → Data Science;
