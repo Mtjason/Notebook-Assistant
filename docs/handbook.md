@@ -1,7 +1,7 @@
 ---
 type: system
 title: Vault Handbook
-version: "2.10"
+version: "2.12"
 scope: personal
 status: active
 created: 2026-09-26
@@ -178,7 +178,7 @@ The assistant also maintains three structural types that this decision order nev
 - **Unfinished learning capture vs. knowledge:** a note that mostly lists things to look into, or fragments from a video, course or article you haven't digested yet, is not knowledge. It becomes a `learn` task (§17) that carries the raw capture as its context, with a checklist of what's left and a "done when" line. It's finished when the understanding is written into a knowledge note and linked in `produced`. A `knowledge` note with `status: seed` must already explain something, even if roughly.
 - **Writing vs. knowledge:** writing is *your* output for an audience. Knowledge is understanding for *your own* use. A framework for writing speeches is knowledge; a speech you wrote is writing.
 - **Obsidian templates vs. other templates:** `98-Templates/` holds only templates used by Obsidian's Templates plugin. Code templates and document templates (e.g. a project README template) are `knowledge` with `kind: snippet`.
-- **One capture, many notes:** a single inbox item may produce several notes of different types. Each lands in its own folder, and all link to the same `source`.
+- **One capture, many notes:** a single inbox item may produce several notes of different types. Each lands in its own folder, and all link to the same `source` when there is one. A pasted AI answer has none (§12), so its notes link to each other instead.
 - **Instance vs. principle:** when a capture teaches a general rule through one concrete case (installing uv with `curl -LsSf … | sh` also teaches the general `curl … | sh` install pattern), record **both**: the concrete case as its own type (usually an `sop` or a `fact`), and the general rule as a `knowledge` note in its topic folder. The concrete note keeps only what is specific to it and links to the general note for the explanation. The general note uses the case as an example and links back. If a general note already exists, patch it instead of creating a new one (§15.3).
 
 ---
@@ -236,7 +236,7 @@ assistant_hash: # fingerprint of the last approved content; managed by the assis
 | `meeting` | `date` | `attendees`, `project`, `area`, `decisions` |
 | `writing` | `kind: essay\|story\|speech\|post\|draft` | `audience`, `project` |
 | `knowledge` | `kind: concept\|snippet\|troubleshooting\|collection\|course-note`, `topic` | `platform`; troubleshooting notes add `symptom`, `fix` |
-| `source` | `kind: text\|email\|chat\|image\|meeting-audio\|transcript\|ai-chat\|file`, `captured` | `processed` |
+| `source` | `kind: text\|email\|chat\|image\|meeting-audio\|transcript\|file`, `captured` | `processed` |
 | `moc` | `topic` | — |
 | `daily` | `date` | — |
 | `system` | — | `version` |
@@ -369,10 +369,34 @@ A **MOC** (Map of Content) is an index note that lists and orders every note on 
 
 **Split** when a note has two or more H2 sections that would each be searched separately, or when it's longer than about 1,500 lines. Course hand-outs are the exception: keep them whole.
 
-**Merge** when any of these applies:
-- **Stubs** (under about 200 bytes) merge into the related note as a section. Facts are the exception.
-- **Platform variants** of one topic become one note with a `platform:` list and a section per OS.
-- **Near-duplicates:** keep the more complete note's title; the other title becomes an alias.
+**Merge** only when a pair of notes passes **all three gates** and matches **one trigger**. Otherwise the notes stay separate and get linked, digested (§19) or reclassified.
+
+**Gates (all must hold):**
+1. **Same subject.** Both notes answer the same question, or one is a sub-part of the other's subject. Sharing a tool, tag or topic folder is not enough.
+2. **Same scope.** Both `work` or both `personal`. A `work` note never merges into a `personal` one: reclassify it instead (e.g. an internal-only command becomes a `fact`). Platform variants are the exception: the result takes the stricter scope.
+3. **The target's type accepts the content** (§3). A fact, credential, person or task is never merged into another type; it is extracted and linked (§3.1).
+
+| Trigger | Test | Result |
+|---|---|---|
+| Stub | Body under about 200 bytes (frontmatter excluded), and a related note passes the gates | A section in the related note. Facts and credentials are exempt. With no related note, the stub stays and goes to digestion (§19) or becomes a `learn` task (§3.1); a note is never created just to hold it |
+| Platform variants | The same procedure or topic, differing only by OS | One note with a `platform:` list and a section per OS |
+| Near-duplicate | Most of the smaller note's content already exists in the larger one | Keep the more complete note's title |
+| Covered by a collection | Every item in the note is already a row of a collection (§8.3), and what's left is a sequence or a tip | The remainder becomes a section of the collection |
+
+**Don't merge** when:
+- each note would be searched on its own: a distinct subject with complete examples (typically over 1 KB), even if related. Link them instead;
+- the two answer different kinds of question on the same topic (a comparison vs. an explanation of why);
+- the result would meet the split rule above;
+- either note is in `15-Incubator/` (§18.3) or `95-Archive/`, or is marked `assistant: skip`.
+
+**How a merge is done** (one changeset):
+- **Target:** the note the trigger names. Between two equal notes, the one with more incoming links. Its title stays unless it breaks §5.
+- **Content:** moved verbatim into a section named after the old note's subject, with headings demoted to fit. Only conversational filler (e.g. an AI's closing question) may be dropped, and only when the review card lists it.
+- **Names and links:** old titles and their aliases join the target's `aliases`. Every reference is rewritten (§5.2); in logs and reports the old name stays as display text: `[[New title|Old title]]`.
+- **Properties:** `tags` are combined (max 3); `scope` and `sensitive` take the stricter value; `digest` takes the less processed state and keeps only the `digest_reason` values still true after the merge (a merged stub is no longer a stub); `created` takes the earlier date, `updated` is today; an SOP's `last_verified` takes the older date.
+- **Record:** the target gets a `## History` line, and the old note is deleted (§8.4). The content-preservation check (§16.4) compares the old notes with the result.
+
+**Finding candidates:** the Deep pass (§16.3) lists merge candidates with the trigger each one matches; nothing is merged without approval.
 
 ### 8.3 Collections
 
@@ -383,7 +407,7 @@ A list of like items (vocabulary, commands, installed packages, quotes, SQL snip
 Delete only:
 - Zero-byte notes and empty folders.
 - Byte-identical duplicate attachments (hash-verified), after repointing their links.
-- Stubs whose entire content was merged elsewhere.
+- Notes whose entire content was merged into another note (§8.2).
 - Inbox captures judged to be noise (no information worth keeping), **with your approval**.
 - Assistant chat sessions (`99-System/Assistant/Sessions/`) older than 90 days, in one approved batch. Changesets that came from them keep the session's title and date as text.
 
@@ -428,9 +452,9 @@ Delete only:
 
 ## 12. Sources and capture
 
-- **Create a `source` note** for non-text captures (image, audio, email, file) and for long text captures (a transcript, or pasted text over about 30 lines). The original is embedded or attached.
+- **Create a `source` note** for non-text captures (image, audio, email, file) and for long text captures (a transcript, or pasted text over about 30 lines), except pasted AI answers. The original is embedded or attached.
 - **Short typed captures** don't get a source note: the extracted notes cite the daily note (`source: "[[2026-09-26]]"`).
-- **Pasted AI answers** become a `source` of `kind: ai-chat` only if they're long. Extracted knowledge notes always get `origin: ai-chat`.
+- **Pasted AI answers never get a `source` note**, however long: what's kept is the digested understanding, not the chat. The extracted notes always get `origin: ai-chat`, and every correction the assistant made to the answer is recorded in their `## History`.
 - **Emails** (`.eml`, or Outlook `.msg`) are always converted to a Markdown `source` note (`YYYY-MM-DD email <subject>`): sender, recipients, date and subject as properties, the body as Markdown, and attachments saved to `Attachments/` and embedded. The original file is attached too. Tasks, facts and SOP steps in the email are then extracted like any other capture. Credentials in an email follow §3.1.
 - **Meetings** are captured as text only (your notes, or a transcript your meeting app produced). There is no audio capture.
 
@@ -790,6 +814,8 @@ When you hand a capture to the assistant directly (pasted into chat, or sent wit
 
 ## Version history
 
+- **2.12 (2026-09-28):** Pasted AI answers never get a `source` note, whatever their length; their notes keep `origin: ai-chat` and record corrections in `## History` (§12). `ai-chat` removed from the source `kind` values (§4.2), and §3.1 says what the notes of a source-less capture link to.
+- **2.11 (2026-09-28):** Merge criteria (§8.2): three gates (same subject, same scope, the target's type accepts the content), four triggers (stub, platform variants, near-duplicate, covered by a collection), when not to merge, and how a merge is carried out. Any fully merged note may be deleted, not only stubs (§8.4).
 - **2.10 (2026-09-28):** A new topic folder is proposed with its first note instead of after 5 notes; the note waits in `00-Inbox/` until the amendment is merged (§2.2).
 
 - **2.9 (2026-09-27):** Single source of truth: this file in the repository is the only copy of the rules; the vault keeps a link note instead of a copy, and the code reads its rules from this file's tables (top of the handbook, §14, §15). The folders exempt from the invariants are now stated in §0.1, the structural types `daily`, `moc` and `system` got folder rows in §3, and the task lifecycle in §4.3 includes `archived` (as §13 already allowed); all three were previously known only to the code.

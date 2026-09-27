@@ -49,3 +49,4 @@ must_not:
   - a new uv note when "SOP - Install uv (Linux)" already exists (patch, don't create)
   - everything filed under uv with no principle note (the first-pass failure)
   - the citation list [1]-[5] treated as verified sources (blogs; origin stays ai-chat)
+  - a source note for the pasted answer (Handbook §12: AI answers never get one)
