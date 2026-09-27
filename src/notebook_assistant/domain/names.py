@@ -1,32 +1,28 @@
 """File and folder names that are valid on Windows, macOS and Linux at once.
 
-The vault syncs between operating systems, so every host applies the strictest combined rules
-(Handbook §5, docs/architecture.md §5.2):
-
-- no ``< > : " / \\ | ? *`` or control characters, no trailing dot or space;
-- no Windows reserved device names (``CON``, ``NUL``, ``COM1`` …), with or without an extension;
-- names compared case-insensitively after Unicode NFC normalization;
-- name ≤ 100 characters and vault-relative path ≤ 200 characters.
-
-Handbook §5 additionally forbids ``# ^ [ ]`` in note titles because they break Obsidian links.
+The rules (forbidden characters, reserved names, length limits) are defined once, in Handbook
+§5.1, and arrive here as :class:`NameRules` parsed from it. This module only applies them.
+Case-insensitive, NFC-normalized comparison (:func:`name_key`) is how §5.1's "same name" is
+implemented.
 """
 
 from __future__ import annotations
 
 import re
 import unicodedata
+from dataclasses import dataclass
 from pathlib import PurePosixPath
 
-MAX_NAME_LENGTH = 100
-MAX_PATH_LENGTH = 200
 
-_FORBIDDEN_FS = set('<>:"/\\|?*')
-_FORBIDDEN_TITLE = set("#^[]")
-_RESERVED = (
-    {"CON", "PRN", "AUX", "NUL"}
-    | {f"COM{i}" for i in range(1, 10)}
-    | {f"LPT{i}" for i in range(1, 10)}
-)
+@dataclass(frozen=True)
+class NameRules:
+    """Handbook §5.1, as parsed by :func:`notebook_assistant.domain.rules.parse_handbook`."""
+
+    forbidden: frozenset[str]  # in any file or folder name (control characters always)
+    forbidden_in_titles: frozenset[str]  # additionally in note titles
+    reserved: frozenset[str]  # upper-case stems
+    max_name: int
+    max_path: int
 
 
 def nfc(text: str) -> str:
@@ -42,23 +38,23 @@ def name_key(name: str) -> str:
     return nfc(name).casefold()
 
 
-def validate_name(name: str, *, is_note_title: bool = False) -> list[str]:
-    """Return every rule ``name`` breaks, as human-readable messages (empty if valid).
+def validate_name(name: str, rules: NameRules, *, is_note_title: bool = False) -> list[str]:
+    """Return every §5.1 rule ``name`` breaks, as human-readable messages (empty if valid).
 
     ``name`` is a single path component (file or folder name, extension included for files).
-    With ``is_note_title`` the Obsidian-specific title rules (Handbook §5) are applied too.
+    With ``is_note_title`` the title-only characters are checked too.
     """
     problems: list[str] = []
     if not name or not name.strip():
         return ["name is empty"]
     if name != nfc(name):
         problems.append("name is not NFC-normalized")
-    bad = sorted({c for c in name if c in _FORBIDDEN_FS or ord(c) < 32})
+    bad = sorted({c for c in name if c in rules.forbidden or ord(c) < 32})
     if bad:
         shown = " ".join(repr(c) for c in bad)
         problems.append(f"contains characters not allowed in file names: {shown}")
     if is_note_title:
-        bad_title = sorted({c for c in name if c in _FORBIDDEN_TITLE})
+        bad_title = sorted({c for c in name if c in rules.forbidden_in_titles})
         if bad_title:
             problems.append(f"contains characters that break links: {' '.join(bad_title)}")
     if name.endswith((".", " ")):
@@ -66,14 +62,14 @@ def validate_name(name: str, *, is_note_title: bool = False) -> list[str]:
     if name.startswith(" "):
         problems.append("starts with a space")
     stem = name.split(".", 1)[0].strip().upper()
-    if stem in _RESERVED:
+    if stem in rules.reserved:
         problems.append(f"{stem} is a reserved device name on Windows")
-    if len(name) > MAX_NAME_LENGTH:
-        problems.append(f"longer than {MAX_NAME_LENGTH} characters")
+    if len(name) > rules.max_name:
+        problems.append(f"longer than {rules.max_name} characters")
     return problems
 
 
-def validate_path(path: PurePosixPath) -> list[str]:
+def validate_path(path: PurePosixPath, rules: NameRules) -> list[str]:
     """Validate every component of a vault-relative path, plus the total length."""
     problems: list[str] = []
     if path.is_absolute():
@@ -83,25 +79,23 @@ def validate_path(path: PurePosixPath) -> list[str]:
     for i, part in enumerate(path.parts):
         is_title = i == len(path.parts) - 1 and part.endswith(".md")
         title = part[: -len(".md")] if is_title else part
-        for problem in validate_name(title, is_note_title=is_title):
+        for problem in validate_name(title, rules, is_note_title=is_title):
             problems.append(f"{part!r}: {problem}")
-    if len(path.as_posix()) > MAX_PATH_LENGTH:
-        problems.append(f"path longer than {MAX_PATH_LENGTH} characters")
+    if len(path.as_posix()) > rules.max_path:
+        problems.append(f"path longer than {rules.max_path} characters")
     return problems
 
 
-_UNSAFE_RUN = re.compile(r'[<>:"/\\|?*#^\[\]\x00-\x1f]+')
-
-
-def sanitize_title(title: str) -> str:
-    """Make ``title`` usable as a note title by replacing forbidden characters.
+def sanitize_title(title: str, rules: NameRules) -> str:
+    """Make ``title`` usable as a note title by replacing the characters §5.1 forbids.
 
     ``?`` becomes the full-width ``？`` (Handbook §5: question tasks); ``:`` becomes `` -``;
     other forbidden runs become a single space. The result is trimmed and cut to length.
     """
     text = nfc(title).replace("?", "？").replace(":", " -")
-    text = _UNSAFE_RUN.sub(" ", text)
+    unsafe = rules.forbidden | rules.forbidden_in_titles
+    text = "".join(" " if c in unsafe or ord(c) < 32 else c for c in text)
     text = re.sub(r"\s+", " ", text).strip().rstrip(".")
-    if len(text) > MAX_NAME_LENGTH - 3:  # leave room for ".md"
-        text = text[: MAX_NAME_LENGTH - 3].rstrip(" .")
+    if len(text) > rules.max_name - 3:  # leave room for ".md"
+        text = text[: rules.max_name - 3].rstrip(" .")
     return text or "Untitled"

@@ -29,6 +29,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/notebook_assistant"]
 
+# The release carries the handbook it was tested against. This is the build output of
+# docs/handbook.md, the single source of the rules; it is never edited separately.
+[tool.hatch.build.targets.wheel.force-include]
+"docs/handbook.md" = "notebook_assistant/_handbook.md"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

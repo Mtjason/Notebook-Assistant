@@ -1,4 +1,4 @@
-"""Plan a link-safe rename or move (Handbook §5.1).
+"""Plan a link-safe rename or move (Handbook §5.2).
 
 The plan is a changeset. Nothing is written until it is approved and applied:
 
@@ -31,6 +31,7 @@ from notebook_assistant.domain.links import (
 )
 from notebook_assistant.domain.names import name_key, validate_path
 from notebook_assistant.domain.note import Note, is_canvas_path, is_note_path, title_of
+from notebook_assistant.handbook import load_rules
 
 
 class PlanError(ValueError):
@@ -52,7 +53,7 @@ def plan_move(
     src = stored_src
     if src.suffix != dest.suffix:
         raise PlanError("a rename must keep the file extension")
-    problems = validate_path(dest)
+    problems = validate_path(dest, load_rules().names)
     if problems:
         raise PlanError("invalid target path: " + "; ".join(problems))
     existing = index.path_of(dest)

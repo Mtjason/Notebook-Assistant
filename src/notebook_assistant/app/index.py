@@ -13,17 +13,13 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 
 from notebook_assistant.app import canvas
-from notebook_assistant.domain import schema
 from notebook_assistant.domain.frontmatter import FrontmatterError
 from notebook_assistant.domain.invariants import VaultFacts
 from notebook_assistant.domain.links import Link, Resolver, find_links
 from notebook_assistant.domain.names import name_key
 from notebook_assistant.domain.note import Note, is_canvas_path, is_note_path
+from notebook_assistant.handbook import load_rules
 from notebook_assistant.ports.vault import VaultStore
-
-#: The assistant's own state files: not part of the link graph, never rewritten by renames.
-STATE_PREFIX = schema.STATE_PREFIX
-TAG_REGISTRY = PurePosixPath("99-System/Tags.md")
 
 
 @dataclass(frozen=True)
@@ -36,7 +32,9 @@ class Ref:
 
 
 def is_state_path(path: PurePosixPath) -> bool:
-    return path.as_posix().startswith(STATE_PREFIX)
+    """The assistant's own state files (Handbook §0.1, Scope): not part of the link graph and
+    never rewritten by renames."""
+    return path.as_posix().startswith(load_rules().state_prefix)
 
 
 @dataclass
@@ -135,11 +133,15 @@ class VaultIndex:
         )
 
     def facts(self) -> VaultFacts:
-        return VaultFacts(title_counts=self.title_counts(), registered_tags=self.tag_registry())
+        return VaultFacts(
+            rules=load_rules(),
+            title_counts=self.title_counts(),
+            registered_tags=self.tag_registry(),
+        )
 
     def tag_registry(self) -> frozenset[str] | None:
         """Tags listed in ``99-System/Tags.md`` as `` `#tag` `` items (Handbook §6)."""
-        text = self.text(TAG_REGISTRY)
+        text = self.text(PurePosixPath(load_rules().tag_registry))
         if text is None:
             return None
         return frozenset(re.findall(r"`#([^`\s]+)`", text))

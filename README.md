@@ -4,19 +4,10 @@ An AI assistant that keeps an Obsidian vault organized under one handbook. It cl
 captures, digests screenshots and half-finished notes into real knowledge, and answers questions
 from your notes. **Nothing in the vault changes until you approve it.**
 
-- Rules: [`docs/handbook.md`](docs/handbook.md) (the vault's copy in `99-System/Handbook.md` is the source of truth)
+- Rules: [`docs/handbook.md`](docs/handbook.md), the single source of the vault rules (the code reads it)
 - Design: [`docs/architecture.md`](docs/architecture.md) · [`docs/maintenance-job.md`](docs/maintenance-job.md)
-- Design review page: [`docs/design.html`](docs/design.html) — open it in a browser to evaluate the current design (UI schematic, split planner, data, backend, roadmap)
-
-## Status
-
-Built one feature branch at a time (docs/architecture.md §5.4.1):
-
-| # | Branch | State |
-|---|---|---|
-| 1 | `feat/core-vault` | merged: notes, frontmatter, links, handbook rules, link-safe rename/move, changesets with apply/undo, vault-backed state |
-| 2 | `feat/service-shell` | **next**: service, web app shell, platform profiles, `doctor`, release wheel |
-| 3–10 | review · 4a extract · 4b digest · capture · sweep · views · search · chat · embeddings | later |
+- Screens: [`docs/design.html`](docs/design.html), open it in a browser
+- Status and branch order: [`docs/architecture.md` §5.4.1](docs/architecture.md#541-feature-branches-in-order)
 
 ## Development (WSL or any Linux/macOS)
 
@@ -56,14 +47,4 @@ uv run notebook-assistant undo  --vault "$V" cs-…     # revert it
 
 ## Layout
 
-```
-src/notebook_assistant/
-  domain/    pure logic, no I/O: names, frontmatter, note, links, schema (handbook as data),
-             invariants, preserve (nothing-lost check), changeset, ids
-  ports/     interfaces (VaultStore)
-  adapters/  fs_vault (real disk: atomic UTF-8 writes, Windows lock retries), memory_vault
-  app/       index (files + link graph), rename (plan a link-safe move), apply (+undo), canvas
-  store/     vault-backed state: changesets, lease, runs, snapshots
-  cli.py     developer commands above
-tests/       unit · contract (both adapters) · property-based (random renames) · golden (local)
-```
+See [`docs/architecture.md` §3.2](docs/architecture.md#32-package-layout).

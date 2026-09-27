@@ -6,6 +6,7 @@ from notebook_assistant.app.apply import apply_changeset
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.app.rename import plan_move
 from notebook_assistant.domain.invariants import is_checked
+from notebook_assistant.handbook import load_rules
 from notebook_assistant.store import changesets, lease, runs, snapshots
 from tests.conftest import NOW
 
@@ -37,7 +38,7 @@ def test_changeset_record_round_trip(memory_vault: MemoryVault) -> None:
     again = changesets.load(memory_vault, path)
     assert again.status.value == "applied" and again.reverse_ops == loaded.reverse_ops
     assert changesets.list_records(memory_vault) == [path]
-    assert not is_checked(path)  # machine state is exempt from the invariants
+    assert not is_checked(path, load_rules())  # machine state is exempt from the invariants
 
 
 def test_state_files_are_outside_the_link_graph(memory_vault: MemoryVault) -> None:

@@ -1,32 +1,46 @@
 # Working in this repository
 
-Notebook-Assistant keeps Jason's Obsidian vault organized under the Vault Handbook. Read
-`docs/architecture.md` before changing structure and `docs/handbook.md` before changing rules.
+Notebook-Assistant keeps Jason's Obsidian vault organized under the Vault Handbook.
+
+## Single source of truth
+
+Every fact lives in exactly one place. Everything else links to it by path and section
+(`docs/handbook.md` §3.1) and never restates it. There are no copies: none in the vault, none
+in claude.ai project documents, none in summaries or tables.
+
+| Kind of fact | Its one place |
+|---|---|
+| Vault rules (types, folders, properties, names, tags, digestion…) | `docs/handbook.md`. The code parses its tables (`domain/rules.py`, loaded by `handbook.py`); never hard-code a rule value |
+| Architecture, data layout, platforms, release, feature branches, test checkpoints | `docs/architecture.md` |
+| Maintenance job, extraction planner, two-PC coordination | `docs/maintenance-job.md` |
+| Screens and their layout (visual only) | `docs/design.html` |
+| What a module contains | its docstring |
+| Why a decision was made | the section that defines it, and its pull request |
+
+When you change a fact, change it in its one place and fix any reference that now points wrong.
+If you find the same fact in two places, delete one and link to the other in the same pull
+request. `tests/test_rules_single_source.py` fails on a copy of the handbook or on rule values
+hard-coded in `src/`.
 
 ## Non-negotiables
 
-- **Every vault change is a changeset** applied only after approval, with base-hash checks,
-  link verification and rollback (`app/apply.py`). Nothing writes to notes directly.
-- **The handbook is the source of truth.** `domain/schema.py` mirrors it; when a rule changes,
-  update the handbook (vault `99-System/Handbook.md`, copy in `docs/handbook.md`), the schema and
-  the tests in the same branch.
-- **Digest and split captures correctly.** Every path that turns raw material into notes goes
-  through the shared extraction planner (`app/extract.py`, see `docs/maintenance-job.md`,
-  Extraction): atoms → handbook types, instance vs. principle (Handbook §3.1), patch before
-  create, coverage validated in code. A change that makes splitting worse on the fixture
-  captures is a regression.
-- **`domain/` is pure** — no I/O. Files go through `ports/vault.py`.
-- **Portable file handling:** always `encoding="utf-8"` (ruff PLW1514 enforces it), keep line
-  endings, apply Windows + macOS + Linux name rules on every host, compare names with `name_key`.
-- **Never commit real vault notes.** Tests use `tests/fixtures/vault/` (synthetic). Golden tests
-  read the real vault via `NA_REAL_VAULT`, locally only.
-- **Minimal diffs:** edit frontmatter through `Frontmatter.set/delete`, which rewrite only the
-  touched entry; an untouched note must re-render byte-identically.
+- **Every vault change is a changeset**, applied only after approval (`app/apply.py`).
+  Nothing writes to notes directly.
+- **A rule change is a pull request to `docs/handbook.md`**, never an edit in the vault
+  (Handbook §15). Update the parser and tests in the same pull request if a table's shape changes.
+- **Every path that turns raw material into notes goes through the extraction planner**
+  (`docs/maintenance-job.md`, Extraction). Worse splitting on the fixture captures is a regression.
+- **`domain/` is pure:** no I/O. Files go through `ports/vault.py`.
+- **Portable file handling:** `docs/architecture.md` §5.2 (ruff PLW1514 enforces UTF-8).
+- **Never commit real vault notes.** Tests use `tests/fixtures/`. Golden tests read the real vault
+  via `NA_REAL_VAULT`, locally only.
+- **Minimal diffs:** edit frontmatter through `Frontmatter.set/delete`; an untouched note must
+  re-render byte-identically.
 
 ## Workflow
 
-- **Keep `docs/design.html` current.** It is the page the developer uses to evaluate the design. When a branch changes the UI, the data layout, the pipeline or the roadmap, update the page in the same pull request.
-
-- One feature branch at a time: `feat/<name>` off `main`, merged by pull request when CI is
-  green on Linux, Windows and macOS. Order: docs/architecture.md §5.4.1.
+- One feature branch at a time, in the order of `docs/architecture.md` §5.4.1, merged by pull
+  request when CI is green on Linux, Windows and macOS.
+- A pull request that changes screens updates `docs/design.html`; one that adds a CLI command or a
+  config key updates `docs/architecture.md` §5.5 or §4.1.1.
 - Before pushing: `uv run ruff format src tests && uv run ruff check src tests && uv run mypy && uv run pytest`.

@@ -8,6 +8,9 @@ from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.domain.invariants import VaultFacts, check_note, is_checked
 from notebook_assistant.domain.names import name_key
 from notebook_assistant.domain.note import Note
+from notebook_assistant.handbook import load_rules
+
+RULES = load_rules()
 
 BASE = {
     "type": "knowledge",
@@ -27,7 +30,7 @@ def make(path: str, drop: tuple[str, ...] = (), body: str = "text\n", **props: s
 
 
 def codes(note: Note, facts: VaultFacts | None = None) -> list[str]:
-    facts = facts or VaultFacts(title_counts=Counter({name_key(note.title): 1}))
+    facts = facts or VaultFacts(rules=RULES, title_counts=Counter({name_key(note.title): 1}))
     return [v.code for v in check_note(note, facts)]
 
 
@@ -95,7 +98,7 @@ def test_value_dates() -> None:
 
 def test_i4_unique_and_pattern() -> None:
     note = make("60-Knowledge/ML/x.md")
-    facts = VaultFacts(title_counts=Counter({name_key("X"): 2}))
+    facts = VaultFacts(rules=RULES, title_counts=Counter({name_key("X"): 2}))
     assert "I-4" in codes(note, facts)
     sop = make(
         "30-SOPs/Install uv.md",
@@ -131,7 +134,7 @@ def test_archive() -> None:
 
 def test_tags() -> None:
     facts = VaultFacts(
-        title_counts=Counter({name_key("x"): 1}), registered_tags=frozenset({"ml/xai"})
+        rules=RULES, title_counts=Counter({name_key("x"): 1}), registered_tags=frozenset({"ml/xai"})
     )
     assert codes(make("60-Knowledge/ML/x.md", tags="[ml/xai]"), facts) == []
     assert codes(make("60-Knowledge/ML/x.md", tags="[kedro]"), facts) == ["tag"]
@@ -150,4 +153,4 @@ def test_tags() -> None:
     ],
 )
 def test_checked_locations(path: str, checked: bool) -> None:
-    assert is_checked(PurePosixPath(path)) is checked
+    assert is_checked(PurePosixPath(path), RULES) is checked

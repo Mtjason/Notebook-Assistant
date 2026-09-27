@@ -25,24 +25,24 @@ Three parts: a **web UI** (chat plus approval screens), a **backend** that owns 
 
 ## 2. Frontend
 
+A local web app served by the service; Obsidian stays the editor and reader of notes. Why not an Obsidian plugin:
+
+| Need | Web app | Obsidian plugin |
+|---|---|---|
+| Rich rendering (Markdown, HTML, charts, side-by-side diffs) | Full control. HTML output renders in a sandboxed iframe | Limited to Obsidian's views |
+| Bitwarden actions | The service calls `bw` directly | Possible, but each action must go through Obsidian |
+| Works with Obsidian closed | Yes | No |
+| Same on both PCs, one install | Yes | Needs installing per vault plus the service anyway |
+| Opening a note | `obsidian://open?vault=…&file=…` deep links | Native |
+| Link-safe renames and moves | The service rewrites links itself (the same logic the migration used, verified by its checker) | Native through Obsidian's API |
+
+A tiny Obsidian plugin can be added later for "open this note in the assistant", but nothing depends on it.
+
+The screens themselves are drawn in `docs/design.html` (UI schematic), which is their only description.
+
 ### 2.1 Layout
 
-```
-┌───────────┬──────────────────────────────────────┬─────────────────────┐
-│ Nav       │ Main                                 │ Context panel       │
-│           │                                      │                     │
-│ Chat      │  Chat thread (streaming)             │ Notes cited in the  │
-│ Inbox (3) │   answer with [[citations]]          │ current answer      │
-│ Digest(32)│   ┌ Changeset card ───────────┐      │  - preview          │
-│ Review    │   │ move  …   [✓] [✗]          │      │  - Open in Obsidian │
-│ Incubator │   │ patch …   [✓] [✗]          │      │                     │
-│ Tasks     │   │ [Apply selected]           │      │ Pinned notes (@)    │
-│           │   └───────────────────────────┘      │                     │
-│ Sessions  │  ┌ composer ──────────────────────┐   │ Scope: All ▾        │
-│  today    │  │ @note  /command  📎 drop files │   │                     │
-│  earlier  │  └───────────────────────────────┘   │                     │
-└───────────┴──────────────────────────────────────┴─────────────────────┘
-```
+Drawn in `docs/design.html` (UI schematic): the app shell, every screen, and the calls each one makes.
 
 ### 2.2 Chat
 
@@ -109,26 +109,24 @@ Three parts: a **web UI** (chat plus approval screens), a **backend** that owns 
 
 ### 3.2 Package layout
 
+Each package's role is below; each module's docstring is the reference for what it contains (the code is the only list of modules).
+
 ```
-notebook-assistant/
-├─ pyproject.toml
-├─ src/notebook_assistant/
-│  ├─ domain/          names.py · frontmatter.py · note.py · links.py · schema.py (handbook as data)
-│  │                   · invariants.py · preserve.py · changeset.py · ids.py        (pure, no I/O)
-│  ├─ app/             index.py (files + link graph) · rename.py · apply.py (+undo) · canvas.py
-│  │                   · later: extract.py (split planner, shared) · ask.py · capture.py · classify.py · digest.py · graduate.py · sweep.py
-│  ├─ tools/           registry.py · read/ · propose/ · external/     (one file per tool)
-│  ├─ agent/           loop.py (tool-use loop) · prompts/ · context.py (retrieval, prompt-cache layout)
-│  ├─ ports/           vault.py · later: llm.py · index.py · secrets.py · events.py   (interfaces)
-│  ├─ adapters/        fs_vault.py · memory_vault.py · later: claude.py · sqlite_index.py · bitwarden_cli.py · email_import.py · sse.py
-│  ├─ platform/        detect.py · profiles.py · clipboard/ · opener/ · autostart/ · watch.py   (the only OS-aware code, §5)
-│  ├─ store/           changesets.py · snapshots.py · runs.py · lease.py · later: sessions.py   (vault-backed state)
-│  ├─ jobs/            runner.py (async queue, per-note locks) · retention.py (the only scheduled job)
-│  ├─ api/             routes/ · schemas.py · sse.py
-│  ├─ web/             built frontend (static)
-│  └─ config.py        per-machine settings (pydantic-settings)
-├─ frontend/           React source
-└─ tests/              unit · contract (both adapters) · property-based · golden (your vault, local only) · e2e
+src/notebook_assistant/
+├─ domain/     pure logic, no I/O: names, frontmatter, notes, links, rules parsed from the handbook,
+│              invariants, the nothing-lost check, changesets
+├─ app/        use cases combining domain logic with ports (index, rename, apply/undo; later
+│              extract, digest, capture, sweep, ask)
+├─ handbook.py loads docs/handbook.md, the single source of the rules
+├─ ports/      interfaces (vault; later llm, index, secrets, events)
+├─ adapters/   implementations (filesystem and in-memory vault; later Claude, SQLite, Bitwarden,
+│              email import, SSE)
+├─ store/      vault-backed state (§4.1)
+├─ platform/   the only OS-aware code (§5)                      · branch 2
+├─ jobs/       queue and the one scheduled job                  · branch 2
+├─ api/ web/   HTTP + SSE service and the built frontend        · branch 2
+└─ tools/ agent/  tool registry and tool-use loop               · branches 4a, 9
+frontend/      React source · tests/ unit, contract, property-based, fixture captures, golden (local)
 ```
 
 ### 3.3 Tool registry
@@ -185,9 +183,16 @@ Every tool is a class with a Pydantic input/output schema, a description (which 
 
 ### 4.1 In the vault (durable, synced)
 
+The assistant is **stateless**: all durable state is in the vault and travels with Obsidian Sync, so any installation on any PC continues where another left off.
+
+- **Per-note workflow state** lives in the note's own properties (`digest`, `needs_review`, `assistant_hash`, …; defined in Handbook §4.1).
+- **No dot-folders** (e.g. `.assistant/`): Obsidian Sync skips hidden folders other than `.obsidian`.
+- **Only Markdown:** state files are `.md`, so they sync even if "sync all other file types" is off, and you can read them.
+- **Per-machine settings are not state:** the vault path, the API key (an environment variable, never in the vault) and whether `bw` is installed stay on each PC.
+
 ```
 99-System/Assistant/
-├─ Config.md                     shared settings: model per task, spend cap, retention (§4.1.1)
+├─ Config.md                     shared settings: model per task, spend cap (§4.1.1)
 ├─ Preferences.md                conventions learned from your approvals/rejections — readable, editable
 ├─ Sessions/2026/09/2026-09-27 0251 Frontend and backend design.md
 ├─ Changesets/2026-09/cs-01J8….md   every proposal: pending / applied / rejected / reverted
@@ -213,17 +218,12 @@ models:                       # one entry per task; any model ID the API accepts
 limits:
   monthly_spend_usd: 30       # AI jobs pause when reached; the UI shows month-to-date cost
   max_tokens_per_job: 60000
-retention:
-  sessions_days: 90
-sweep:
-  mode: manual                # manual only (Handbook §16.6)
-  settle_minutes: 30
 capture:
   email_formats: [eml, msg]
 ---
 ```
 
-Per-machine settings (vault path, profile, `features.bitwarden`, search option) stay in the local config file, not here.
+Per-machine settings (vault path, profile, `features.bitwarden`, search option) stay in the local config file, not here. Behaviour the handbook defines (manual-only sweeps and settle time, Handbook §16; session retention, §8.4) is not configuration and is not repeated here.
 
 **Sessions** (one file per conversation):
 
@@ -252,9 +252,7 @@ tokens: {in: 48210, out: 6120}
 - **Linked both ways:** because sessions link the notes they cite, each note's backlinks show "discussed in" sessions.
 - **Summaries for long sessions:** these get a rolling `## Summary` block that the agent reads instead of the full transcript.
 - **Searchable everywhere.** Sessions appear in Obsidian's search and in the assistant's retrieval. Only `Changesets/`, `Snapshots/` and `Runs/` are hidden from Obsidian search (excluded files).
-- **Kept 90 days.** A daily retention job queues deletion of sessions older than 90 days as one batch you approve. It is the only automatic job.
-  - Anything worth keeping should be saved with **Save to vault** before then.
-  - A changeset that came from a deleted session keeps its title and date as plain text, so the record of why a change was made survives.
+- **Retention:** Handbook §8.4 and §16.6. A changeset that came from a deleted session keeps its title and date as plain text, so the record of why a change was made survives.
 
 **Changesets** replace the separate Proposals and Rejections files. One note per changeset holds:
 - `status`, `created_by` (a session, the sweep, or a button) and `base_hash` of every target;
@@ -324,16 +322,9 @@ One codebase runs on four hosts. It detects the host at startup and picks a **pr
 
 ### 5.2 Vault rules that don't depend on the host
 
-The vault can sync to any OS later, so file operations apply the **strictest combined rules** on every host, including Linux:
+The vault can sync to any OS later, so every host handles files the same way:
 
-- **Forbidden in names:**
-  - the characters `< > : " / \ | ? *`;
-  - control characters;
-  - a trailing dot or space;
-  - Windows reserved names (`CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9`).
-- **Case-insensitive uniqueness.** NTFS and APFS (the default macOS setup) are case-insensitive, so `Note.md` and `note.md` count as the same name even on ext4 (case-sensitive Linux).
-- **Unicode normalized to NFC.** NFC is the composed form; macOS can return filenames in NFD, the decomposed form. Names are normalized before comparing or storing, so `é` stored two ways is still one name.
-- **Length:** names ≤ 100 characters, and vault-relative paths ≤ 200 characters. This keeps Windows under its 260-character path limit.
+- **File and folder names:** Handbook §5.1 (the rules) and `domain/names.py` (applies them, with the values parsed from the handbook).
 - **Paths are stored vault-relative, with `/`.** Use `PurePosixPath` for stored paths and `pathlib` for disk access. Never string concatenation.
 - **Always UTF-8.** Every `open()` passes `encoding="utf-8"`, and the launcher sets `PYTHONUTF8=1` (Python's UTF-8 mode). Traditional-Chinese Windows otherwise defaults to cp950 (Big5) and would corrupt 中文 notes. A lint rule, meaning an automated code check, rejects any `open()` without an encoding.
 - **Line endings:** each file keeps the ones it has. Use `newline=""` on read and write, and LF for new files.
@@ -410,21 +401,4 @@ Short hands-on sessions (20–30 min) right after the branch that first makes so
 
 ## 6. Decisions
 
-| Decision | Choice |
-|---|---|
-| UI | Standalone local web app; Obsidian stays the editor |
-| State | All durable state in the vault; per-PC caches only |
-| Sessions in search | Yes: visible in Obsidian search and to the agent |
-| Session retention | 90 days; a daily job queues deletion for approval (the only automatic job) |
-| Note processing | Manual only: nothing runs on a timer or on file changes |
-| Models and limits | Configuration in `Config.md`, one model per task, monthly spend cap (§4.1.1) |
-| Email capture | `.eml` and `.msg` converted to Markdown source notes |
-| Digesting and splitting | One shared extraction planner for chat, Digest, Inbox and Sweep. Captures are split into atoms; a general principle taught through a specific case gets its own knowledge note, linked both ways (Handbook §3.1, §19.6) |
-| Meeting audio | Not supported; meetings are text only |
-| Bitwarden | Personal PC only |
-| Build order | Feature branches 1–10, with 4 split into 4a `extract` and 4b `digest` (§5.4.1); chat last |
-| Embeddings | v1 keyword only; optional CPU embeddings per PC (§4.3) |
-| Platforms | One codebase, host profiles `windows` · `wsl-drvfs` · `linux` · `macos`, detected at startup (§5) |
-| Vault file rules | Strictest combined rules (Windows + macOS + Linux) on every host |
-| Distribution | One `py3-none-any` wheel per release, built and tested by CI on Windows, Linux and macOS |
-| Work PC | Native Windows; no WSL |
+Each decision is recorded once, in the section that defines it (and in git history, with the pull request that made it). There is no summary table, because a summary is a second copy.

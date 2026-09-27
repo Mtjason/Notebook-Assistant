@@ -285,7 +285,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
   <div class="top">
     <div class="brand">notebook-<b>assistant</b></div>
     <nav class="nav" aria-label="Sections">
-      <a href="#ui">UI</a><a href="#app">Chat</a><a href="#try">Digest</a><a href="#split">Split</a><a href="#vault">Vault</a><a href="#rules">Rules</a><a href="#data">Data</a><a href="#backend">Backend</a><a href="#platforms">Platforms</a><a href="#search">Search</a><a href="#road">Roadmap</a>
+      <a href="#ui">UI</a><a href="#app">Chat</a><a href="#try">Digest</a><a href="#docs">Docs</a>
     </nav>
   </div>
 
@@ -294,12 +294,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
       <div class="eyebrow">Personal knowledge assistant for Obsidian</div>
       <h1 style="margin-top:14px">Write raw.<br><em>Approve</em> what it files.</h1>
       <p class="lead">You capture anything, anywhere in the vault. The assistant classifies it, digests screenshots and half-finished notes into real knowledge, and keeps every note consistent with one handbook. Nothing in the vault changes until you click.</p>
-      <div class="facts">
-        <span class="chip">Handbook v2.8</span>
-        <span class="chip">171 notes · 147 images</span>
-        <span class="chip">32 in digestion queue</span>
-        <span class="chip">2 PCs · 0 local state</span>
-      </div>
+      
     </div>
     <div class="transform" aria-label="Example: a raw capture becomes a task">
       <div class="file">
@@ -335,7 +330,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
           <div class="row" style="justify-content:space-between">
             <span class="t" style="margin:0">notebook-assistant</span>
             <span class="b">⌘K search notes + sessions</span>
-            <span class="row"><span class="b">personal-pc</span><span class="b">$4.10 / $30 this month</span><span class="b">jobs 1 ⟳</span></span>
+            <span class="row"><span class="b">personal-pc</span><span class="b">spend this month</span><span class="b">jobs 1 ⟳</span></span>
           </div>
         </div>
         <div class="r wf-nav"><span class="bd">2</span>
@@ -561,7 +556,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
         <div class="r solid"><span class="t">Search sessions</span>"kedro credentials" · date ▾ · PC ▾ · has changeset ☐</div>
         <div class="r"><span class="t">Kedro credentials in catalog · 09-24 · work-pc</span>…store the <b>credentials</b> in conf/local, not the <b>catalog</b>…<div class="row"><span class="b">Open</span><span class="b">Continue</span></div></div>
         <div class="r"><span class="t">Frontend and backend design · 09-27 · personal-pc</span><div class="ln l"></div></div>
-        <div class="r pend">Sessions older than 90 days are queued for deletion by a daily job, for your approval. It is the only automatic job (Handbook §16.6).</div>
+        <div class="r pend">Retention of old sessions: Handbook §8.4.</div>
       </div>
       <div class="spec">
         <h3>Sessions</h3>
@@ -581,7 +576,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
       <div class="wf" role="img" aria-label="Settings screen wireframe">
         <div class="g2">
           <div class="r"><span class="t">This PC (not synced)</span>vault path ✓<br>ANTHROPIC_API_KEY ✓ env<br>Bitwarden CLI: locked <span class="b">Unlock</span><br>search: keyword · e5-small ▾<br>index: 171 notes · rebuilt 09-27</div>
-          <div class="r"><span class="t">Shared (Config.md)</span>models per task: classify · transform · digest · chat ▾<br>spend cap: $30 / month<br>sweep: manual only<br>settle time: 30 min<br>session retention: 90 d</div>
+          <div class="r"><span class="t">Shared (Config.md)</span>models per task ▾<br>monthly spend cap ▾<br><i>editing Config.md makes a changeset</i><br>Rules: read-only view of the handbook the installed version was built with</div>
         </div>
         <div class="row"><span class="b">Rebuild index</span><span class="b">Sweep changes</span><span class="b">Lint</span><span class="b">Deep pass</span><span class="b">Archive check</span><span class="b">Open Handbook</span></div>
       </div>
@@ -707,7 +702,7 @@ ChangesetCard  CredentialCard  ChecksBar  DiffView</pre>
       <div><b>Answers cite notes</b>Every claim links a note. Clicking opens a preview here, with Open in Obsidian.</div>
       <div><b>Requests become changesets</b>The chat can't write. It proposes, you tick operations and apply, and the checks run first.</div>
       <div><b>Secrets skip the model</b>Credential cards copy from Bitwarden to the clipboard. The value never appears on screen or in the prompt.</div>
-      <div><b>Sessions are notes</b>Each conversation is saved in the vault, searchable in Obsidian, and continues on your other PC. Kept 90 days.</div>
+      <div><b>Sessions are notes</b>Each conversation is saved in the vault, searchable in Obsidian, and continues on your other PC.</div>
     </div>
   </section>
 
@@ -726,389 +721,21 @@ ChangesetCard  CredentialCard  ChecksBar  DiffView</pre>
     </div>
   </section>
 
-  <section id="split">
-    <div class="eyebrow">Extraction</div>
-    <h2 style="margin-top:10px">One capture, every note it yields</h2>
-    <p class="lead" style="margin-top:12px">Splitting a capture into the right notes is a core requirement, as important as losing nothing. One planner (<code>app/extract.py</code>) serves every entry point: paste into chat, <b>Approve to digest</b>, the Inbox and emails, and <b>Sweep changes</b>. The model proposes a typed <b>split plan</b>; code validates it and compiles it into a changeset.</p>
-
+  <section id="docs">
+    <div class="eyebrow">Everything else</div>
+    <h2 style="margin-top:10px">Where the rest of the design lives</h2>
+    <p class="lead" style="margin-top:12px">This page shows only the screens. Every other fact has exactly one home, and this page links to it instead of repeating it.</p>
     <div class="tblwrap">
       <table class="tbl">
-        <thead><tr><th>#</th><th>Step</th><th>AI?</th><th>What it does</th></tr></thead>
+        <thead><tr><th>Topic</th><th>The one place</th></tr></thead>
         <tbody>
-          <tr><td class="num">1</td><td><b>Segment</b></td><td>yes</td><td>Break the capture into atoms: one step, one explanation, one fact, one credential, one task, one general rule</td></tr>
-          <tr><td class="num">2</td><td><b>Classify</b></td><td>yes</td><td>Each atom through the decision order (Handbook §3) and the topic folders (§2.3)</td></tr>
-          <tr><td class="num">3</td><td><b>Generalize</b></td><td>yes</td><td>Does this explanation hold beyond this case? Then it's a <b>principle</b> for a knowledge note; the specific case keeps only what's unique (§3.1 instance vs. principle)</td></tr>
-          <tr><td class="num">4</td><td><b>Match</b></td><td>no, then yes</td><td>Existing notes by title, alias, key, then search. <b>Patch before create</b>: a new section, collection rows, a History line</td></tr>
-          <tr><td class="num">5</td><td><b>Plan</b></td><td>—</td><td>Atom → target note → operation → role (instance, principle, extracted), plus links both ways and to the MOC</td></tr>
-          <tr><td class="num">6</td><td><b>Verify</b></td><td>partly</td><td>Corrections only with a cited source; anything unsupported goes in an <i>Unverified</i> box; <code>origin: ai-chat</code> stays</td></tr>
-          <tr><td class="num">7</td><td><b>Validate</b></td><td>no</td><td>Every atom lands in exactly one note; nothing lost across the set; no explanation duplicated; links resolve both ways; every note passes the invariants</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="two">
-      <div>
-        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">Split map: the uv install answer</h3>
-        <p style="font-size:.92rem;color:var(--muted);margin-bottom:10px">A pasted AI answer explaining <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code> and <code>source ~/.bashrc</code>. This is the first fixture capture and the regression baseline.</p>
-        <div class="tblwrap" style="margin-top:0">
-          <table class="tbl">
-            <thead><tr><th>Atom</th><th>Role</th><th>Goes to</th></tr></thead>
-            <tbody>
-              <tr><td>Install uv, reload PATH, verify</td><td>instance</td><td><code>SOP - Install uv (Linux)</code> · patch</td></tr>
-              <tr><td>What <code>-L -s -S -f</code> do, and why</td><td>principle</td><td><code>curl pipe to shell install</code> · new, Systems</td></tr>
-              <tr><td><code>| sh</code> runs the script</td><td>principle</td><td>same note</td></tr>
-              <tr><td>Why <code>source</code>; bash vs. zsh</td><td>principle</td><td>same note</td></tr>
-              <tr><td>One-line entries per flag</td><td>extracted</td><td><code>Bash commands</code> · rows added</td></tr>
-              <tr><td>"source ~/.bashrc" is imprecise</td><td>correction</td><td>both notes, citing the uv docs</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div>
-        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">What the review card shows</h3>
-        <ul style="padding-left:18px;display:grid;gap:10px;font-size:.93rem">
-          <li><b>The split map first:</b> the capture on the left, the notes it produced on the right, one line per atom with its role and whether it's new or a patch.</li>
-          <li><b>Reassign or reject an atom</b> before applying. The plan is typed data, so code recompiles it into operations with no second model call.</li>
-          <li><b>Per-note diffs</b> follow, then the usual checks and Apply.</li>
-          <li><b>Pasted captures digest right away</b> (Handbook §19.6), but the changeset still needs your approval, and nothing becomes solid knowledge without <b>Approve to graduate</b>.</li>
-          <li><b>Must not happen:</b> everything filed under uv with no principle note (the first attempt's mistake), explanations duplicated into the SOP, a new uv note when one exists, the blog references treated as verified sources.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section id="vault">
-    <div class="eyebrow">The vault after migration</div>
-    <h2 style="margin-top:10px">Folders say what a note is</h2>
-    <p class="lead" style="margin-top:12px">Each folder holds one type of note. Everything else (topic, status, links) lives in properties. These are the actual counts from the reorganized copy of your vault.</p>
-    <div class="map">
-      <div class="folder hot"><div class="path">00-Inbox/</div><div class="count">0<small>waiting</small></div><p>Where new notes land. Write here without thinking about names or folders.</p></div>
-      <div class="folder"><div class="path">10-Tasks/</div><div class="count">6<small>tasks</small></div><p>Actions, questions and things to learn. Learn tasks close only when they produce knowledge.</p></div>
-      <div class="folder"><div class="path">15-Incubator/</div><div class="count">3<small>ideas</small></div><p>Thinking without a roadmap yet: Self-healing AI agent, EBM, Knowledge lakehouse.</p></div>
-      <div class="folder"><div class="path">20-Projects/ · 25-Areas/</div><div class="count">3 + 1</div><p>Efforts with an end, and ongoing responsibilities. Code stays inside its project.</p></div>
-      <div class="folder"><div class="path">30-SOPs/</div><div class="count">13<small>procedures</small></div><p>How to do things: install, set up, submit. Linux and Windows kept apart by property.</p></div>
-      <div class="folder"><div class="path">40-Reference/</div><div class="count">5<small>facts, creds, links</small></div><p>Single values you look up. Credentials are marked <code>sensitive</code>.</p></div>
-      <div class="folder"><div class="path">60-Knowledge/</div><div class="count">91<small>notes · 8 topics</small></div><p>Understanding: concepts, snippets, fixes, course notes. Each topic has an index note.</p></div>
-      <div class="folder"><div class="path">95-Archive/</div><div class="count">31<small>retired</small></div><p>TOEFL prep, unused tools, the cancelled PC purchase. Links still work.</p></div>
-    </div>
-  </section>
-
-  <section id="rules">
-    <div class="eyebrow">The golden rule</div>
-    <h2 style="margin-top:10px">One handbook decides everything</h2>
-    <div class="two">
-      <div>
-        <h3>Where does a note go? First yes wins.</h3>
-        <ol class="order" style="margin-top:14px">
-          <li><b>Unprocessed or uncertain</b> <span class="to">→ 00-Inbox</span></li>
-          <li><b>Something to do, find out or learn</b> <span class="to">→ task</span></li>
-          <li><b>Still forming, no goal yet</b> <span class="to">→ idea</span></li>
-          <li><b>An effort with an end</b> <span class="to">→ project</span></li>
-          <li><b>An ongoing responsibility</b> <span class="to">→ area</span></li>
-          <li><b>Steps to reproduce an outcome</b> <span class="to">→ SOP</span></li>
-          <li><b>Login or access info</b> <span class="to">→ credential</span></li>
-          <li><b>A single value to look up</b> <span class="to">→ fact</span></li>
-          <li><b>A pointer to something external</b> <span class="to">→ resource</span></li>
-          <li><b>An explanation, snippet or fix</b> <span class="to">→ knowledge</span></li>
-          <li><b>None of the above</b> <span class="to">→ back to inbox, flagged for you</span></li>
-        </ol>
-        <p class="lead" style="margin-top:14px;font-size:.9rem">Shortened from 15 steps (Handbook §3). Every note must also pass six checks: one type, the right folder, required properties, a unique title, at least one link, and at most three folders deep.</p>
-      </div>
-      <div>
-        <h3>Life of a captured note</h3>
-        <div class="diagram" style="margin-top:14px">
-<pre class="mermaid">
-stateDiagram-v2
-  direction TB
-  [*] --> Inbox: you write
-  Inbox --> Placed: approve placement
-  Placed --> Pending: needs digestion
-  Placed --> Graduated: Graduate as-is
-  Pending --> Digesting: Approve to digest
-  Digesting --> Review: draft written
-  Review --> Graduated: Approve to graduate
-  Review --> Pending: Send back + feedback
-  Graduated --> [*]
-</pre>
-        </div>
-      </div>
-    </div>
-  </section>
-
-
-  <section id="data">
-    <div class="eyebrow">Data</div>
-    <h2 style="margin-top:10px">The vault is the database</h2>
-    <p class="lead" style="margin-top:12px">Anything that can't be recomputed lives in the vault as Markdown and syncs to both PCs. Anything that can be recomputed is a cache on each PC that can be deleted at any time.</p>
-    <div class="duo">
-      <div>
-        <h3>In the vault · synced</h3>
-<pre class="tree" style="margin-top:12px">99-System/Assistant/
-├─ Config.md            <span class="c">shared settings</span>
-├─ Preferences.md       <span class="c">conventions learned from your approvals</span>
-├─ Sessions/2026/09/    <span class="c">one note per chat · searchable · 90 days</span>
-├─ Changesets/2026-09/  <span class="c">every change: diff + undo · hidden from search</span>
-├─ Snapshots/           <span class="c">last approved body per note · hidden</span>
-├─ Runs/2026-09.md      <span class="c">one line per job · hidden</span>
-└─ Lease.md             <span class="c">which PC runs the daily retention job</span></pre>
-        <p class="lead" style="margin-top:12px;font-size:.9rem">Per-note state (digest, review, sensitive, id) lives in each note's own properties.</p>
-      </div>
-      <div>
-        <h3>On each PC · cache</h3>
-<pre class="tree" style="margin-top:12px">%LOCALAPPDATA%\notebook-assistant\
-└─ index.sqlite
-   ├─ full-text index   <span class="c">BM25, Chinese split with jieba</span>
-   ├─ vectors           <span class="c">optional, per PC</span>
-   ├─ link graph        <span class="c">links, backlinks, embeds</span>
-   └─ tree + properties <span class="c">for fast filtering</span></pre>
-        <p class="lead" style="margin-top:12px;font-size:.9rem">Rebuilt from the vault in seconds. Not stored in the vault because it would go stale between syncs, bloat Obsidian Sync, and conflict when both PCs write it.</p>
-      </div>
-    </div>
-    <div class="duo">
-      <div class="file">
-        <header><span>Sessions/2026/09/2026-09-27 0302 Polars fix and Ubuntu notes.md</span><span>append-only</span></header>
-<pre><span class="c">---</span>
-<span class="k">type</span>: system
-<span class="k">kind</span>: session
-<span class="k">device</span>: personal-pc
-<span class="k">notes_cited</span>: [<span class="s">"[[Polars LazyFrame dt error]]"</span>, …]
-<span class="k">changesets</span>: [<span class="s">"[[cs-01J8Q…]]"</span>]
-<span class="k">tokens</span>: {in: 18240, out: 910}
-<span class="c">---</span>
-## 03:02 · You
-How did I fix the Polars .dt error? …
-## 03:02 · Assistant
-You called .dt on the LazyFrame itself …
-&gt; [!tool]- search("polars dt error") → 3 notes</pre>
-      </div>
-      <div class="file">
-        <header><span>Changesets/2026-09/cs-01J8Q….md</span><span>applied · undoable</span></header>
-<pre><span class="c">---</span>
-<span class="k">status</span>: applied
-<span class="k">created_by</span>: <span class="s">"[[2026-09-27 0302 Polars fix and Ubuntu notes]]"</span>
-<span class="k">base_hash</span>: {ubuntu-home: 9f2c…, ubuntu-folder: 41ab…}
-<span class="c">---</span>
-```json
-[{"op":"patch","note":"ubuntu-home", …},
- {"op":"delete","note":"ubuntu-folder","repoint":2}]
-```
-```diff
-+ ## .local folder
-+ …
-```
-## Undo
-reverse operations, replayed if the notes are unchanged</pre>
-      </div>
-    </div>
-  </section>
-
-  <section id="backend">
-    <div class="eyebrow">Backend</div>
-    <h2 style="margin-top:10px">One core, every tool defined once</h2>
-    <p class="lead" style="margin-top:12px">The chat agent, the web API and background jobs all call the same typed tools. The core has no file or network access. Files, Claude, Bitwarden and the index plug in from outside, so each can be swapped or faked in tests. New features are new tool files; the core doesn't change.</p>
-    <div class="stack">
-      <div class="band"><div class="layer">Entry points<small>who starts work</small></div><div class="cells"><span class="cell">Web UI · HTTP + SSE</span><span class="cell">daily retention job</span><span class="cell">CLI</span></div></div>
-      <div class="down">↓</div>
-      <div class="band"><div class="layer">api/<small>FastAPI routes, streaming</small></div><div class="cells"><span class="cell">/sessions</span><span class="cell">/changesets</span><span class="cell">/digest</span><span class="cell">/graduate</span><span class="cell">/search</span><span class="cell">/events</span></div></div>
-      <div class="down">↓</div>
-      <div class="band"><div class="layer">app/<small>use cases</small></div><div class="cells"><span class="cell">Ask</span><span class="cell">Capture</span><span class="cell">Classify</span><span class="cell">Digest</span><span class="cell">Graduate</span><span class="cell">ApplyChangeset</span><span class="cell">Undo</span><span class="cell">Sweep</span></div></div>
-      <div class="down">↓</div>
-      <div class="band"><div class="layer">tools/<small>typed registry</small></div><div class="cells"><span class="cell">read ×7</span><span class="cell">propose ×5</span><span class="cell">apply ×2</span><span class="cell">external ×2</span><span class="cell">+ plugins</span></div></div>
-      <div class="down">↓</div>
-      <div class="band core"><div class="layer">domain/<small>pure logic, no I/O</small></div><div class="cells"><span class="cell">Note</span><span class="cell">Changeset</span><span class="cell">Handbook rules (§)</span><span class="cell">invariants</span><span class="cell">links</span><span class="cell">content preservation</span></div></div>
-      <div class="down">↓ interfaces</div>
-      <div class="adapters">
-        <div class="adapter"><b>VaultStore</b><span>vault files on disk</span></div>
-        <div class="adapter"><b>StateStore</b><span>sessions, changesets in the vault</span></div>
-        <div class="adapter"><b>LLM</b><span>Claude API, prompt caching</span></div>
-        <div class="adapter"><b>Index</b><span>SQLite FTS5 + vectors</span></div>
-        <div class="adapter"><b>Secrets</b><span>Bitwarden CLI</span></div>
-        <div class="adapter"><b>Events</b><span>progress → SSE</span></div>
-      </div>
-    </div>
-
-    <div class="tblwrap">
-      <table class="tbl">
-        <thead><tr><th>Tier</th><th>Tools</th><th>Rule</th></tr></thead>
-        <tbody>
-          <tr><td><span class="tier t-read">read</span></td><td><code>search</code> <code>read_note</code> <code>read_image</code> <code>tree</code> <code>backlinks</code> <code>query_properties</code> <code>read_session</code></td><td>Always allowed</td></tr>
-          <tr><td><span class="tier t-prop">propose</span></td><td><code>propose_create</code> <code>propose_patch</code> <code>propose_move</code> <code>propose_merge</code> <code>propose_archive</code></td><td>Return a changeset; nothing is written</td></tr>
-          <tr><td><span class="tier t-apply">apply</span></td><td><code>apply_changeset</code> <code>undo_changeset</code></td><td>Only through your approval. The model can't call these</td></tr>
-          <tr><td><span class="tier t-ext">external</span></td><td><code>bw_find_item</code> <code>bw_copy_password</code></td><td>Model sees metadata only; secrets never enter the prompt</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="duo">
-      <div>
-        <h3>A chat turn, end to end</h3>
-        <div class="diagram" style="margin-top:12px">
-<pre class="mermaid">
-sequenceDiagram
-  participant U as You
-  participant W as Web UI
-  participant A as Agent loop
-  participant I as Index
-  participant C as Claude
-  participant V as Vault
-  U->>W: question or request
-  W->>A: POST /sessions/{id}/turns
-  A->>I: search (keyword + vectors)
-  A->>C: cached rules + notes + turn
-  C-->>A: tool call: propose_merge
-  A->>V: write changeset (pending)
-  A->>C: tool result
-  C-->>A: answer with citations
-  A->>V: append turn to session
-  A-->>W: stream answer + changeset card
-  U->>W: Apply selected
-  W->>A: POST /changesets/{id}/apply
-  A->>V: checks pass, write notes, mark applied
-</pre>
-        </div>
-      </div>
-      <div>
-        <h3>Package layout</h3>
-<pre class="tree" style="margin-top:12px">notebook-assistant/
-├─ src/notebook_assistant/
-│  ├─ domain/    <span class="c">names, frontmatter, note, links, schema</span>
-│  │             <span class="c">invariants, preserve, changeset, ids</span>
-│  ├─ app/       <span class="c">index, rename, apply (+undo), canvas</span>
-│  │             <span class="c">next: extract (split planner), digest, capture, sweep</span>
-│  ├─ ports/     <span class="c">vault · next: llm, index, secrets</span>
-│  ├─ adapters/  <span class="c">fs_vault, memory_vault · next: Claude, SQLite, bw</span>
-│  ├─ store/     <span class="c">changesets, lease, runs, snapshots</span>
-│  ├─ cli.py     <span class="c">check, links, plan-move, apply, undo</span>
-│  └─ <span class="c">branch 2+: api/, platform/, jobs/, agent/, tools/, web/</span>
-├─ frontend/     <span class="c">React + TypeScript (branch 2)</span>
-├─ docs/         <span class="c">architecture, handbook copy, maintenance job, design.html</span>
-└─ tests/        <span class="c">unit · contract · property · fixture captures · golden (local)</span></pre>
-        <p class="lead" style="margin-top:12px;font-size:.9rem">Your notes never go into the repo. Golden tests read your vault locally (read-only): every note passes the rules and re-renders byte-identically. Fixture captures with expected split plans guard the extraction planner.</p>
-      </div>
-    </div>
-  </section>
-  <section id="arch">
-    <div class="eyebrow">Two PCs</div>
-    <h2 style="margin-top:10px">Stateless on two PCs</h2>
-    <p class="lead" style="margin-top:12px">The same install runs on the personal PC and the work PC. All state lives in the vault as ordinary Markdown, so Obsidian Sync carries it and either PC can pick up where the other left off.</p>
-    <div class="diagram" style="margin-top:20px">
-<pre class="mermaid">
-flowchart LR
-  subgraph PC1["Personal PC"]
-    UI1["Web UI<br/>localhost"] --> S1["notebook-assistant<br/>service"]
-  end
-  subgraph PC2["Work PC"]
-    UI2["Web UI<br/>localhost"] --> S2["notebook-assistant<br/>service"]
-  end
-  S1 <--> V1[("Vault copy")]
-  S2 <--> V2[("Vault copy")]
-  V1 <-->|Obsidian Sync| V2
-  S1 --> C["Claude API"]
-  S2 --> C
-  S1 --> B["Bitwarden CLI<br/>secret to clipboard only"]
-  O["Obsidian<br/>edit and read"] <--> V1
-</pre>
-    </div>
-    <div class="guards">
-      <div class="guard"><h3>Every change is approved</h3><p>The assistant writes proposals. You accept them per item, or all mechanical fixes at once.</p></div>
-      <div class="guard"><h3>Nothing is lost</h3><p>Before any proposal reaches you, code checks that every code block, URL, number, link and sentence of the original still exists.</p></div>
-      <div class="guard"><h3>Your edits win</h3><p>If a note changes while a job runs, the result is thrown away. Notes edited in the last 30 minutes are left alone by the sweep, and the sweep only runs when you click it.</p></div>
-      <div class="guard"><h3>Secrets stay out of the AI</h3><p>Passwords go from Bitwarden straight to the clipboard, and notes marked <code>sensitive</code> are never quoted in chat.</p></div>
-    </div>
-  </section>
-  <section id="platforms">
-    <div class="eyebrow">Platforms</div>
-    <h2 style="margin-top:10px">One codebase: Windows, WSL, Linux, macOS</h2>
-    <p class="lead" style="margin-top:12px">At startup the service detects its host and picks a profile, a set of adapters for file watching, clipboard, opening Obsidian and start-at-login. Only the <code>platform/</code> package knows which OS it's on. Switch to Linux or a Mac later and you install the same package; no code changes.</p>
-    <div class="tblwrap">
-      <table class="tbl">
-        <thead><tr><th>Profile</th><th>Chosen when</th><th>Change detection</th><th>Clipboard</th><th>Start at login</th><th>Used on</th></tr></thead>
-        <tbody>
-          <tr><td><b>windows</b></td><td>Windows</td><td>native events</td><td>Win32 API</td><td>Task Scheduler</td><td>personal PC (daily), work PC</td></tr>
-          <tr><td><b>wsl-drvfs</b></td><td>WSL with the vault on <code>/mnt/c</code></td><td>polling (Linux can't see Windows edits)</td><td><code>clip.exe</code></td><td>Task Scheduler → <code>wsl.exe</code></td><td>personal PC, optional</td></tr>
-          <tr><td><b>linux</b></td><td>Linux, vault on a Linux disk</td><td>inotify</td><td><code>wl-copy</code> / <code>xclip</code></td><td>systemd user unit</td><td>development; future PC</td></tr>
-          <tr><td><b>macos</b></td><td>macOS</td><td>FSEvents</td><td><code>pbcopy</code></td><td>launchd</td><td>future PC</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="two">
-      <div>
-        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">Same file rules on every host</h3>
-        <ul style="padding-left:18px;display:grid;gap:8px;font-size:.93rem">
-          <li>Names follow the strictest combination of Windows, macOS and Linux: no <code>&lt;&gt;:"/\|?*</code>, no reserved names like <code>CON</code>, and case-insensitive uniqueness even on Linux.</li>
-          <li>Unicode is normalized to NFC (the composed form; macOS may hand back the decomposed form NFD), so one name never exists twice.</li>
-          <li>Always UTF-8. Traditional-Chinese Windows otherwise defaults to Big5 (cp950), which would corrupt 中文 notes.</li>
-          <li>Each file keeps its line endings. Writes go to a temp file first and replace the original in one step; if Windows reports the file as locked, the write is retried.</li>
-          <li>Each install has its own <code>machine_id</code>, so WSL and Windows on one PC count as two machines.</li>
-        </ul>
-      </div>
-      <div>
-        <h3 style="font:700 1.15rem var(--display);margin-bottom:10px">Develop anywhere, release once</h3>
-<pre class="tree">dev machine (WSL today)
-  └─ push ─▶ GitHub Actions
-             ├─ tests on <span class="h">ubuntu · windows · macos</span>
-             ├─ build frontend (Node, CI only)
-             ├─ build one wheel, py3-none-any
-             ├─ install + smoke test on each OS
-             └─ attach to a GitHub Release
-every PC
-  ├─ uv tool install &lt;wheel URL&gt;
-  ├─ notebook-assistant doctor     <span class="c"># detected profile, checks</span>
-  └─ notebook-assistant autostart install</pre>
-        <p class="demo-note" style="margin-top:8px">A wheel is a prebuilt Python package. <code>py3-none-any</code> means one file for every OS. Target PCs need uv only, no Node.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="search">
-    <div class="eyebrow">Search</div>
-    <h2 style="margin-top:10px">Keyword first, meaning-based search per PC</h2>
-    <p class="lead" style="margin-top:12px">Everything runs on the CPU. No GPU or PyTorch needed. Each PC picks its own option because the index is a cache, not shared state.</p>
-    <div class="tblwrap">
-      <table class="tbl">
-        <thead><tr><th>Option</th><th>Size</th><th>RAM while indexing</th><th>First index (~200 notes)*</th><th>Finds</th></tr></thead>
-        <tbody>
-          <tr><td><b>Keyword</b> · BM25 + jieba · v1 default</td><td class="num">a few MB</td><td class="num">&lt; 200 MB</td><td class="num">seconds</td><td>exact terms; aliases in both languages help</td></tr>
-          <tr><td><b>multilingual-e5-small</b> · int8 ONNX</td><td class="num">~120 MB</td><td class="num">~0.5 GB</td><td class="num">~1–3 min</td><td>meaning, Chinese and English · good</td></tr>
-          <tr><td><b>bge-m3</b> · int8 ONNX</td><td class="num">~0.6 GB</td><td class="num">~1.5–2 GB</td><td class="num">~5–15 min</td><td>meaning, Chinese and English · best</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="demo-note" style="margin-top:10px">* Estimates. After the first run only changed notes are re-embedded, which takes seconds. The service measures the real figures on each PC at setup.</p>
-  </section>
-
-
-  <section id="road">
-    <div class="eyebrow">Roadmap</div>
-    <h2 style="margin-top:10px">Build order</h2>
-    <div class="road">
-      <div><span class="state ok">Done</span><span>Handbook v2.8: types, naming and renames, topic folders, instance vs. principle, archive, incubator, learning, digestion, graduation, manual-only sweep</span></div>
-      <div><span class="state ok">Done</span><span>Vault reorganized: 372 files applied to the real vault, byte-verified, full backup kept</span></div>
-      <div><span class="state ok">Merged</span><span><code>1 feat/core-vault</code>: note model, rules as code, link-safe rename and move, changesets with apply and undo. Your vault: 0 violations, byte-identical re-render. CI green on Linux, Windows, macOS</span></div>
-      <div><span class="state next">Next</span><span><code>2 feat/service-shell</code>: local service, web app shell, platform profiles, <code>doctor</code>, release wheel. Then <b>checkpoint 1</b></span></div>
-      <div><span class="state later">Then</span><span><code>3 feat/review</code>: changesets end to end, including the split map</span></div>
-      <div><span class="state later">Then</span><span><code>4a feat/extract</code>: the split planner, validators, fixture captures, eval runner, <code>digest --text</code>. Then <b>checkpoint 2</b></span></div>
-      <div><span class="state later">Then</span><span><code>4b feat/digest</code> (Digest screen), <code>5 feat/capture</code> (Inbox, <code>.eml</code>/<code>.msg</code>), <code>6 feat/sweep</code>. Then <b>checkpoint 3</b></span></div>
-      <div><span class="state later">Later</span><span><code>7 feat/views</code>, <code>8 feat/search</code>, <code>9 feat/chat</code> (then <b>checkpoint 4</b>), optional <code>10 feat/embeddings</code></div>
-    <div class="tblwrap">
-      <table class="tbl">
-        <thead><tr><th>Decided</th><th>Choice</th></tr></thead>
-        <tbody>
-          <tr><td>UI</td><td>Standalone local web app. Obsidian stays the editor</td></tr>
-          <tr><td>State</td><td>All durable state in the vault; per-PC caches only</td></tr>
-          <tr><td>Changes</td><td>Always proposed as changesets and approved, with undo</td></tr>
-          <tr><td>Sessions</td><td>Searchable in Obsidian and by the agent; kept 90 days</td></tr>
-          <tr><td>Search</td><td>Keyword in v1; optional CPU embeddings per PC</td></tr>
-          <tr><td>Install</td><td>One wheel per GitHub Release, <code>uv tool install</code>, same on every PC</td></tr>
-          <tr><td>Platforms</td><td>Windows, WSL, Linux, macOS from one codebase; work PC runs native Windows</td></tr>
-          <tr><td>Note processing</td><td>Manual only. The one automatic job queues old sessions for deletion</td></tr>
-          <tr><td>Models</td><td>Configured per task in <code>Config.md</code>, with a monthly spend cap</td></tr>
-          <tr><td>Capture</td><td>Text, screenshots, <code>.eml</code> and <code>.msg</code>; no meeting audio</td></tr>
-          <tr><td>Bitwarden</td><td>Personal PC only</td></tr>
-          <tr><td>Workflow</td><td>One feature branch at a time, merged when CI is green on Linux, Windows and macOS</td></tr>
-          <tr><td>Splitting</td><td>One shared planner for every entry point; instance and principle become separate notes, linked both ways</td></tr>
-          <tr><td>Testing with you</td><td>Four hands-on checkpoints: after branches 2, 4a, 6 and 9</td></tr>
-          <tr><td>Development</td><td>Claude Code in WSL on the personal PC; this page lives in the repo as <code>docs/design.html</code></td></tr>
+          <tr><td>Vault rules: folders, types, properties, names, tags, digestion, graduation</td><td><a href="https://github.com/Mtjason/Notebook-Assistant/blob/main/docs/handbook.md">handbook.md</a></td></tr>
+          <tr><td>How captures are split into notes (planner steps, the uv worked example)</td><td><a href="https://github.com/Mtjason/Notebook-Assistant/blob/main/docs/maintenance-job.md#extraction-digesting-and-splitting-captures">maintenance-job.md · Extraction</a></td></tr>
+          <tr><td>Maintenance job, two-PC coordination, nothing-lost check</td><td><a href="https://github.com/Mtjason/Notebook-Assistant/blob/main/docs/maintenance-job.md">maintenance-job.md</a></td></tr>
+          <tr><td>Backend layers, tool registry, agent loop, package layout</td><td><a href="https://github.com/Mtjason/Notebook-Assistant/blob/main/docs/architecture.md#3-backend">architecture.md §3</a></td></tr>
+          <tr><td>Data: what lives in the vault and on each PC; search</td><td><a href="https://github.com/Mtjason/Notebook-Assistant/blob/main/docs/architecture.md#4-data-what-lives-where">architecture.md §4</a></td></tr>
+          <tr><td>Platforms, release, CLI</td><td><a href="https://github.com/Mtjason/Notebook-Assistant/blob/main/docs/architecture.md#5-platforms-development-and-release">architecture.md §5</a></td></tr>
+          <tr><td>Roadmap, feature branches, test checkpoints</td><td><a href="https://github.com/Mtjason/Notebook-Assistant/blob/main/docs/architecture.md#541-feature-branches-in-order">architecture.md §5.4.1–5.4.2</a></td></tr>
         </tbody>
       </table>
     </div>

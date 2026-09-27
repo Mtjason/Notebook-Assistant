@@ -26,7 +26,7 @@ def new_ulid(now_ms: int | None = None, randomness: bytes | None = None) -> str:
 
 
 def new_note_id() -> str:
-    """Stable note identity, stored as the ``id`` property (Handbook §4.1, §5.1)."""
+    """Stable note identity, stored as the ``id`` property (Handbook §4.1, §5.2)."""
     return "n-" + new_ulid().lower()
 
 
