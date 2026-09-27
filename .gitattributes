@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+# Fixture vault files are compared byte-for-byte: never convert their line endings.
+tests/fixtures/** -text

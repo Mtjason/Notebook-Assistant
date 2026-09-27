@@ -1,0 +1,23 @@
+{
+	"nodes": [
+		{
+			"id": "a",
+			"type": "file",
+			"file": "60-Knowledge/Software/Polars with_columns.md",
+			"x": 0,
+			"y": 0,
+			"width": 400,
+			"height": 300
+		},
+		{
+			"id": "b",
+			"type": "text",
+			"text": "Start at [[Polars with_columns]]",
+			"x": 500,
+			"y": 0,
+			"width": 250,
+			"height": 60
+		}
+	],
+	"edges": []
+}
