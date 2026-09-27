@@ -1,4 +1,4 @@
-<title>Vault Assistant</title>
+<title>Notebook Assistant Design</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -325,7 +325,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
     <p class="lead" style="margin-top:12px">A wireframe (a layout drawing with boxes instead of real content) of the local web app. Five regions stay fixed; the main pane swaps between eight screens. Every button that changes the vault sends a request to the local service and gets back a changeset for you to approve.</p>
 
     <div class="ui-top">
-      <div class="wf wf-shell" role="img" aria-label="Wireframe of the app shell with six numbered regions">
+      <div class="wf wf-shell" role="img" aria-label="Wireframe of the app shell with five numbered regions">
         <div class="r solid wf-top"><span class="bd">1</span>
           <div class="row" style="justify-content:space-between">
             <span class="t" style="margin:0">notebook-assistant</span>
@@ -408,12 +408,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
     <!-- Inbox -->
     <div class="scr" id="scr-inbox" role="tabpanel" aria-labelledby="t-inbox">
       <div class="wf" role="img" aria-label="Inbox screen wireframe">
-        <div class="r acc" style="text-align:center;padding:18px"><span class="t">Drop zone</span>paste text · drop screenshot · .eml / chat export · audio transcript</div>
+        <div class="r acc" style="text-align:center;padding:18px"><span class="t">Drop zone</span>paste text · drop screenshot · .eml / .msg · meeting transcript</div>
         <div class="gside">
           <div class="r"><span class="t">00-Inbox (raw)</span><div class="wstack"><span class="b">2026-09-27 1402.md</span><span class="b">Screenshot 0931.png</span><span class="b">Meeting notes.txt</span></div></div>
           <div class="r"><span class="t">Proposed placement</span>
             <div class="r solid" style="margin-bottom:6px">→ 10-Tasks/Ask Amy about recipe access.md<br>type: task · kind: action · due 10-02</div>
-            <div class="r solid" style="margin-bottom:6px">→ 60-Knowledge/Software/Kedro hooks.md<br>type: concept · digest: pending</div>
+            <div class="r solid" style="margin-bottom:6px">→ 60-Knowledge/Software/Kedro hooks.md<br>type: knowledge · kind: concept · digest: pending</div>
             <div class="row"><span class="b p">Apply selected</span><span class="b">Edit</span><span class="b">Leave in Inbox</span></div>
           </div>
         </div>
@@ -533,8 +533,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
     <div class="scr" id="scr-tasks" role="tabpanel" aria-labelledby="t-tasks">
       <div class="wf" role="img" aria-label="Tasks screen wireframe">
         <div class="row"><span class="b p">All</span><span class="b">action</span><span class="b">question</span><span class="b">learn</span><span class="b">priority ▾</span><span class="b">topic ▾</span><span class="b">due ▾</span></div>
-        <div class="r"><span class="t">Due this week</span>☐ Ask Amy about recipe access · p1 · 10-02<br>☐ Why can't a LazyFrame use .dt? · question</div>
-        <div class="r"><span class="t">To learn</span>☐ Learn Kedro hooks · Software<br>☐ Finish Terminal setup · produced → digest</div>
+        <div class="r"><span class="t">Due this week</span>☐ Ask Amy about recipe access · p1 · 10-02<br>☐ Why can't a LazyFrame use .dt？ · question</div>
+        <div class="r"><span class="t">To learn</span>☐ Learn Kedro hooks · Software<br>☐ Learn terminal setup from agentic workflow video · Systems</div>
         <div class="r acc"><span class="t">Inline confirm</span>Mark done: status todo → done <span class="b p">Apply</span><span class="b">Cancel</span></div>
       </div>
       <div class="spec">
@@ -576,13 +576,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
       <div class="wf" role="img" aria-label="Settings screen wireframe">
         <div class="g2">
           <div class="r"><span class="t">This PC (not synced)</span>vault path ✓<br>ANTHROPIC_API_KEY ✓ env<br>Bitwarden CLI: locked <span class="b">Unlock</span><br>search: keyword · e5-small ▾<br>index: 171 notes · rebuilt 09-27</div>
-          <div class="r"><span class="t">Shared (Config.md)</span>models per task ▾<br>monthly spend cap ▾<br><i>editing Config.md makes a changeset</i><br>Rules: read-only view of the handbook the installed version was built with</div>
+          <div class="r"><span class="t">Shared (Config.md)</span>models per task ▾<br>monthly spend cap ▾<br>check thresholds ▾<br><i>this vault's tunables; editing Config.md makes a changeset</i><br>Rules: read-only view of the handbook the installed version was built with</div>
         </div>
         <div class="row"><span class="b">Rebuild index</span><span class="b">Sweep changes</span><span class="b">Lint</span><span class="b">Deep pass</span><span class="b">Archive check</span><span class="b">Open Handbook</span></div>
       </div>
       <div class="spec">
         <h3>Settings</h3>
-        <p>Split in two on purpose. The left side belongs to this PC and never syncs; the right side is <code>99-System/Assistant/Config.md</code>, which both PCs read. Editing it produces a changeset like any other note.</p>
+        <p>Split in two on purpose. The left side belongs to this PC and never syncs (its <code>config.yaml</code>); the right side is this vault's <code>99-System/Assistant/Config.md</code>, which both PCs read, so each vault is tuned on its own. Editing it produces a changeset like any other note. What each file holds: <code>architecture.md</code> §4.1.1.</p>
         <h4>Calls</h4>
         <ul class="api">
           <li><span class="m">GET</span>/api/status</li>
@@ -781,14 +781,14 @@ const ITEMS = [
   },
   {
     id: "confusion",
-    raw: {path: "60-Knowledge/Statistics/Confusion matrix.md", text: "Accuracy, Precision and Recall\n![[Confusion matrix - 1.png]]", props: "status: seed · digest: pending · digest_reason: [stub, screenshot-only]"},
+    raw: {path: "60-Knowledge/ML/Confusion matrix.md", text: "Accuracy, Precision and Recall\n![[Confusion matrix - 1.png]]", props: "status: seed · digest: pending · digest_reason: [stub, screenshot-only]"},
     placed: true,
     steps: ["Reading the note (1 line, 1 embed)", "Reading 1 screenshot", "Drafting with Handbook §19.3", "Checking nothing was lost: 1/1 lines, 1/1 embeds", "Draft ready"],
     draft: {
       title: "Confusion matrix",
-      path: "60-Knowledge/Statistics/Confusion matrix.md (rewritten in place)",
+      path: "60-Knowledge/ML/Confusion matrix.md (rewritten in place)",
       html: `
-        <div class="props">type: knowledge · kind: concept · topic: [[MOC - Statistics]] · digest: review</div>
+        <div class="props">type: knowledge · kind: concept · topic: [[MOC - ML]] · digest: review</div>
         <h4>Summary</h4>
         <p>A table of predicted against actual classes for a classifier, with the metrics read from it: accuracy, precision and recall.</p>
         <h4>What the image shows</h4>

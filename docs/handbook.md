@@ -1,11 +1,11 @@
 ---
 type: system
 title: Vault Handbook
-version: "2.12"
+version: "2.13"
 scope: personal
 status: active
 created: 2026-09-26
-updated: 2026-09-27
+updated: 2026-09-28
 aliases: [Handbook, 筆記手冊, 分類規則, Vault rules, Golden rule]
 ---
 
@@ -89,7 +89,7 @@ If no rule decides where something goes, or the assistant's classification is un
 90-Views/          Bases dashboards.
 95-Archive/        Retired notes; mirrors the top-level folders.
 98-Templates/      Obsidian note templates only, one per type.
-99-System/         Link to the handbook, tag registry, changelog, lint reports, and the assistant's state (`Assistant/`).
+99-System/         Link to the handbook, tag registry, lint reports, and the assistant's state (`Assistant/`).
 Attachments/       All embedded files (images, PDFs…). Nothing else.
 ```
 
@@ -162,7 +162,7 @@ The assistant also maintains three structural types that this decision order nev
 |---|---|
 | Daily note (§10) | `daily` → `01-Daily/` |
 | Map of content (§7) | `moc` → `60-Knowledge/<Topic>/` |
-| System note (this handbook's link, tag registry, changelog, lint reports) | `system` → `99-System/` |
+| System note (this handbook's link, tag registry, lint reports) | `system` → `99-System/` |
 
 ### 3.1 Tie-breakers
 
@@ -510,7 +510,7 @@ Links keep working. Archived notes are excluded from default views. To restore a
 6. **Never quote `sensitive: true` values** in chat.
 7. **Stay out of `95-Archive/`** except to restore, and out of project code (§11).
 8. **Rename and move per §5.2,** rewriting every reference in the same changeset.
-9. **Log every applied changeset** in `99-System/Changelog.md`: date, operations, reason.
+9. **Every applied changeset is its own record** in `99-System/Assistant/Changesets/`: date, operations, reason and diff. The changelog is the Bases view `90-Views/Changelog.base` over those records, never a hand-kept list.
 
 ### Amending the handbook
 
@@ -814,6 +814,7 @@ When you hand a capture to the assistant directly (pasted into chat, or sent wit
 
 ## Version history
 
+- **2.13 (2026-09-28):** The changelog is a Bases view over the applied changeset records (`90-Views/Changelog.base`) instead of a file the assistant appends to, so each change is recorded once (§15.9, §2, §3). The existing `99-System/Changelog.md` stays as the record of changes before 2.13; nothing is appended to it.
 - **2.12 (2026-09-28):** Pasted AI answers never get a `source` note, whatever their length; their notes keep `origin: ai-chat` and record corrections in `## History` (§12). `ai-chat` removed from the source `kind` values (§4.2), and §3.1 says what the notes of a source-less capture link to.
 - **2.11 (2026-09-28):** Merge criteria (§8.2): three gates (same subject, same scope, the target's type accepts the content), four triggers (stub, platform variants, near-duplicate, covered by a collection), when not to merge, and how a merge is carried out. Any fully merged note may be deleted, not only stubs (§8.4).
 - **2.10 (2026-09-28):** A new topic folder is proposed with its first note instead of after 5 notes; the note waits in `00-Inbox/` until the amendment is merged (§2.2).

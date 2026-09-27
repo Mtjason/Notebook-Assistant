@@ -9,7 +9,7 @@ aliases: [notebook-assistant architecture, 架構設計]
 
 # notebook-assistant: architecture
 
-Three parts: a **web UI** (chat plus approval screens), a **backend** that owns every runtime tool, and a **data layer** that keeps all durable state in the vault. It complements *Maintenance job design* (sweep, digestion, file operations) and the Vault Handbook (the rules).
+Three parts: a **web UI** (chat plus approval screens), a **backend** that owns every runtime tool, and a **data layer** that keeps all durable state in the vault. It complements `maintenance-job.md` (sweep, digestion, file operations) and the Vault Handbook (the rules).
 
 ---
 
@@ -53,7 +53,7 @@ Drawn in `docs/design.html` (UI schematic): the app shell, every screen, and the
 | `@` mentions | Pin notes as context: `@Polars LazyFrame`. Autocompletes titles and aliases in both languages |
 | `/` commands | `/capture`, `/find`, `/digest <note>`, `/summarize <folder>`, `/sop`, `/undo` |
 | Drop files | Screenshots, PDFs, emails. Saved to `Attachments/` and captured as a `source` note (Handbook §12), then usable in the conversation |
-| Paste to digest | Knowledge pasted into chat (or `/digest`) is digested **immediately** (Handbook §19.6): the extraction planner splits it into every note it yields, including the general principle behind a specific case (§3.1). The result is one changeset card with a split map (*Maintenance job design*, Extraction) |
+| Paste to digest | Knowledge pasted into chat (or `/digest`) is digested **immediately** (Handbook §19.6): the extraction planner splits it into every note it yields, including the general principle behind a specific case (Handbook §3.1). The result is one changeset card with a split map (`maintenance-job.md`, Extraction) |
 | Scope | All / Work / Personal / a folder. Limits both retrieval and actions |
 | Save to vault | On any answer. Creates a knowledge draft (`digest: review`) with `source` pointing to the session |
 | Credentials | Credential cards with **Copy username** / **Copy password**. The secret goes from Bitwarden to the clipboard and is never shown or sent to the model |
@@ -165,12 +165,12 @@ Every tool is a class with a Pydantic input/output schema, a description (which 
 - **Per-note locks** prevent two jobs touching the same note.
 - **Every job is idempotent** (running it twice gives the same result) and records a run line in the vault.
 - **Progress events** go on the event bus → SSE → UI.
-- **Two PCs** coordinate as described in *Maintenance job design*: click runs where clicked (`digest_runner`), the daily retention job takes the lease, base-hash checks make double runs harmless.
+- **Two PCs** coordinate as described in `maintenance-job.md`, *Two PCs, no coordinator*: click runs where clicked (`digest_runner`), the daily retention job takes the lease, base-hash checks make double runs harmless.
 
 ### 3.6 Quality bar
 
 - **Domain:** 100% unit-tested. Rules are data plus small functions, one per handbook rule, each naming its section (`§4.2`).
-- **Extraction tests:** fixture captures with expected split plans, plus a digestion eval set (*Maintenance job design*, Extraction). Splitting correctly is a requirement, not a nice-to-have.
+- **Extraction tests:** fixture captures with expected split plans, plus a digestion eval set (`maintenance-job.md`, Extraction). Splitting correctly is a requirement, not a nice-to-have.
 - **Golden tests:** run locally against your real vault (`NA_REAL_VAULT`): every note passes the handbook checks, and every untouched note re-renders byte-identically. Rule or prompt changes are judged by the difference they make there.
 - **Property-based tests** for link rewriting (random renames must never break a link). Property-based testing generates many random inputs to check that a stated property always holds.
 - **Contract tests** per adapter, so the fake and real vault/LLM/index behave the same.
@@ -192,7 +192,7 @@ The assistant is **stateless**: all durable state is in the vault and travels wi
 
 ```
 99-System/Assistant/
-├─ Config.md                     shared settings: model per task, spend cap (§4.1.1)
+├─ Config.md                     this vault's tunables: models, limits, thresholds (§4.1.1)
 ├─ Preferences.md                conventions learned from your approvals/rejections — readable, editable
 ├─ Sessions/2026/09/2026-09-27 0251 Frontend and backend design.md
 ├─ Changesets/2026-09/cs-01J8….md   every proposal: pending / applied / rejected / reverted
@@ -203,7 +203,7 @@ The assistant is **stateless**: all durable state is in the vault and travels wi
 
 #### 4.1.1 `Config.md`: everything tunable is configuration
 
-Models, limits and toggles are read from this note at startup and whenever it changes, never hard-coded. Editing it goes through a changeset like any other note.
+Models, limits, thresholds and toggles are read from this note at startup and whenever it changes, never hard-coded. It lives in the vault, so every vault the service serves is tuned on its own. Editing it goes through a changeset like any other note.
 
 ```yaml
 ---
@@ -212,18 +212,24 @@ kind: config
 models:                       # one entry per task; any model ID the API accepts
   classify: claude-haiku-4-5-20251001     # triage, placement, lint explanations
   transform: claude-sonnet-5              # sweep restructuring, capture extraction
-  digest: claude-opus-5-5                 # screenshots + drafting (§19)
+  digest: claude-opus-5-5                 # screenshots + drafting (Handbook §19)
   chat: claude-sonnet-5
   fallback: claude-sonnet-5               # used if a configured model is unavailable
 limits:
   monthly_spend_usd: 30       # AI jobs pause when reached; the UI shows month-to-date cost
   max_tokens_per_job: 60000
-capture:
-  email_formats: [eml, msg]
+checks:
+  preservation_similarity: 0.9  # content-preservation check: how closely a sentence must survive (maintenance-job.md)
+coordination:
+  stale_run_minutes: 15       # a digest or sweep run older than this counts as abandoned (maintenance-job.md)
 ---
 ```
 
-Per-machine settings (vault path, profile, `features.bitwarden`, search option) stay in the local config file, not here. Behaviour the handbook defines (manual-only sweeps and settle time, Handbook §16; session retention, §8.4) is not configuration and is not repeated here.
+**Defaults.** The block above is the default `Config.md`, and the only place default values are written. A key missing from a vault's `Config.md` takes its default; an unknown key or a wrongly typed value stops loading with an error naming it. The loader arrives with branch 2 (§5.4.1), which moves this block into a file shipped in the package and replaces it here with a link, so there is still one copy.
+
+**Not in `Config.md`:**
+- **Per-machine settings** (vault path, profile, `machine_id` (§5.3), `features.bitwarden`, search option) live in `config.yaml` in the OS config directory, via `platformdirs`: `%APPDATA%\notebook-assistant\` on Windows, `~/.config/notebook-assistant/` on Linux and WSL, `~/Library/Application Support/notebook-assistant/` on macOS.
+- **Anything the handbook decides** (e.g. manual-only sweeps and settle time, Handbook §16; session retention, Handbook §8.4; which email formats are captured, Handbook §12) is a rule, not configuration, and is not repeated here. Rules are the same for every vault: the handbook ships inside the release (`handbook.py`), no vault can override it, and a rule changes only through a handbook pull request (Handbook §15). `Config.md` holds only what a vault's owner may tune.
 
 **Sessions** (one file per conversation):
 
@@ -260,7 +266,7 @@ tokens: {in: 48210, out: 6120}
 - a unified diff per note, so you can read exactly what changed;
 - the **reverse operations**. **Undo** replays them if the note is still at the post-change hash; otherwise it proposes a merge.
 
-`Changelog.md` becomes a Bases view over applied changesets instead of a hand-appended file.
+The changelog is a Bases view over applied changesets (Handbook §15.9); nothing appends to a changelog file.
 
 ### 4.2 On each PC (derived cache, rebuildable)
 
@@ -318,7 +324,7 @@ One codebase runs on four hosts. It detects the host at startup and picks a **pr
   - `~/.cache/notebook-assistant/` on Linux and WSL; never on `/mnt/c`, because SQLite locking over 9P is unreliable
   - `~/Library/Caches/notebook-assistant/` on macOS
 
-**Overriding detection:** `--profile` or `VA_PROFILE=` overrides it, for example to force polling on a network drive.
+**Overriding detection:** `--profile` or `NA_PROFILE=` overrides it, for example to force polling on a network drive.
 
 ### 5.2 Vault rules that don't depend on the host
 
@@ -332,7 +338,7 @@ The vault can sync to any OS later, so every host handles files the same way:
 
 ### 5.3 Machine identity
 
-Each installation generates a `machine_id` (a UUID plus a friendly name such as `personal-pc`) on first run and stores it in its per-machine config. It isn't derived from the hostname, so a WSL install and a Windows install on the same PC are different machines to the lease and `digest_runner` logic, and both stay correct.
+Each installation generates a `machine_id` (a UUID plus a friendly name such as `personal-pc`) on first run and stores it in its per-machine `config.yaml` (§4.1.1). It isn't derived from the hostname, so a WSL install and a Windows install on the same PC are different machines to the lease and `digest_runner` logic, and both stay correct.
 
 ### 5.4 Development and release
 
@@ -361,7 +367,7 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 | # | Branch | Delivers |
 |---|---|---|
 | 1 | `feat/core-vault` | Note model, frontmatter, rules parsed from the handbook, invariant checker, content-preservation check, link-safe rename/move, vault-backed store (changesets, snapshots, runs, lease) |
-| 2 | `feat/extract` | Paste-to-digest first. Extraction planner (`app/extract.py`: segment, classify, generalize, match, plan, verify, validate), LLM port with a fake for tests, split-plan schema, validators (coverage, no duplicated explanation, links both ways), fixture captures and an eval runner, and the CLI `notebook-assistant digest --text <file>` that turns a capture into a pending changeset. **Apply re-checks the rules:** a changeset whose resulting notes break any handbook rule (`check_note`) is rejected, whatever produced it. Verification (step 6) cites a source to correct, otherwise marks Unverified; a capture that fits no topic produces a §2.2 topic amendment draft and an Inbox placement |
+| 2 | `feat/extract` | Paste-to-digest first. Extraction planner (`app/extract.py`: segment, classify, generalize, match, plan, verify, validate), LLM port with a fake for tests, split-plan schema, validators (coverage, no duplicated explanation, links both ways), fixture captures and an eval runner, and the CLI `notebook-assistant digest --text <file>` that turns a capture into a pending changeset. **Apply re-checks the rules:** a changeset whose resulting notes break any handbook rule (`check_note`) is rejected, whatever produced it. Verification (step 6) cites a source to correct, otherwise marks Unverified; a capture that fits no topic produces a Handbook §2.2 topic amendment draft and an Inbox placement. **`Config.md` loader** (§4.1.1): typed and validated, defaults shipped in the package; `SIMILARITY` moves there from `domain/preserve.py` |
 | 3 | `feat/service-shell` | FastAPI service, SSE, web app shell (nav, top bar, context panel, Markdown renderer), platform profiles, `doctor`, CI and release wheel |
 | 4 | `feat/review` | Changesets end to end in the UI: Review screen, diff view, apply, undo. Changesets can carry a typed **split plan**; the Review screen shows it as the split map, and reassigning or rejecting an atom recompiles the plan into operations in code (no model call) |
 | 5 | `feat/digest` | Digest screen on top of the planner: Approve to digest (note + screenshots), Approve to graduate, Send back, Graduate as-is |

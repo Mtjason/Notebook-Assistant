@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && python3 .claude/hooks/docs_review.py",
+            "timeout": 30,
+            "statusMessage": "Checking whether the docs need a consistency review"
+          }
+        ]
+      }
+    ]
+  }
+}
