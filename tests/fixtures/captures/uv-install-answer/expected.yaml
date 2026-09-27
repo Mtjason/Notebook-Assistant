@@ -1,0 +1,51 @@
+# Expected split plan: the uv install answer
+# Source: an AI answer pasted into chat on 2026-09-27 with "Digest the following knowledge into
+# obsidian vault". The approved result is recorded in the vault's 99-System/Changelog.md.
+# Used by the extraction tests and the digestion eval set (docs/maintenance-job.md, Extraction).
+# Vault notes themselves are never committed; this file describes only the plan's shape.
+
+capture: capture.md
+origin: ai-chat
+
+atoms:
+  - id: install-steps
+    about: install uv, reload PATH, verify
+    role: instance
+    target: { note: "SOP - Install uv (Linux)", op: patch }
+  - id: curl-flags
+    about: what -L -s -S -f do and why (redirects, silent with errors, fail on HTTP errors)
+    role: principle
+    target: { note: "curl pipe to shell install", op: create, type: knowledge, topic: Systems }
+  - id: pipe-to-sh
+    about: "| sh runs the downloaded script with the shell"
+    role: principle
+    target: { note: "curl pipe to shell install", op: create }
+  - id: source-rc
+    about: why `source` is needed after installing; bash vs. zsh (~/.zshrc)
+    role: principle
+    target: { note: "curl pipe to shell install", op: create }
+  - id: command-rows
+    about: one-line entries for the curl flags, | sh, source
+    role: extracted
+    target: { note: "Bash commands", op: patch, shape: collection-rows }
+  - id: path-correction
+    about: >-
+      "source ~/.bashrc" is imprecise; the installer writes and prints
+      `source $HOME/.local/bin/env`
+    role: correction
+    requires_citation: true  # uv installation docs
+    target: { notes: ["SOP - Install uv (Linux)", "curl pipe to shell install"] }
+
+links:
+  - from: "SOP - Install uv (Linux)"
+    to: "curl pipe to shell install"
+  - from: "curl pipe to shell install"
+    to: "SOP - Install uv (Linux)"  # as the worked example
+  - from: "curl pipe to shell install"
+    to: "MOC - Systems"
+
+must_not:
+  - the flag explanations duplicated in the SOP (it links to the principle note instead)
+  - a new uv note when "SOP - Install uv (Linux)" already exists (patch, don't create)
+  - everything filed under uv with no principle note (the first-pass failure)
+  - the citation list [1]-[5] treated as verified sources (blogs; origin stays ai-chat)

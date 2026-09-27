@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-HANDBOOK_VERSION = "2.7"
+HANDBOOK_VERSION = "2.8"
 
 COMMON_REQUIRED: tuple[str, ...] = ("type", "scope", "status", "created", "updated")
 
