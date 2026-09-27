@@ -10,6 +10,11 @@ Notebook-Assistant keeps Jason's Obsidian vault organized under the Vault Handbo
 - **The handbook is the source of truth.** `domain/schema.py` mirrors it; when a rule changes,
   update the handbook (vault `99-System/Handbook.md`, copy in `docs/handbook.md`), the schema and
   the tests in the same branch.
+- **Digest and split captures correctly.** Every path that turns raw material into notes goes
+  through the shared extraction planner (`app/extract.py`, see `docs/maintenance-job.md`,
+  Extraction): atoms → handbook types, instance vs. principle (Handbook §3.1), patch before
+  create, coverage validated in code. A change that makes splitting worse on the fixture
+  captures is a regression.
 - **`domain/` is pure** — no I/O. Files go through `ports/vault.py`.
 - **Portable file handling:** always `encoding="utf-8"` (ruff PLW1514 enforces it), keep line
   endings, apply Windows + macOS + Linux name rules on every host, compare names with `name_key`.

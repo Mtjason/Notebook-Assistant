@@ -3,7 +3,7 @@ type: project-doc
 project: "[[Obsidian note assistant]]"
 status: draft
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-09-27
 aliases: [Maintenance job, 定期整理, Sweep job]
 ---
 
@@ -23,7 +23,7 @@ Detect → Settle → Lint → Triage → Transform → Validate → Queue → (
 | **Settle** | No | Skip files modified less than 30 minutes ago. |
 | **Lint** | No | Check the invariants I-1…I-6, required properties, enum values, tag registry, unique titles and orphans for **every** note. This is cheap, so it runs on all notes. |
 | **Triage** | No | Route each changed or non-compliant note to a handler (table below). Mechanical violations get deterministic fixes, with no AI involved. |
-| **Transform** | Yes | For notes that need judgment: send the note (plus the diff, for edits), the handbook, the tag registry, the MOC list and the top-k related notes (for dedupe and links) to Claude. It returns a **structured changeset**: a list of typed operations, not free text. |
+| **Transform** | Yes | For notes that need judgment: send the note (plus the diff, for edits), the handbook, the tag registry, the MOC list and the top-k related notes (for dedupe and links) to Claude. It returns a **structured changeset**: a list of typed operations, not free text. For raw captures this goes through the **extraction planner** (see *Extraction: digesting and splitting captures*). |
 | **Validate** | No | Reject the changeset if it fails: the schema check, the invariant check on the *resulting* state, or the content-preservation check (below). |
 | **Queue** | No | Store the proposal with the note's **base hash** (its fingerprint at the time the proposal was made). Surface it in the sidebar review UI. |
 | **Apply** | No | Only after approval, and only if the note's current hash still equals the base hash (otherwise the proposal is stale). Renames and moves rewrite every link to the note in the same operation, and the invariant checker verifies no link broke. |
@@ -44,6 +44,54 @@ Detect → Settle → Lint → Triage → Transform → Validate → Queue → (
 | Deep pass | **Deep pass** button | Duplicate candidates, missing links, contradictions, image descriptions |
 
 A **diff** is the line-by-line difference between two versions of a file. A **hunk** is one contiguous block of changed lines.
+
+## Extraction: digesting and splitting captures
+
+Correctly digesting a capture and **splitting it into the right notes** is a core requirement, as important as not losing content. A capture that lands as one blob, or whose general lesson is buried inside one specific note, is knowledge you'll never find again. Rules: Handbook §3.1 (mixed notes, one capture → many notes, **instance vs. principle**), §19.3 (drafts generalize) and §19.6 (direct captures are digested right away).
+
+**One planner, every entry point.** `app/extract.py` is shared by every path that turns raw material into notes, so they all split the same way:
+- a capture pasted or dropped into chat, or `/digest` (§19.6: runs immediately);
+- **Approve to digest** (§19.2);
+- the Inbox (`feat/capture`) and emails;
+- **Sweep changes** on a new raw note, or raw text added to an organized note.
+
+### Steps
+
+| # | Step | AI? | What it does |
+|---|---|---|---|
+| 1 | **Segment** | Yes | Break the capture into **atoms**: one procedure step, one explanation, one fact, one credential, one task, one general rule. An atom is the smallest piece that could be looked up on its own. |
+| 2 | **Classify** | Yes | Run each atom through the decision order (§3): its type, and its topic folder (§2.3). |
+| 3 | **Generalize** | Yes | For every explanation, ask: *does this hold beyond this one case?* If yes, it's a **principle** atom headed for a `knowledge` note. The specific case keeps only what's unique to it. Example: the curl flag explanation holds for every `curl … \| sh` installer, not just uv. |
+| 4 | **Match** | No, then yes | Find existing notes for each atom: titles, aliases, `key` / `service` (§15.3), then top-k search. Prefer **patching**: a new section, new rows in a collection (§8.3), or a `## History` line (§9.1). Create a note only when nothing fits. |
+| 5 | **Plan** | — | Output a **split plan**: atom → target note (new or existing) → operation → role (`instance` / `principle` / `extracted`). Plus the links: instance → principle, principle → instance (as an example), both → MOC. |
+| 6 | **Verify** | Partly | Claims the capture got wrong or left incomplete are corrected **only** with a cited source (e.g. official docs), and the correction is noted in `## History`. Anything unsupported goes in a `> [!question] Unverified` box. `origin: ai-chat` stays until you verify it. |
+| 7 | **Validate** | No | Deterministic checks on the whole plan: **coverage** (every atom lands in exactly one note; the content-preservation check runs across the set of result notes, not per note), **no duplicated explanation** (a principle's text isn't repeated in the instance note), **links resolve both ways**, and invariants on every resulting note. Failing plans are discarded and retried once. |
+
+The split plan is typed data, not prose. The model proposes it; code validates and turns it into changeset operations.
+
+### Review card
+
+A capture's changeset opens with its **split map**: the capture on the left, the notes it produced on the right, one line per atom with its role and whether it's new or a patch. Per-note diffs follow. You can reassign an atom to a different note, or reject one, before applying.
+
+### Worked example: the uv install answer (2026-09-27)
+
+Capture: a pasted AI answer explaining `curl -LsSf https://astral.sh/uv/install.sh | sh` and `source ~/.bashrc`.
+
+| Atom | Role | Went to |
+|---|---|---|
+| Install uv, reload PATH, verify | instance | `SOP - Install uv (Linux)` (patch: step, Gotchas, Related, History) |
+| What `-L -s -S -f`, `\|` and `sh` do, and why | principle | `curl pipe to shell install` (new knowledge note, Systems) |
+| Why `source` is needed after installing, bash vs. zsh | principle | same note |
+| One-line entries for the flags, `\| sh`, `source` | extracted | `Bash commands` (rows added to the collection) |
+| "source ~/.bashrc" is imprecise; the installer prints `source $HOME/.local/bin/env` | correction | Both notes, citing the uv installation docs |
+
+The first pass missed the principle note: it filed everything under uv. That's exactly the failure this section exists to prevent.
+
+### Tests
+
+- **Fixture captures** under `tests/fixtures/captures/`, each with an expected split plan (target notes, roles, links). The uv answer is the first case.
+- **Assertions:** every atom covered, the principle note exists and is linked both ways, no explanation duplicated, existing notes patched rather than duplicated.
+- **Digestion eval set:** prompt or model changes are judged by the difference they make on the whole set, like the golden vault tests.
 
 ## State: everything lives in the vault
 
