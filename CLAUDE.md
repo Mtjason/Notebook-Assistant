@@ -60,7 +60,8 @@ A value that someone might want to change lives in exactly one of three homes, n
 - A missing or malformed value fails loudly at load (like `HandbookFormatError`); no silent
   defaults that hide a typo.
 - Environment variables use the `NA_` prefix.
-- Adding a config key updates `docs/architecture.md` §4.1.1 in the same pull request.
+- Adding a config key: its default and a comment go in `src/notebook_assistant/default_config.md`
+  (the only place defaults are written), its type in `domain/config.py`.
 
 ## Clean code
 
@@ -79,7 +80,9 @@ A value that someone might want to change lives in exactly one of three homes, n
 - **No dead code, no speculative abstraction:** build what the current branch in
   `docs/architecture.md` §5.4.1 needs.
 - **Comments say why, not what.** Match the density of the surrounding code.
-- **Every behaviour change comes with a test** against `tests/fixtures/`.
+- **Every function has a unit test:** each public function is tested directly, private helpers
+  through the public function that uses them, and every behaviour change comes with a test
+  against `tests/fixtures/`. Ruff and mypy (strict) are clean before every commit.
 
 ## Non-negotiables
 

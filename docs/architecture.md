@@ -205,27 +205,7 @@ The assistant is **stateless**: all durable state is in the vault and travels wi
 
 Models, limits, thresholds and toggles are read from this note at startup and whenever it changes, never hard-coded. It lives in the vault, so every vault the service serves is tuned on its own. Editing it goes through a changeset like any other note.
 
-```yaml
----
-type: system
-kind: config
-models:                       # one entry per task; any model ID the API accepts
-  classify: claude-haiku-4-5-20251001     # triage, placement, lint explanations
-  transform: claude-sonnet-5              # sweep restructuring, capture extraction
-  digest: claude-opus-5-5                 # screenshots + drafting (Handbook §19)
-  chat: claude-sonnet-5
-  fallback: claude-sonnet-5               # used if a configured model is unavailable
-limits:
-  monthly_spend_usd: 30       # AI jobs pause when reached; the UI shows month-to-date cost
-  max_tokens_per_job: 60000
-checks:
-  preservation_similarity: 0.9  # content-preservation check: how closely a sentence must survive (maintenance-job.md)
-coordination:
-  stale_run_minutes: 15       # a digest or sweep run older than this counts as abandoned (maintenance-job.md)
----
-```
-
-**Defaults.** The block above is the default `Config.md`, and the only place default values are written. A key missing from a vault's `Config.md` takes its default; an unknown key or a wrongly typed value stops loading with an error naming it. The loader arrives with branch 2 (§5.4.1), which moves this block into a file shipped in the package and replaces it here with a link, so there is still one copy.
+**Settings and defaults:** [`src/notebook_assistant/default_config.md`](../src/notebook_assistant/default_config.md) is the default `Config.md`: it lists every setting with a comment and its default value, and it is the only place those values are written. The settings' names and types are the dataclasses in `domain/config.py`. A vault's `Config.md` needs only the keys it changes; the rest keep their defaults. An unknown section or key, a value of the wrong type, or a number out of range stops loading with an error naming the key.
 
 **Not in `Config.md`:**
 - **Per-machine settings** (vault path, profile, `machine_id` (§5.3), `features.bitwarden`, search option) live in `config.yaml` in the OS config directory, via `platformdirs`: `%APPDATA%\notebook-assistant\` on Windows, `~/.config/notebook-assistant/` on Linux and WSL, `~/Library/Application Support/notebook-assistant/` on macOS.
@@ -367,7 +347,7 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 | # | Branch | Delivers |
 |---|---|---|
 | 1 | `feat/core-vault` | Note model, frontmatter, rules parsed from the handbook, invariant checker, content-preservation check, link-safe rename/move, vault-backed store (changesets, snapshots, runs, lease) |
-| 2 | `feat/extract` | Paste-to-digest first. Extraction planner (`app/extract.py`: segment, classify, generalize, match, plan, verify, validate), LLM port with a fake for tests, split-plan schema, validators (coverage, no duplicated explanation, links both ways), fixture captures and an eval runner, and the CLI `notebook-assistant digest --text <file>` that turns a capture into a pending changeset. **Apply re-checks the rules:** a changeset whose resulting notes break any handbook rule (`check_note`) is rejected, whatever produced it. Verification (step 6) cites a source to correct, otherwise marks Unverified; a capture that fits no topic produces a Handbook §2.2 topic amendment draft and an Inbox placement. **`Config.md` loader** (§4.1.1): typed and validated, defaults shipped in the package; `SIMILARITY` moves there from `domain/preserve.py` |
+| 2 | `feat/extract` | Paste-to-digest first. Extraction planner (`app/extract.py`: segment, classify, generalize, match, plan, verify, validate), LLM port with a fake for tests, split-plan schema, validators (coverage, no duplicated explanation, links both ways), fixture captures and an eval runner, and the CLI `notebook-assistant digest --text <file>` that turns a capture into a pending changeset. **Apply re-checks the rules:** a changeset whose resulting notes break any handbook rule (`check_note`) is rejected, whatever produced it. Verification (step 6) cites a source to correct, otherwise marks Unverified; a capture that fits no topic produces a Handbook §2.2 topic amendment draft and an Inbox placement. **`Config.md` loader** (§4.1.1): typed and validated, defaults shipped in the package |
 | 3 | `feat/service-shell` | FastAPI service, SSE, web app shell (nav, top bar, context panel, Markdown renderer), platform profiles, `doctor`, CI and release wheel |
 | 4 | `feat/review` | Changesets end to end in the UI: Review screen, diff view, apply, undo. Changesets can carry a typed **split plan**; the Review screen shows it as the split map, and reassigning or rejecting an atom recompiles the plan into operations in code (no model call) |
 | 5 | `feat/digest` | Digest screen on top of the planner: Approve to digest (note + screenshots), Approve to graduate, Send back, Graduate as-is |

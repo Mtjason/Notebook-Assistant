@@ -6,8 +6,9 @@ The original body is split into atomic units:
   code blocks, URLs, embeds and links;
 - **numbers**, each of which must appear somewhere in the result;
 - **text units** (sentences, list items, table cells), each of which must match some text unit
-  of the result with a similarity of at least :data:`SIMILARITY` after normalization, so
-  reformatting passes but dropped or rewritten content does not.
+  of the result with at least the given similarity (``checks.preservation_similarity`` in
+  ``Config.md``) after normalization, so reformatting passes but dropped or rewritten content
+  does not.
 
 The result may be several notes (a split), so all resulting bodies are checked together.
 This is deterministic code: it never relies on the model saying it kept everything.
@@ -19,8 +20,6 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
-
-SIMILARITY = 0.9
 
 _FENCED = re.compile(r"^[ \t]*(```|~~~)[^\n]*\n.*?^[ \t]*\1[ \t]*$", re.S | re.M)
 _INLINE_CODE = re.compile(r"`[^`\n]+`")
@@ -103,9 +102,7 @@ def text_units(text_without_code: str) -> list[str]:
     return units
 
 
-def check(
-    original: str, results: list[str], *, similarity: float = SIMILARITY
-) -> PreservationReport:
+def check(original: str, results: list[str], *, similarity: float) -> PreservationReport:
     """Compare an original body with the resulting bodies (one per resulting note)."""
     report = PreservationReport()
     orig_atoms, orig_text = _exact_atoms(original)

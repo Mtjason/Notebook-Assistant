@@ -1,4 +1,9 @@
-from notebook_assistant.domain.preserve import check
+from functools import partial
+
+from notebook_assistant.config import load_default_config
+from notebook_assistant.domain import preserve
+
+check = partial(preserve.check, similarity=load_default_config().checks.preservation_similarity)
 
 ORIGINAL = """要學 Kedro hooks
 為什麼 polars lazyframe 不能 .dt？
