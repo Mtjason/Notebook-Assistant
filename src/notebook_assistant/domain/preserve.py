@@ -122,12 +122,27 @@ def check(original: str, results: list[str], *, similarity: float) -> Preservati
 
     res_units = text_units(res_all)
     res_joined = " ".join(res_units)
-    for unit in text_units(orig_text):
-        if unit in res_joined:
-            continue
-        if not any(_similar(unit, cand, similarity) for cand in res_units):
-            report.missing_text.append(unit)
+    report.missing_text = [
+        unit
+        for unit in text_units(orig_text)
+        if not _found(unit, res_units, res_joined, similarity)
+    ]
     return report
+
+
+def shared_units(text: str, other: str, *, similarity: float) -> list[str]:
+    """The text units of ``text`` that ``other`` also contains (same test as :func:`check`)."""
+    other_units = text_units(_exact_atoms(other)[1])
+    joined = " ".join(other_units)
+    return [
+        unit
+        for unit in text_units(_exact_atoms(text)[1])
+        if _found(unit, other_units, joined, similarity)
+    ]
+
+
+def _found(unit: str, units: list[str], joined: str, similarity: float) -> bool:
+    return unit in joined or any(_similar(unit, cand, similarity) for cand in units)
 
 
 def _similar(a: str, b: str, threshold: float) -> bool:

@@ -141,6 +141,16 @@ def check_note(note: Note, facts: VaultFacts) -> list[Violation]:
     return out
 
 
+def new_violations(before: Note | None, after: Note, facts: VaultFacts) -> list[Violation]:
+    """Violations ``after`` has that ``before`` didn't (all of them for a new note).
+
+    A change is judged by what it breaks: a note that already broke a rule doesn't block an
+    unrelated edit to it, but no change may introduce a violation.
+    """
+    known = set(check_note(before, facts)) if before is not None else set()
+    return [v for v in check_note(after, facts) if v not in known]
+
+
 def _empty(value: object) -> bool:
     return value is None or value == "" or value == []
 

@@ -36,8 +36,19 @@ def handbook_path() -> Path:
 
 
 @lru_cache(maxsize=4)
+def _read(path: str, mtime_ns: int) -> str:
+    return Path(path).read_text(encoding="utf-8")
+
+
+@lru_cache(maxsize=4)
 def _load(path: str, mtime_ns: int) -> Rules:
-    return parse_handbook(Path(path).read_text(encoding="utf-8"))
+    return parse_handbook(_read(path, mtime_ns))
+
+
+def handbook_text() -> str:
+    """The handbook itself, as the planners give it to the model (re-read when it changes)."""
+    path = handbook_path()
+    return _read(str(path), path.stat().st_mtime_ns)
 
 
 def load_rules() -> Rules:

@@ -5,7 +5,7 @@ import pytest
 
 from notebook_assistant.adapters.memory_vault import MemoryVault
 from notebook_assistant.app.index import VaultIndex
-from notebook_assistant.domain.invariants import VaultFacts, check_note, is_checked
+from notebook_assistant.domain.invariants import VaultFacts, check_note, is_checked, new_violations
 from notebook_assistant.domain.names import name_key
 from notebook_assistant.domain.note import Note
 from notebook_assistant.handbook import load_rules
@@ -154,3 +154,13 @@ def test_tags() -> None:
 )
 def test_checked_locations(path: str, checked: bool) -> None:
     assert is_checked(PurePosixPath(path), RULES) is checked
+
+
+def test_new_violations_are_only_the_ones_a_change_introduces() -> None:
+    facts = VaultFacts(rules=RULES, title_counts=Counter({"confusion matrix": 1}))
+    broken = make("60-Knowledge/ML/Confusion matrix.md", drop=("scope",))
+    edited = make("60-Knowledge/ML/Confusion matrix.md", drop=("scope",), body="more\n")
+    assert new_violations(broken, edited, facts) == []  # already broken: an edit may proceed
+    worse = make("60-Knowledge/ML/Confusion matrix.md", drop=("scope",), kind="essay")
+    assert [v.code for v in new_violations(broken, worse, facts)] == ["I-3"]
+    assert [v.code for v in new_violations(None, broken, facts)] == ["I-3"]  # new: all count

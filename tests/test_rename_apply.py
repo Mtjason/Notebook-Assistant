@@ -77,12 +77,31 @@ def test_move_to_other_folder_fixes_relative_links(any_vault: Store) -> None:
     assert VaultIndex.build(any_vault).broken == []
 
 
-def test_move_to_deeper_folder_rewrites_relative_link(memory_vault: MemoryVault) -> None:
-    dest = P("20-Projects/Demo/Polars with_columns.md")
-    cs = plan(memory_vault, POLARS, dest)
-    assert apply_changeset(memory_vault, cs, now=NOW).ok
-    assert "(../../Attachments/Polars%20with_columns%20-%201.png)" in memory_vault.read_text(dest)
-    assert VaultIndex.build(memory_vault).broken == []
+def test_move_at_the_same_depth_keeps_the_relative_link(memory_vault: MemoryVault) -> None:
+    """`../../Attachments/…` still resolves from 20-Projects/Demo/, so the note isn't rewritten."""
+    cs = plan(memory_vault, POLARS, P("20-Projects/Demo/Polars with_columns.md"))
+    moved = next(op for op in cs.ops if op.kind == "move")
+    assert moved.content is None
+
+
+def test_plan_rewrites_a_relative_link_when_the_note_moves_deeper(
+    memory_vault: MemoryVault,
+) -> None:
+    cs = plan(memory_vault, POLARS, P("20-Projects/Demo/notes/Polars with_columns.md"))
+    moved = next(op for op in cs.ops if op.kind == "move")
+    assert moved.content is not None
+    assert "(../../../Attachments/Polars%20with_columns%20-%201.png)" in moved.content
+
+
+def test_apply_refuses_a_move_that_breaks_a_rule(memory_vault: MemoryVault) -> None:
+    """A knowledge note doesn't belong in a project container (Handbook §2.1, I-2)."""
+    before = snapshot(memory_vault)
+    cs = plan(memory_vault, POLARS, P("20-Projects/Demo/Polars with_columns.md"))
+    result = apply_changeset(memory_vault, cs, now=NOW)
+    assert not result.ok and cs.status is Status.FAILED
+    assert result.error is not None and "would break handbook rules, rolled back" in result.error
+    assert "I-2 type 'knowledge' doesn't belong in 20-Projects/Demo" in result.error
+    assert snapshot(memory_vault) == before
 
 
 def test_attachment_rename(any_vault: Store) -> None:

@@ -11,8 +11,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Protocol
 
-JsonValue = str | int | float | bool | None | list["JsonValue"] | dict[str, "JsonValue"]
-JsonObject = dict[str, JsonValue]
+from notebook_assistant.domain.jsontypes import JsonObject, JsonValue
 
 
 class LLMError(Exception):

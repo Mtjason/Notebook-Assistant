@@ -19,7 +19,8 @@ import json
 import anthropic
 from anthropic.types import Message, TextBlockParam
 
-from notebook_assistant.ports.llm import JsonObject, JsonRequest, LLMError
+from notebook_assistant.domain.jsontypes import JsonObject
+from notebook_assistant.ports.llm import JsonRequest, LLMError
 
 
 class AnthropicModel:

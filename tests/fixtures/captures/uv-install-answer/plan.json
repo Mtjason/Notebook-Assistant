@@ -1,0 +1,234 @@
+{
+ "atoms": [
+  {
+   "id": "intro",
+   "text": "這兩行指令的目的是下載、安裝極速 Python 套件管理器 [uv (Astral)](https://astral.sh/uv)，並立即讓該命令在目前的終端機視窗中生效。 [1, 2]",
+   "role": "instance",
+   "notes": [
+    "SOP - Install uv (Linux)"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "lead-in",
+   "text": "詳細的拆解說明如下：",
+   "role": "filler",
+   "notes": [],
+   "citation": ""
+  },
+  {
+   "id": "install-steps",
+   "text": "1. `curl -LsSf https://astral.sh/uv/install.sh | sh`",
+   "role": "instance",
+   "notes": [
+    "SOP - Install uv (Linux)"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "pipe-pattern",
+   "text": "這是一個典型的「從網路下載並直接執行腳本」的安裝指令，分為兩部分（以管道符號 `|` 隔開）：",
+   "role": "principle",
+   "notes": [
+    "curl pipe to shell install"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "curl-part",
+   "text": "* `curl -LsSf https://astral.sh/uv/install.sh`：利用 `curl` 工具從 Astral 官方 下載安裝腳本，其中的參數具有安全與容錯意義：",
+   "role": "principle",
+   "notes": [
+    "curl pipe to shell install"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "curl-flags",
+   "text": "   * `-L` (Location)：若網址有重新導向（Redirect），自動追蹤到新的網址。\n   * `-s` (Silent)：靜音模式，不顯示下載進度條與錯誤訊息。\n   * `-S` (Show error)：與 `-s` 搭配使用，當下載失敗時仍會顯示錯誤訊息。\n   * `-f` (Fail)：如果伺服器回傳錯誤（例如 404 或 500），直接失敗而不下載錯誤網頁內容。",
+   "role": "principle",
+   "notes": [
+    "curl pipe to shell install"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "pipe-to-sh",
+   "text": "* `| sh`：將前述下載下來的腳本內容，直接丟給系統的 `sh` (Shell) 直譯器去執行，從而完成 `uv` 工具的自動化安裝。",
+   "role": "principle",
+   "notes": [
+    "curl pipe to shell install"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "reload-step",
+   "text": "2. `source ~/.bashrc`",
+   "role": "instance",
+   "notes": [
+    "SOP - Install uv (Linux)"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "bashrc",
+   "text": "* `~/.bashrc`：是 Bash Shell 的設定檔。在前一步驟的安裝腳本中，通常會自動將 `uv` 的執行檔路徑（例如 `~/.local/bin`）寫入到這個檔案的 `PATH` 環境變數中。",
+   "role": "principle",
+   "notes": [
+    "curl pipe to shell install"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "source-rc",
+   "text": "* `source`：代表立即載入並執行該設定檔。如果不用這個指令，你必須關閉終端機並重新開啟，系統才會讀取到新安裝的 `uv`；使用 `source` 則可以讓你在當前視窗立刻開始使用 `uv` 命令。 [3, 4, 5]",
+   "role": "principle",
+   "notes": [
+    "curl pipe to shell install"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "question",
+   "text": "您目前是在 Linux 還是 macOS 系統上準備安裝呢？",
+   "role": "filler",
+   "notes": [],
+   "citation": ""
+  },
+  {
+   "id": "zsh",
+   "text": "如果您使用的是 macOS 預設的 Zsh，第二行通常需要改為 `source ~/.zshrc` 才會生效喔！",
+   "role": "principle",
+   "notes": [
+    "curl pipe to shell install"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "command-rows",
+   "text": "1. `curl -LsSf https://astral.sh/uv/install.sh | sh`",
+   "role": "extracted",
+   "notes": [
+    "Bash commands"
+   ],
+   "citation": ""
+  },
+  {
+   "id": "path-correction",
+   "text": "在前一步驟的安裝腳本中，通常會自動將 `uv` 的執行檔路徑（例如 `~/.local/bin`）寫入到這個檔案的 `PATH` 環境變數中。",
+   "role": "correction",
+   "notes": [
+    "SOP - Install uv (Linux)",
+    "curl pipe to shell install"
+   ],
+   "citation": "https://docs.astral.sh/uv/getting-started/installation/"
+  }
+ ],
+ "notes": [
+  {
+   "title": "SOP - Install uv (Linux)",
+   "op": "patch",
+   "folder": "",
+   "properties": [],
+   "body": "",
+   "sections": [
+    {
+     "heading": "Summary",
+     "content": "這兩行指令的目的是下載、安裝極速 Python 套件管理器 [uv (Astral)](https://astral.sh/uv)，並立即讓該命令在目前的終端機視窗中生效。 [1, 2]"
+    },
+    {
+     "heading": "Steps",
+     "content": "1. `curl -LsSf https://astral.sh/uv/install.sh | sh`\n2. `source ~/.bashrc`"
+    },
+    {
+     "heading": "Gotchas",
+     "content": "- The installer prints `source $HOME/.local/bin/env`; run that, not `~/.bashrc`, to reload `PATH` (https://docs.astral.sh/uv/getting-started/installation/)."
+    },
+    {
+     "heading": "Related",
+     "content": "- [[curl pipe to shell install]]: why `curl … | sh` works"
+    }
+   ],
+   "history": [
+    "added the installer command and the PATH reload from an AI answer",
+    "corrected the reload command: the installer prints `source $HOME/.local/bin/env` (https://docs.astral.sh/uv/getting-started/installation/)"
+   ]
+  },
+  {
+   "title": "curl pipe to shell install",
+   "op": "create",
+   "folder": "60-Knowledge/Systems",
+   "properties": [
+    {
+     "key": "type",
+     "value": "knowledge"
+    },
+    {
+     "key": "kind",
+     "value": "concept"
+    },
+    {
+     "key": "scope",
+     "value": "personal"
+    },
+    {
+     "key": "status",
+     "value": "seed"
+    },
+    {
+     "key": "topic",
+     "value": "[[MOC - Systems]]"
+    },
+    {
+     "key": "aliases",
+     "value": [
+      "curl | sh",
+      "管道安裝腳本"
+     ]
+    },
+    {
+     "key": "origin",
+     "value": "ai-chat"
+    },
+    {
+     "key": "digest",
+     "value": "review"
+    }
+   ],
+   "body": "## Summary\n\n`curl … | sh` downloads an install script and runs it in one step; the installer then adds its\nfolder to `PATH`, which a new shell (or `source`) picks up. Worked example: [[SOP - Install uv (Linux)]].\n\n## The pattern\n\n這是一個典型的「從網路下載並直接執行腳本」的安裝指令，分為兩部分（以管道符號 `|` 隔開）：\n\n* `curl -LsSf https://astral.sh/uv/install.sh`：利用 `curl` 工具從 Astral 官方 下載安裝腳本，其中的參數具有安全與容錯意義：\n   * `-L` (Location)：若網址有重新導向（Redirect），自動追蹤到新的網址。\n   * `-s` (Silent)：靜音模式，不顯示下載進度條與錯誤訊息。\n   * `-S` (Show error)：與 `-s` 搭配使用，當下載失敗時仍會顯示錯誤訊息。\n   * `-f` (Fail)：如果伺服器回傳錯誤（例如 404 或 500），直接失敗而不下載錯誤網頁內容。\n* `| sh`：將前述下載下來的腳本內容，直接丟給系統的 `sh` (Shell) 直譯器去執行，從而完成 `uv` 工具的自動化安裝。\n\n## Reloading the shell\n\n* `~/.bashrc`：是 Bash Shell 的設定檔。在前一步驟的安裝腳本中，通常會自動將 `uv` 的執行檔路徑（例如 `~/.local/bin`）寫入到這個檔案的 `PATH` 環境變數中。\n* `source`：代表立即載入並執行該設定檔。如果不用這個指令，你必須關閉終端機並重新開啟，系統才會讀取到新安裝的 `uv`；使用 `source` 則可以讓你在當前視窗立刻開始使用 `uv` 命令。 [3, 4, 5]\n\n如果您使用的是 macOS 預設的 Zsh，第二行通常需要改為 `source ~/.zshrc` 才會生效喔！\n\n> [!warning] Correction\n> The uv installer doesn't only edit `~/.bashrc`: it writes and prints `source $HOME/.local/bin/env`\n> to run instead (https://docs.astral.sh/uv/getting-started/installation/).\n\n## References in the original answer (unverified)\n\n[1] https://blog.csdn.net\n[2] https://hy-chou.blogspot.com\n[3] https://learn.microsoft.com\n[4] https://blog.miniasp.com\n[5] https://kubernetes.club.tw\n",
+   "sections": [],
+   "history": [
+    "corrected the PATH reload: the uv installer prints `source $HOME/.local/bin/env` (https://docs.astral.sh/uv/getting-started/installation/)"
+   ]
+  },
+  {
+   "title": "Bash commands",
+   "op": "patch",
+   "folder": "",
+   "properties": [],
+   "body": "",
+   "sections": [
+    {
+     "heading": "Commands",
+     "content": "| `curl -LsSf https://astral.sh/uv/install.sh \\| sh` | install uv (see [[curl pipe to shell install]]) |\n| `source ~/.bashrc` | reload the shell's settings in this window |"
+    }
+   ],
+   "history": []
+  },
+  {
+   "title": "MOC - Systems",
+   "op": "patch",
+   "folder": "",
+   "properties": [],
+   "body": "",
+   "sections": [
+    {
+     "heading": "Notes",
+     "content": "- [[curl pipe to shell install]] — download-and-run installers"
+    }
+   ],
+   "history": []
+  }
+ ],
+ "topic_proposal": null
+}

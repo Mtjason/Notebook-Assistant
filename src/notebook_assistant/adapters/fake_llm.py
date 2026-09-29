@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from notebook_assistant.ports.llm import JsonObject, JsonRequest, LLMError
+from notebook_assistant.domain.jsontypes import JsonObject
+from notebook_assistant.ports.llm import JsonRequest, LLMError
 
 
 class ScriptedModel:
