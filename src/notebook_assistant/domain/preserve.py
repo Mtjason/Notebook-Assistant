@@ -6,8 +6,9 @@ The original body is split into atomic units:
   code blocks, URLs, embeds and links;
 - **numbers**, each of which must appear somewhere in the result;
 - **text units** (sentences, list items, table cells), each of which must match some text unit
-  of the result with a similarity of at least :data:`SIMILARITY` after normalization, so
-  reformatting passes but dropped or rewritten content does not.
+  of the result with at least the given similarity (``checks.preservation_similarity`` in
+  ``Config.md``) after normalization, so reformatting passes but dropped or rewritten content
+  does not.
 
 The result may be several notes (a split), so all resulting bodies are checked together.
 This is deterministic code: it never relies on the model saying it kept everything.
@@ -19,8 +20,6 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
-
-SIMILARITY = 0.9
 
 _FENCED = re.compile(r"^[ \t]*(```|~~~)[^\n]*\n.*?^[ \t]*\1[ \t]*$", re.S | re.M)
 _INLINE_CODE = re.compile(r"`[^`\n]+`")
@@ -103,9 +102,7 @@ def text_units(text_without_code: str) -> list[str]:
     return units
 
 
-def check(
-    original: str, results: list[str], *, similarity: float = SIMILARITY
-) -> PreservationReport:
+def check(original: str, results: list[str], *, similarity: float) -> PreservationReport:
     """Compare an original body with the resulting bodies (one per resulting note)."""
     report = PreservationReport()
     orig_atoms, orig_text = _exact_atoms(original)
@@ -125,12 +122,27 @@ def check(
 
     res_units = text_units(res_all)
     res_joined = " ".join(res_units)
-    for unit in text_units(orig_text):
-        if unit in res_joined:
-            continue
-        if not any(_similar(unit, cand, similarity) for cand in res_units):
-            report.missing_text.append(unit)
+    report.missing_text = [
+        unit
+        for unit in text_units(orig_text)
+        if not _found(unit, res_units, res_joined, similarity)
+    ]
     return report
+
+
+def shared_units(text: str, other: str, *, similarity: float) -> list[str]:
+    """The text units of ``text`` that ``other`` also contains (same test as :func:`check`)."""
+    other_units = text_units(_exact_atoms(other)[1])
+    joined = " ".join(other_units)
+    return [
+        unit
+        for unit in text_units(_exact_atoms(text)[1])
+        if _found(unit, other_units, joined, similarity)
+    ]
+
+
+def _found(unit: str, units: list[str], joined: str, similarity: float) -> bool:
+    return unit in joined or any(_similar(unit, cand, similarity) for cand in units)
 
 
 def _similar(a: str, b: str, threshold: float) -> bool:

@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from notebook_assistant.domain.rules import HandbookFormatError, parse_handbook
-from notebook_assistant.handbook import handbook_path, load_rules
+from notebook_assistant.handbook import handbook_path, handbook_text, load_rules
 
 REPO = Path(__file__).resolve().parents[1]
 HANDBOOK = REPO / "docs" / "handbook.md"
@@ -33,6 +33,9 @@ def test_parsed_rules_are_complete() -> None:
     assert rules.container_roots == {"15-Incubator", "20-Projects", "25-Areas"}
     assert rules.state_prefix == "99-System/Assistant/"
     assert rules.archive_root == "95-Archive" and rules.max_folder_depth == 3
+    assert rules.inbox == "00-Inbox"
+    assert rules.direct_capture_digest == ("knowledge", "review")
+    assert rules.assistant_managed == {"id", "assistant_hash"}
     for rule in rules.types.values():
         placed = rule.folders or rule.hub_of or rule.container_member
         assert placed, f"{rule.name} has no folder"
@@ -58,6 +61,8 @@ def test_topic_mocs_match_folders() -> None:
         ("# max 3, from the registry", "# from the registry", "tags"),
         ("`sop` → `30-SOPs/`", "`sopx` → `30-SOPs/`", "§3 gives no folder"),
         ("## 4.3", "## 4.3x", "§4.3"),
+        ("| → `00-Inbox/` (§0.3) |", "| → Inbox (§0.3) |", "§3 names no Inbox"),
+        ("get `digest: review`", "get the review state", "§19.6"),
     ],
 )
 def test_unreadable_handbook_edits_fail_loudly(old: str, new: str, message: str) -> None:
@@ -97,3 +102,13 @@ def test_no_hand_written_rule_tables_in_code() -> None:
         if re.search(fp, p.read_text(encoding="utf-8"))
     ]
     assert offenders == []
+
+
+def test_handbook_text_is_the_file_the_rules_come_from() -> None:
+    assert handbook_text() == TEXT
+
+
+def test_a_handbook_naming_no_assistant_managed_property_fails_loudly() -> None:
+    text = TEXT.replace("by the assistant", "by code")
+    with pytest.raises(HandbookFormatError, match=re.escape("§4.1 names no property managed")):
+        parse_handbook(text)

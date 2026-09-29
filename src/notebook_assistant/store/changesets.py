@@ -4,6 +4,7 @@ Each record is a readable note:
 
 - frontmatter with status, who proposed it, when, on which machine, and the targets;
 - the reason as the heading;
+- what the reviewer needs beyond the diff (e.g. a capture's split map), under ``## Review``;
 - a unified diff per changed text file (what you review);
 - the operations and, once applied, the reverse operations as JSON (what the code runs).
 """
@@ -22,6 +23,7 @@ from notebook_assistant.ports.vault import VaultStore
 from notebook_assistant.store import ASSISTANT_DIR
 
 CHANGESETS_DIR = ASSISTANT_DIR / "Changesets"
+_REVIEW = re.compile(r"^## Review\n\n(.*?)\n(?=## Summary\n)", re.S | re.M)
 _JSON_BLOCK = re.compile(r"^## (Operations|Reverse operations)\n+```json\n(.*?)\n```", re.S | re.M)
 
 
@@ -73,6 +75,8 @@ def render(cs: Changeset, diffs: dict[int, str] | None = None) -> str:
         if value not in (None, "", []):
             fm.set(key, value)
     parts = [f"# {cs.reason}\n"]
+    if cs.review:
+        parts.append(f"## Review\n\n{cs.review.strip()}\n")
     labels = "\n".join(
         f"- `{op.kind}` {op.path.as_posix()}"
         + (f" → {op.dest.as_posix()}" if op.dest else "")
@@ -97,6 +101,7 @@ def parse(text: str) -> Changeset:
     props = note.props
     heading = re.search(r"^# (.+)$", note.body, re.M)
     blocks = {m.group(1): json.loads(m.group(2)) for m in _JSON_BLOCK.finditer(note.body)}
+    review = _REVIEW.search(note.body)
     return Changeset(
         reason=heading.group(1) if heading else "",
         created_by=str(props.get("created_by", "")),
@@ -108,6 +113,7 @@ def parse(text: str) -> Changeset:
         reverse_ops=[Operation.from_json(o) for o in blocks.get("Reverse operations", [])],
         applied=props.get("applied_at"),
         error=props.get("error"),
+        review=review.group(1).strip() if review else "",
     )
 
 

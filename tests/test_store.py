@@ -41,6 +41,25 @@ def test_changeset_record_round_trip(memory_vault: MemoryVault) -> None:
     assert not is_checked(path, load_rules())  # machine state is exempt from the invariants
 
 
+def test_review_text_survives_saving_and_applying(memory_vault: MemoryVault) -> None:
+    cs = plan_move(
+        VaultIndex.build(memory_vault),
+        P("60-Knowledge/Software/Polars with_columns.md"),
+        P("60-Knowledge/Software/Polars cols.md"),
+        reason="Rename",
+        created_by="user:cli",
+        now=NOW,
+    )
+    cs.review = "### Split map\n\n| Atom | Role |\n|---|---|\n| a | principle |"
+    path = changesets.save(memory_vault, cs)
+    assert "## Review\n\n### Split map" in memory_vault.read_text(path)
+    loaded = changesets.load(memory_vault, path)
+    assert loaded.review == cs.review
+    assert apply_changeset(memory_vault, loaded, now=NOW).ok
+    changesets.save(memory_vault, loaded, with_diff=False)
+    assert changesets.load(memory_vault, path).review == cs.review
+
+
 def test_state_files_are_outside_the_link_graph(memory_vault: MemoryVault) -> None:
     cs = plan_move(
         VaultIndex.build(memory_vault),

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import PurePosixPath
 
-from hypothesis import HealthCheck, given, settings
+from hypothesis import HealthCheck, example, given, settings
 from hypothesis import strategies as st
 
 from notebook_assistant.adapters.memory_vault import MemoryVault
@@ -61,6 +61,16 @@ def vaults(draw: st.DrawFn) -> tuple[dict[str, str], str, str]:
 
 @settings(max_examples=150, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(vaults())
+@example(  # a title ending in ".MD": the link must still resolve after the rename
+    (
+        {
+            "60-Knowledge/ML/0.md": "---\ntype: knowledge\naliases: [x]\n---\n\n",
+            "60-Knowledge/ML/00.md": "---\ntype: knowledge\naliases: [x]\n---\n[[0]]\n",
+        },
+        "60-Knowledge/ML/0.md",
+        "0.MD",
+    )
+)
 def test_random_renames_never_break_links(case: tuple[dict[str, str], str, str]) -> None:
     files, src, new_title = case
     store = MemoryVault(files)

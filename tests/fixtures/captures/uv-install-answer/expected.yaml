@@ -1,6 +1,6 @@
 # Expected split plan: the uv install answer
 # Source: an AI answer pasted into chat on 2026-09-27 with "Digest the following knowledge into
-# obsidian vault". The approved result is recorded in the vault's 99-System/Changelog.md.
+# obsidian vault". The approved result is in the vault's changeset records (Handbook §15.9).
 # Used by the extraction tests and the digestion eval set (docs/maintenance-job.md, Extraction).
 # Vault notes themselves are never committed; this file describes only the plan's shape.
 

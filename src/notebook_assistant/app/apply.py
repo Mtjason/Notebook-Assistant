@@ -7,7 +7,9 @@ Steps:
 2. **Execute** in order, recording a reverse operation for each.
 3. **Verify links:** every reference that resolved before must still resolve, to the same file
    (followed through the changeset's moves). Deleting a file that is still linked fails.
-4. On any failure, **roll back** the executed operations in reverse order. The changeset is
+4. **Re-check the rules:** no note the changeset creates, writes or moves may gain a handbook
+   violation (``new_violations``), whatever produced the changeset.
+5. On any failure, **roll back** the executed operations in reverse order. The changeset is
    marked ``failed`` with the reason, and the vault is as it was.
 
 Undo applies the stored reverse operations, with the same checks, so an undo also refuses if
@@ -25,7 +27,9 @@ from pathlib import PurePosixPath
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.domain.changeset import Changeset, Operation, Status
 from notebook_assistant.domain.ids import content_hash
+from notebook_assistant.domain.invariants import new_violations
 from notebook_assistant.domain.names import name_key
+from notebook_assistant.domain.note import is_note_path
 from notebook_assistant.ports.vault import VaultError, VaultStore
 
 
@@ -191,6 +195,25 @@ def verify_links(before: VaultIndex, after: VaultIndex, ops: list[Operation]) ->
     return problems
 
 
+def rule_violations(before: VaultIndex, after: VaultIndex, ops: list[Operation]) -> list[str]:
+    """Handbook violations the changeset introduced in the notes it created, wrote or moved."""
+    problems: list[str] = []
+    facts = after.facts()
+    for op in ops:
+        if op.kind == "delete":
+            continue
+        result_path = op.dest if op.kind == "move" and op.dest is not None else op.path
+        note = after.note(result_path) if is_note_path(result_path) else None
+        if note is None:
+            continue
+        old = before.note(op.path) if op.kind != "create" else None
+        problems.extend(
+            f"{result_path}: {v.code} {v.message} ({v.section})"
+            for v in new_violations(old, note, facts)
+        )
+    return problems
+
+
 def apply_changeset(
     store: VaultStore, cs: Changeset, *, now: datetime, machine: str = ""
 ) -> ApplyResult:
@@ -209,11 +232,18 @@ def apply_changeset(
         cs.status, cs.error = Status.FAILED, f"apply failed and was rolled back: {exc}"
         return ApplyResult(cs, False, cs.error)
 
-    broken = verify_links(before, VaultIndex.build(store), cs.ops)
+    after = VaultIndex.build(store)
+    broken = verify_links(before, after, cs.ops)
     if broken:
         _rollback(store, reverse)
         cs.status = Status.FAILED
         cs.error = "would break links, rolled back: " + "; ".join(broken[:5])
+        return ApplyResult(cs, False, cs.error)
+    violations = rule_violations(before, after, cs.ops)
+    if violations:
+        _rollback(store, reverse)
+        cs.status = Status.FAILED
+        cs.error = "would break handbook rules, rolled back: " + "; ".join(violations[:5])
         return ApplyResult(cs, False, cs.error)
 
     cs.status = Status.APPLIED

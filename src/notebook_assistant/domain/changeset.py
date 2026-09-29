@@ -88,6 +88,7 @@ class Changeset:
     reverse_ops: list[Operation] = field(default_factory=list)  # filled when applied
     applied: str | None = None
     error: str | None = None
+    review: str = ""  # Markdown for the reviewer, e.g. a capture's split map
 
     @property
     def targets(self) -> list[PurePosixPath]:

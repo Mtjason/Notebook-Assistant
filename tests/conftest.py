@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import itertools
+import json
 import shutil
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -42,3 +46,22 @@ def any_vault(request: pytest.FixtureRequest, tmp_path: Path) -> FsVault | Memor
     root = tmp_path / "vault"
     shutil.copytree(FIXTURE_VAULT, root)
     return FsVault(root)
+
+
+UV_CAPTURE = Path(__file__).parent / "fixtures" / "captures" / "uv-install-answer"
+
+
+def uv_plan_json() -> dict[str, Any]:
+    """The recorded model answer for the uv capture: a plan that passes every check."""
+    data: dict[str, Any] = json.loads((UV_CAPTURE / "plan.json").read_text(encoding="utf-8"))
+    return data
+
+
+def uv_capture_text() -> str:
+    return (UV_CAPTURE / "capture.md").read_text(encoding="utf-8")
+
+
+def sequential_ids() -> Callable[[], str]:
+    """Predictable note ids for assertions: n-test-0, n-test-1, …"""
+    counter = itertools.count()
+    return lambda: f"n-test-{next(counter)}"

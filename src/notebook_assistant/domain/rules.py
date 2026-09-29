@@ -8,10 +8,13 @@ drifting silently. Sections read:
 - top matter: ``version`` in the frontmatter;
 - §0.1: invariant scope (exempt folders), I-5 link exemptions, I-6 folder depth;
 - §2.1: container member types; §2.3: knowledge topics;
-- §3: type → folder (decision order and structural types);
-- §4.1: common required properties and their vocabularies; §4.2: per-type required properties
-  and vocabularies; §4.3: allowed statuses; §5: title patterns;
-- §13: the archive folder.
+- §3: type → folder (decision order and structural types), and the Inbox (row 1, the §0.3
+  fallback);
+- §4.1: common required properties, their vocabularies, and those the assistant manages;
+  §4.2: per-type required properties and vocabularies; §4.3: allowed statuses; §5: title
+  patterns;
+- §13: the archive folder;
+- §19.6: the digest state of notes made from a direct capture.
 
 Pure: takes text, returns data. Loading the file is :mod:`notebook_assistant.handbook`.
 """
@@ -61,6 +64,11 @@ class Rules:
     tag_registry: str  # vault path of the tag registry (§6)
     names: NameRules  # §5.1
     code_folders: frozenset[str]  # folder names that hold project code (§11)
+    inbox: str  # where unprocessed or uncertain notes go (§3 row 1, §0.3)
+    assistant_managed: frozenset[str]  # properties only the assistant writes (§4.1)
+    direct_capture_digest: tuple[
+        str, str
+    ]  # (type, digest state) of notes from a direct capture (§19.6)
 
     @property
     def container_roots(self) -> frozenset[str]:
@@ -274,6 +282,17 @@ def _max_tags(text: str) -> int:
     return int(m.group(1))
 
 
+def _assistant_managed(text: str) -> frozenset[str]:
+    """§4.1 properties whose comment says the assistant assigns or manages them."""
+    block = re.search(r"```yaml\n(.*?)\n```", _section(text, "4.1"), re.S)
+    keys = re.findall(
+        r"^([a-z_]+):[^#\n]*#.*\bby the assistant\b", block.group(1) if block else "", re.M
+    )
+    if not keys:
+        raise HandbookFormatError("§4.1 names no property managed by the assistant")
+    return frozenset(keys)
+
+
 def _common(text: str) -> tuple[tuple[str, ...], dict[str, frozenset[str]]]:
     block = re.search(r"```yaml\n(.*?)\n```", _section(text, "4.1"), re.S)
     if not block:
@@ -368,6 +387,23 @@ def _title_patterns(text: str) -> dict[str, re.Pattern[str]]:
     return out
 
 
+def _inbox(text: str) -> str:
+    """The folder of the first §3 row that names a folder but no type: the Inbox (§0.3)."""
+    for row in _table_rows(_section(text, "3")):
+        left, _, right = row[-1].partition("→")
+        folders = [t for t in _ticks(right) if t.endswith("/")]
+        if right and folders and not _ticks(left):
+            return _folder(folders[0])
+    raise HandbookFormatError("§3 names no Inbox row (a folder without a type)")
+
+
+def _direct_capture_digest(text: str) -> tuple[str, str]:
+    m = re.search(r"New (\w[\w-]*) notes from it get `digest: ([\w-]+)`", _section(text, "19.6"))
+    if not m:
+        raise HandbookFormatError("§19.6 doesn't say which digest state direct-capture notes get")
+    return m.group(1), m.group(2)
+
+
 def _archive_root(text: str) -> str:
     m = re.search(r"moving a note into `([^`]+)/`", _section(text, "13"))
     if not m:
@@ -431,4 +467,7 @@ def parse_handbook(text: str) -> Rules:
         tag_registry=_tag_registry(text),
         names=_name_rules(text),
         code_folders=_code_folders(text),
+        inbox=_inbox(text),
+        assistant_managed=_assistant_managed(text),
+        direct_capture_digest=_direct_capture_digest(text),
     )

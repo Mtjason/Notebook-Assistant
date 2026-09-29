@@ -1,4 +1,9 @@
-from notebook_assistant.domain.preserve import check
+from functools import partial
+
+from notebook_assistant.config import load_default_config
+from notebook_assistant.domain import preserve
+
+check = partial(preserve.check, similarity=load_default_config().checks.preservation_similarity)
 
 ORIGINAL = """要學 Kedro hooks
 為什麼 polars lazyframe 不能 .dt？
@@ -71,3 +76,12 @@ def test_rewording_beyond_threshold_fails() -> None:
     report = check("The service restarts every night at midnight.\n", ["It reboots nightly.\n"])
     assert report.missing_text
     assert "missing or changed" in report.summary()
+
+
+def test_shared_units_are_the_sentences_both_texts_contain() -> None:
+    similarity = load_default_config().checks.preservation_similarity
+    principle = "Curl follows redirects. It fails on HTTP errors.\n"
+    note = "## Flags\n\n- It fails on HTTP errors!\n- An unrelated line here.\n"
+    shared = preserve.shared_units(principle, note, similarity=similarity)
+    assert shared == ["it fails on http errors."]
+    assert preserve.shared_units(principle, "Nothing alike.", similarity=similarity) == []

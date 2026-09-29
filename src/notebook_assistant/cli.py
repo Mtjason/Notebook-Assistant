@@ -9,6 +9,10 @@ Branch 1 ships developer commands for exercising the core library against a real
     notebook-assistant changesets --vault PATH       list changeset records
     notebook-assistant apply --vault PATH ID         apply a pending changeset (your approval)
     notebook-assistant undo --vault PATH ID          revert an applied changeset
+    notebook-assistant digest --vault PATH --text FILE --origin ORIGIN
+                                                     turn a capture into a pending changeset
+    notebook-assistant eval-extract --vault PATH --captures DIR
+                                                     score the planner on fixture captures
 
 ``serve`` (the web app) arrives with the service-shell branch.
 """
@@ -25,11 +29,26 @@ from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 from notebook_assistant import __version__
+from notebook_assistant.adapters.anthropic_llm import AnthropicModel
 from notebook_assistant.adapters.fs_vault import FsVault
+from notebook_assistant.adapters.memory_vault import MemoryVault
 from notebook_assistant.app.apply import apply_changeset, undo_changeset
+from notebook_assistant.app.extract import (
+    Capture,
+    Extraction,
+    ExtractionError,
+    paths_after,
+    plan_extraction,
+)
+from notebook_assistant.app.extract_eval import EvalFormatError, parse_expected, score
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.app.rename import PlanError, plan_move
+from notebook_assistant.config import load_config
+from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.domain.invariants import check_note, is_checked
+from notebook_assistant.handbook import handbook_text, load_rules
+from notebook_assistant.ports.llm import LanguageModel, LLMError
+from notebook_assistant.ports.vault import VaultStore
 from notebook_assistant.store import changesets as cs_store
 
 
@@ -138,6 +157,85 @@ def cmd_apply(args: argparse.Namespace, *, undo: bool = False) -> int:
     return 0 if result.ok else 1
 
 
+def make_model() -> LanguageModel:
+    """The language model the commands use: the Claude API. Tests replace this function."""
+    return AnthropicModel()
+
+
+def _extract(store: VaultStore, index: VaultIndex, capture: Capture) -> Extraction:
+    return plan_extraction(
+        capture,
+        index,
+        make_model(),
+        config=load_config(store),
+        handbook=handbook_text(),
+        now=_now(),
+        created_by="user:cli",
+    )
+
+
+def cmd_digest(args: argparse.Namespace) -> int:
+    store = _vault(args)
+    source = Path(args.text)
+    capture = Capture(source.read_text(encoding="utf-8"), args.origin, source.name)
+    try:
+        result = _extract(store, VaultIndex.build(store), capture)
+    except ConfigError as exc:
+        print(f"Config.md: {exc}", file=sys.stderr)
+        return 2
+    except (LLMError, ExtractionError) as exc:
+        print(f"not planned: {exc}", file=sys.stderr)
+        return 1
+    cs = result.changeset
+    cs.machine = _machine()
+    path = cs_store.save(store, cs)
+    print(f"{cs.id} pending · {len(cs.ops)} operation(s) · record: {path}")
+    for op in cs.ops:
+        print(f"  {op.kind:<6} {op.path}  {op.label}")
+    if result.attempts > 1:
+        print(f"(the first plan was rejected and redone: {'; '.join(result.rejected[0])})")
+    print(
+        f"\nReview the split map in the record, then: notebook-assistant apply --vault ... {cs.id}"
+    )
+    return 0
+
+
+def cmd_eval_extract(args: argparse.Namespace) -> int:
+    """Plan every fixture capture on a copy of the vault and score it (nothing is written)."""
+    vault = _vault(args)
+    cases = sorted(p for p in Path(args.captures).iterdir() if (p / "expected.yaml").is_file())
+    fractions: list[float] = []
+    for case in cases:
+        try:
+            expected = parse_expected((case / "expected.yaml").read_text(encoding="utf-8"))
+        except EvalFormatError as exc:
+            print(f"{case.name}: expected.yaml: {exc}", file=sys.stderr)
+            return 2
+        text = (case / expected.capture).read_text(encoding="utf-8")
+        store = MemoryVault.copy_of(vault)
+        index = VaultIndex.build(store)
+        try:
+            result = _extract(store, index, Capture(text, expected.origin, case.name))
+        except (LLMError, ExtractionError) as exc:
+            print(f"{case.name}: no plan: {exc}")
+            fractions.append(0.0)
+            continue
+        result_score = score(
+            result.plan, result.outcomes, expected, paths_after(index, result.outcomes)
+        )
+        fractions.append(result_score.fraction)
+        total = len(result_score.passed) + len(result_score.failed)
+        print(
+            f"{case.name}: {result_score.fraction:.0%} ({len(result_score.passed)}/{total})"
+            f" · {result.attempts} attempt(s)"
+        )
+        for failure in result_score.failed:
+            print(f"  ✗ {failure}")
+    mean = sum(fractions) / len(fractions) if fractions else 0.0
+    print(f"\n{len(cases)} capture(s) · mean {mean:.0%}")
+    return 0 if fractions and all(f == 1.0 for f in fractions) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="notebook-assistant", description=__doc__.split("\n")[0])
     parser.add_argument("--version", action="version", version=__version__)
@@ -165,6 +263,18 @@ def build_parser() -> argparse.ArgumentParser:
     p = with_vault(sub.add_parser("undo", help="revert an applied changeset"))
     p.add_argument("id")
     p.set_defaults(func=lambda a: cmd_apply(a, undo=True))
+    p = with_vault(sub.add_parser("digest", help="turn a capture into a pending changeset"))
+    p.add_argument("--text", required=True, help="the capture, as a UTF-8 text file")
+    p.add_argument(
+        "--origin",
+        required=True,
+        choices=sorted(load_rules().common_enums["origin"]),
+        help="where the material came from (Handbook §4.1)",
+    )
+    p.set_defaults(func=cmd_digest)
+    p = with_vault(sub.add_parser("eval-extract", help="score the planner on fixture captures"))
+    p.add_argument("--captures", required=True, help="folder of <case>/expected.yaml")
+    p.set_defaults(func=cmd_eval_extract)
     return parser
 
 
