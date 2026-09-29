@@ -29,7 +29,7 @@ from notebook_assistant.domain import preserve
 from notebook_assistant.domain.invariants import VaultFacts, new_violations
 from notebook_assistant.domain.links import Resolver, find_links
 from notebook_assistant.domain.names import name_key
-from notebook_assistant.domain.plan_notes import ASSISTANT_PROPERTIES, Outcome
+from notebook_assistant.domain.plan_notes import DATES, Outcome
 from notebook_assistant.domain.split_plan import NoteOp, Role, SplitPlan
 
 
@@ -129,9 +129,9 @@ def _no_duplicated_principle(
 
 
 def _links_to(outcome: Outcome, target: Outcome, resolver: Resolver) -> bool:
-    text = outcome.after.render()
-    return any(resolver.resolve(link, outcome.after.path) == target.after.path
-               for link in find_links(text))  # fmt: skip
+    source = outcome.after.path
+    links = find_links(outcome.after.render())
+    return any(resolver.resolve(link, source) == target.after.path for link in links)
 
 
 def _links_both_ways(
@@ -186,10 +186,11 @@ def _corrections_cited(
 
 def _provenance(outcomes: Mapping[str, Outcome], ctx: PlanContext) -> list[str]:
     digest_type, digest_state = ctx.facts.rules.direct_capture_digest
+    managed = ctx.facts.rules.assistant_managed | set(DATES)
     problems: list[str] = []
     for outcome in outcomes.values():
         title = outcome.planned.title
-        reserved = sorted({k for k, _ in outcome.planned.properties} & ASSISTANT_PROPERTIES)
+        reserved = sorted({k for k, _ in outcome.planned.properties} & managed)
         if reserved:
             problems.append(f"{title}: sets {', '.join(reserved)}, which the assistant manages")
         if outcome.before is not None:

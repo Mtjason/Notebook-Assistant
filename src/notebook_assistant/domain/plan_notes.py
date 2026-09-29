@@ -1,14 +1,13 @@
 """Turn planned notes into the notes they produce (docs/maintenance-job.md, Extraction).
 
 - A **created** note gets the plan's properties plus the ones the assistant owns: ``id`` (Handbook
-  §4.1, §5.2), and ``created``/``updated`` set to today.
+  §4.1, §5.2), and :data:`DATES` set to today (§9.2). These win over anything the plan says.
 - A **patched** note changes only by addition, so your wording is never rewritten (Handbook §16.4
   rule 2): the plan's properties are set through ``Frontmatter.set`` (minimal diff), ``updated``
   becomes today, content goes at the end of the named ``##`` section (a new section if it's
   missing), and history lines go under ``## History`` (Handbook §9.1).
 
-:data:`ASSISTANT_PROPERTIES` are never taken from a plan; :mod:`plan_checks` rejects a plan that
-sets them.
+A plan that sets a property the assistant manages is rejected by :mod:`plan_checks`.
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ from notebook_assistant.domain.names import name_key
 from notebook_assistant.domain.note import NOTE_SUFFIX, Note
 from notebook_assistant.domain.split_plan import NoteOp, PlannedNote, SplitPlan
 
-ASSISTANT_PROPERTIES = frozenset({"id", "created", "updated", "assistant_hash"})
+DATES = ("created", "updated")  # set by the assistant when it writes a note (Handbook §9.2)
 HISTORY = "History"
 
 
@@ -80,8 +79,9 @@ def add_history(body: str, lines: tuple[str, ...], today: str) -> str:
 
 
 def created_note(planned: PlannedNote, *, today: str, note_id: str) -> Note:
-    props = {k: v for k, v in planned.properties if k not in ASSISTANT_PROPERTIES}
-    fm = Frontmatter.from_dict({**props, "id": note_id, "created": today, "updated": today})
+    fm = Frontmatter.from_dict(
+        {**dict(planned.properties), "id": note_id, **dict.fromkeys(DATES, today)}
+    )
     body = planned.body.strip("\n") + "\n"
     return Note(note_path(planned), add_history(body, planned.history, today), fm)
 
@@ -91,8 +91,7 @@ def patched_note(existing: Note, planned: PlannedNote, *, today: str, note_id: s
     note = Note.parse(existing.path, existing.render())
     fm = note.ensure_frontmatter()
     for key, value in planned.properties:
-        if key not in ASSISTANT_PROPERTIES:
-            fm.set(key, value)
+        fm.set(key, value)
     if fm.get("id") is None:
         fm.set("id", note_id)
     fm.set("updated", today)

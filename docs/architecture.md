@@ -114,13 +114,14 @@ Each package's role is below; each module's docstring is the reference for what 
 ```
 src/notebook_assistant/
 ├─ domain/     pure logic, no I/O: names, frontmatter, notes, links, rules parsed from the handbook,
-│              invariants, the nothing-lost check, changesets
-├─ app/        use cases combining domain logic with ports (index, rename, apply/undo; later
-│              extract, digest, capture, sweep, ask)
+│              invariants, the nothing-lost check, changesets, config, split plans and their checks
+├─ app/        use cases combining domain logic with ports (index, rename, apply/undo, extract and
+│              its eval; later digest, capture, sweep, ask)
 ├─ handbook.py loads docs/handbook.md, the single source of the rules
-├─ ports/      interfaces (vault; later llm, index, secrets, events)
-├─ adapters/   implementations (filesystem and in-memory vault; later Claude, SQLite, Bitwarden,
-│              email import, SSE)
+├─ config.py   loads a vault's Config.md over default_config.md (§4.1.1)
+├─ ports/      interfaces (vault, llm; later index, secrets, events)
+├─ adapters/   implementations (filesystem and in-memory vault, the Claude API and a scripted model;
+│              later SQLite, Bitwarden, email import, SSE)
 ├─ store/      vault-backed state (§4.1)
 ├─ platform/   the only OS-aware code (§5)
 ├─ jobs/       queue and the one scheduled job
@@ -380,6 +381,8 @@ Short hands-on sessions (20–30 min) right after the branch that first makes so
 | `notebook-assistant autostart install\|remove` | Registers the service with the profile's start-at-login mechanism |
 | `notebook-assistant update` | Installs the latest release wheel |
 | `notebook-assistant index rebuild` | Rebuilds the per-PC cache |
+| `notebook-assistant digest --vault <path> --text <file> --origin <origin>` | Turns a capture into a pending changeset through the extraction planner (`maintenance-job.md`, Extraction); its record shows the split map. Nothing is written to notes until `apply` |
+| `notebook-assistant eval-extract --vault <path> --captures <dir>` | Scores the planner on the fixture captures with the real model; reads the vault, writes nothing |
 
 ### 5.6 Current machines
 

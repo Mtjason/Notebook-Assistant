@@ -225,8 +225,11 @@ MUTATIONS: list[tuple[str, Callable[[dict[str, Any]], object], str]] = [
 ]
 
 
-@pytest.mark.parametrize(("change", "expected"), [(c, e) for _, c, e in MUTATIONS],
-                         ids=[name for name, _, _ in MUTATIONS])  # fmt: skip
+@pytest.mark.parametrize(
+    ("change", "expected"),
+    [(change, expected) for _, change, expected in MUTATIONS],
+    ids=[name for name, _, _ in MUTATIONS],
+)
 def test_each_check_catches_its_mistake(
     change: Callable[[dict[str, Any]], object], expected: str
 ) -> None:

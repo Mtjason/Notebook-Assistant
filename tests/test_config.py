@@ -91,3 +91,17 @@ def test_architecture_links_to_the_defaults_instead_of_copying_them() -> None:
     text = ARCHITECTURE.read_text(encoding="utf-8")
     assert "src/notebook_assistant/default_config.md" in text
     assert "preservation_similarity: 0.9" not in text
+
+
+def test_a_frontmatter_that_is_not_a_mapping_is_rejected() -> None:
+    with pytest.raises(ConfigError, match="frontmatter must be a mapping"):
+        parse_config(DEFAULT, "---\n- a list\n---\n")
+
+
+def test_a_default_missing_a_setting_is_a_packaging_error() -> None:
+    broken = DEFAULT.replace("  related_notes: 8", "  related: 8")
+    with pytest.raises(ConfigError, match=re.escape("unknown setting(s) in extraction: related")):
+        parse_config(broken)
+    missing = DEFAULT.replace("  max_tokens_per_job: 60000", "")
+    with pytest.raises(ConfigError, match="limits is missing max_tokens_per_job"):
+        parse_config(missing)

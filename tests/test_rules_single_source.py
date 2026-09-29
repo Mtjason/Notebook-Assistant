@@ -35,6 +35,7 @@ def test_parsed_rules_are_complete() -> None:
     assert rules.archive_root == "95-Archive" and rules.max_folder_depth == 3
     assert rules.inbox == "00-Inbox"
     assert rules.direct_capture_digest == ("knowledge", "review")
+    assert rules.assistant_managed == {"id", "assistant_hash"}
     for rule in rules.types.values():
         placed = rule.folders or rule.hub_of or rule.container_member
         assert placed, f"{rule.name} has no folder"
@@ -105,3 +106,9 @@ def test_no_hand_written_rule_tables_in_code() -> None:
 
 def test_handbook_text_is_the_file_the_rules_come_from() -> None:
     assert handbook_text() == TEXT
+
+
+def test_a_handbook_naming_no_assistant_managed_property_fails_loudly() -> None:
+    text = TEXT.replace("by the assistant", "by code")
+    with pytest.raises(HandbookFormatError, match=re.escape("§4.1 names no property managed")):
+        parse_handbook(text)

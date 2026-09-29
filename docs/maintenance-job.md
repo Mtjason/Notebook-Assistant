@@ -67,7 +67,7 @@ Correctly digesting a capture and **splitting it into the right notes** is a cor
 | 6 | **Verify** | Partly | Claims the capture got wrong or left incomplete are corrected **only** with a cited source (e.g. official docs), and the correction is noted in `## History`. Anything unsupported goes in a `> [!question] Unverified` box. `origin: ai-chat` stays until you verify it. |
 | 7 | **Validate** | No | Deterministic checks on the whole plan: **coverage** (every atom lands in exactly one note; the content-preservation check runs across the set of result notes, not per note), **no duplicated explanation** (a principle's text isn't repeated in the instance note), **links resolve both ways**, and invariants on every resulting note. Failing plans are discarded and retried once. |
 
-The split plan is typed data, not prose. The model proposes it; code validates and turns it into changeset operations.
+The split plan is typed data, not prose. The model proposes it; code validates and turns it into changeset operations. Where each part lives: the plan's shape and roles in `domain/split_plan.py`, the step-7 checks in `domain/plan_checks.py`, turning planned notes into notes in `domain/plan_notes.py`, and the planner in `app/extract.py` (each module's docstring is the reference). When the changeset is applied, the handbook rules are checked once more (`app/apply.py`), whatever produced it.
 
 ### Review card
 
@@ -91,7 +91,7 @@ The first pass missed the principle note: it filed everything under uv. That's e
 
 - **Fixture captures** under `tests/fixtures/captures/`, each with an expected split plan (target notes, roles, links). The uv answer is the first case.
 - **Assertions:** every atom covered, the principle note exists and is linked both ways, no explanation duplicated, existing notes patched rather than duplicated.
-- **Digestion eval set:** prompt or model changes are judged by the difference they make on the whole set, like the golden vault tests.
+- **Digestion eval set:** prompt or model changes are judged by the difference they make on the whole set, like the golden vault tests. `notebook-assistant eval-extract --vault tests/fixtures/vault --captures tests/fixtures/captures` plans every capture with the real model on an in-memory copy of the vault and scores it against `expected.yaml`; the unit tests replay a recorded answer (`plan.json`) instead, so they need no API key.
 
 ## State
 

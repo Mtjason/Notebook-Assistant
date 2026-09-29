@@ -181,3 +181,13 @@ def test_writes_carry_the_base_hash_of_the_stored_note(memory_vault: MemoryVault
 
 def test_the_recorded_plan_parses_for_every_test_here() -> None:
     assert len(parse_plan(uv_plan_json()).notes) == 4
+
+
+def test_the_assistants_own_state_is_never_shown_to_the_model(memory_vault: MemoryVault) -> None:
+    memory_vault.write_text(
+        P("99-System/Assistant/Changesets/2026-09/cs-1.md"),
+        "---\ntype: system\n---\n# Digest uv: curl install.sh source bashrc Linux\n",
+    )
+    index = VaultIndex.build(memory_vault)
+    assert "cs-1" not in catalog(index)
+    assert all(n.title != "cs-1" for n in related_notes(index, CAPTURE.text, 50))

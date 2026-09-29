@@ -6,7 +6,7 @@ from collections.abc import Iterator, Mapping
 from pathlib import PurePosixPath
 
 from notebook_assistant.domain.names import name_key
-from notebook_assistant.ports.vault import FileExistsInVaultError, VaultError
+from notebook_assistant.ports.vault import FileExistsInVaultError, VaultError, VaultStore
 
 
 class MemoryVault:
@@ -15,6 +15,11 @@ class MemoryVault:
         for path, data in (files or {}).items():
             raw = data.encode("utf-8") if isinstance(data, str) else data
             self._put(PurePosixPath(path), raw)
+
+    @classmethod
+    def copy_of(cls, store: VaultStore) -> MemoryVault:
+        """An in-memory copy of another vault, for runs that must not write to it."""
+        return cls({p.as_posix(): store.read_bytes(p) for p in store.iter_files()})
 
     def _put(self, path: PurePosixPath, data: bytes) -> None:
         self._files[name_key(path.as_posix())] = (self._spell_folders(path), data)

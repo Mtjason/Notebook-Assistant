@@ -71,6 +71,15 @@ def test_resolution_follows_obsidian() -> None:
     assert res("[[#Local]]") == src_a
 
 
+def test_a_title_ending_in_md_resolves_both_ways() -> None:
+    """[[0.MD]] is the file "0.MD" if there is one, else the note titled "0.MD" (0.MD.md)."""
+    note = P("60-Knowledge/ML/0.MD.md")
+    link = find_links("[[0.MD]]")[0]
+    assert Resolver([note]).resolve(link, P("x.md")) == note
+    plain = P("Notes/0.md")
+    assert Resolver([plain, note]).resolve(link, P("x.md")) == plain
+
+
 def test_rewrite_keeps_everything_else() -> None:
     text = "a [[Old|x]] b [[Old#H]] c [[Keep]]"
     out = rewrite_links(text, lambda lk: render_link(lk, "New") if lk.target == "Old" else None)

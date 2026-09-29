@@ -73,9 +73,9 @@ Hard requirements (a plan that breaks one is rejected):
   gives new notes from a direct capture. The body starts at `##` (no H1, §8.1).
 - Never set `id`, `created`, `updated` or `assistant_hash`; the assistant manages them.
 - `history` lines are plain text; the date is added for you.
-- A capture that fits no topic (§2.2): its note goes to the Inbox with `needs_review: true` and a
-  `handbook_gap` naming the proposed topic folder, and `topic_proposal` drafts the §2.3 row.
-  Otherwise `topic_proposal` is null.
+- A capture that fits no topic: place its note as §2.2 and §0.3 say, with `handbook_gap` naming
+  the proposed topic folder, and draft the §2.3 row in `topic_proposal`. Otherwise
+  `topic_proposal` is null.
 - Every link you write must point to a note in the catalog or one the plan creates.
 """
 
@@ -185,6 +185,11 @@ def _existing(index: VaultIndex) -> dict[str, Note]:
     return out
 
 
+def paths_after(index: VaultIndex, outcomes: dict[str, Outcome]) -> tuple[PurePosixPath, ...]:
+    """Every file once the plan is applied: the vault's, plus the notes it creates."""
+    return (*index.files, *(o.after.path for o in outcomes.values() if o.before is None))
+
+
 def evaluate(
     plan: SplitPlan,
     index: VaultIndex,
@@ -198,13 +203,12 @@ def evaluate(
     outcomes, problems = build_outcomes(plan, _existing(index), today=today, new_id=new_id)
     base = index.facts()
     counts = base.title_counts.copy()
-    created = [o.after.path for o in outcomes.values() if o.before is None]
-    counts.update(name_key(PurePosixPath(p).stem) for p in created)
+    counts.update(name_key(o.after.title) for o in outcomes.values() if o.before is None)
     ctx = PlanContext(
         capture=capture.text,
         origin=capture.origin,
         facts=VaultFacts(base.rules, counts, base.registered_tags),
-        paths=(*index.files, *created),
+        paths=paths_after(index, outcomes),
         similarity=config.checks.preservation_similarity,
     )
     return outcomes, problems + check_plan(plan, outcomes, ctx)

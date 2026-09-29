@@ -31,8 +31,9 @@ NA_REAL_VAULT="/mnt/c/Users/user/Documents/Jason's Vault" uv run pytest tests/te
 
 ## Try the core against your vault
 
-All commands below read the vault; `plan-move` only writes a *pending* changeset record under
-`99-System/Assistant/Changesets/`, and nothing else changes until you run `apply`.
+All commands below read the vault; `plan-move` and `digest` only write a *pending* changeset
+record under `99-System/Assistant/Changesets/`, and nothing else changes until you run `apply`.
+`digest` calls the Claude API: set `ANTHROPIC_API_KEY` (or run `ant auth login`) first.
 
 ```bash
 V="/mnt/c/Users/user/Documents/Jason's Vault"
@@ -40,6 +41,8 @@ uv run notebook-assistant check --vault "$V"          # every note against the h
 uv run notebook-assistant links --vault "$V"          # broken links
 uv run notebook-assistant plan-move --vault "$V" \
   "60-Knowledge/ML/Confusion matrix.md" "60-Knowledge/ML/Confusion matrix metrics.md"
+uv run notebook-assistant digest --vault "$V" \
+  --text answer.md --origin ai-chat                   # a capture → notes, as a changeset
 uv run notebook-assistant changesets --vault "$V"     # review the record in Obsidian first
 uv run notebook-assistant apply --vault "$V" cs-…     # your approval
 uv run notebook-assistant undo  --vault "$V" cs-…     # revert it

@@ -163,8 +163,11 @@ class Resolver:
 
     def _resolve_wiki(self, target: str, source: PurePosixPath) -> PurePosixPath | None:
         target = target.strip().lstrip("/")
-        # [[Python os.execv]] is a note even though ".execv" looks like an extension
-        candidates_names = [target] if target.lower().endswith(".md") else [target + ".md", target]
+        # [[Python os.execv]] is a note even though ".execv" looks like an extension, and
+        # [[Notes.md]] may be the file "Notes.md" or a note titled "Notes.md" ("Notes.md.md")
+        candidates_names = (
+            [target, target + ".md"] if target.lower().endswith(".md") else [target + ".md", target]
+        )
         for cand in candidates_names:
             if "/" in cand:
                 exact = self._by_path.get(name_key(cand))
