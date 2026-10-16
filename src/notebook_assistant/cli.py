@@ -46,6 +46,7 @@ from notebook_assistant.app.rename import PlanError, plan_move
 from notebook_assistant.config import load_config
 from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.domain.invariants import check_note, is_checked
+from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.ports.llm import LanguageModel, LLMError
 from notebook_assistant.ports.vault import VaultStore
@@ -174,6 +175,16 @@ def _extract(store: VaultStore, index: VaultIndex, capture: Capture) -> Extracti
     )
 
 
+def _save_answers(directory: str | None, name: str, answers: list[JsonObject]) -> None:
+    """Write the model's raw answers to ``<directory>/<name>.answers.json``, for diagnosis."""
+    if directory is None or not answers:
+        return
+    target = Path(directory) / f"{name}.answers.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(answers, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"model answers saved: {target}", file=sys.stderr)
+
+
 def cmd_digest(args: argparse.Namespace) -> int:
     store = _vault(args)
     source = Path(args.text)
@@ -183,9 +194,14 @@ def cmd_digest(args: argparse.Namespace) -> int:
     except ConfigError as exc:
         print(f"Config.md: {exc}", file=sys.stderr)
         return 2
-    except (LLMError, ExtractionError) as exc:
+    except ExtractionError as exc:
+        _save_answers(args.save_answers, source.stem, exc.answers)
         print(f"not planned: {exc}", file=sys.stderr)
         return 1
+    except LLMError as exc:
+        print(f"not planned: {exc}", file=sys.stderr)
+        return 1
+    _save_answers(args.save_answers, source.stem, result.answers)
     cs = result.changeset
     cs.machine = _machine()
     path = cs_store.save(store, cs)
@@ -217,9 +233,12 @@ def cmd_eval_extract(args: argparse.Namespace) -> int:
         try:
             result = _extract(store, index, Capture(text, expected.origin, case.name))
         except (LLMError, ExtractionError) as exc:
+            if isinstance(exc, ExtractionError):
+                _save_answers(args.save_answers, case.name, exc.answers)
             print(f"{case.name}: no plan: {exc}")
             fractions.append(0.0)
             continue
+        _save_answers(args.save_answers, case.name, result.answers)
         result_score = score(
             result.plan, result.outcomes, expected, paths_after(index, result.outcomes)
         )
@@ -271,9 +290,13 @@ def build_parser() -> argparse.ArgumentParser:
         choices=sorted(load_rules().common_enums["origin"]),
         help="where the material came from (Handbook §4.1)",
     )
+    p.add_argument("--save-answers", metavar="DIR", help="also save the model's raw answers")
     p.set_defaults(func=cmd_digest)
-    p = with_vault(sub.add_parser("eval-extract", help="score the planner on fixture captures"))
+    p = with_vault(
+        sub.add_parser("eval-extract", help="(experimental) score the planner on fixture captures")
+    )
     p.add_argument("--captures", required=True, help="folder of <case>/expected.yaml")
+    p.add_argument("--save-answers", metavar="DIR", help="also save the model's raw answers")
     p.set_defaults(func=cmd_eval_extract)
     return parser
 

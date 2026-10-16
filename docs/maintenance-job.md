@@ -91,7 +91,7 @@ The first pass missed the principle note: it filed everything under uv. That's e
 
 - **Fixture captures** under `tests/fixtures/captures/`, each with an expected split plan (target notes, roles, links). The uv answer is the first case.
 - **Assertions:** every atom covered, the principle note exists and is linked both ways, no explanation duplicated, existing notes patched rather than duplicated.
-- **Digestion eval set:** prompt or model changes are judged by the difference they make on the whole set, like the golden vault tests. `notebook-assistant eval-extract --vault tests/fixtures/vault --captures tests/fixtures/captures` plans every capture with the real model on an in-memory copy of the vault and scores it against `expected.yaml`; the unit tests replay a recorded answer (`plan.json`) instead, so they need no API key.
+- **Digestion eval set** (*experimental, not part of the proof of concept*; status and known limits in `app/extract_eval.py`): prompt or model changes are judged by the difference they make on the whole set, like the golden vault tests. `notebook-assistant eval-extract --vault tests/fixtures/vault --captures tests/fixtures/captures` plans every capture with the real model on an in-memory copy of the vault and scores it against `expected.yaml`; the unit tests replay a recorded answer (`plan.json`) instead, so they need no API key.
 
 ## State
 

@@ -359,6 +359,8 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 | 10 | `feat/chat` | Chat with citations and changeset cards; credential cards on the personal PC |
 | 11 | `feat/embeddings` | Optional CPU embeddings per PC |
 
+**Deferred feature (not in the proof of concept):** a two-stage check that routes uncertain classifications to you; proposal in `docs/20261017_classification_two_stage_check/design.md`.
+
 **Deferred decision (lock when the feature set is settled):** only the assistant writes to the vault; other AI tools, including Claude chats, may read it but not edit it. Until then, run `notebook-assistant check` after any edit made outside the assistant.
 
 ### 5.4.2 Test checkpoints with you
@@ -382,7 +384,7 @@ Short hands-on sessions (20–30 min) right after the branch that first makes so
 | `notebook-assistant update` | Installs the latest release wheel |
 | `notebook-assistant index rebuild` | Rebuilds the per-PC cache |
 | `notebook-assistant digest --vault <path> --text <file> --origin <origin>` | Turns a capture into a pending changeset through the extraction planner (`maintenance-job.md`, Extraction); its record shows the split map. Nothing is written to notes until `apply` |
-| `notebook-assistant eval-extract --vault <path> --captures <dir>` | Scores the planner on the fixture captures with the real model; reads the vault, writes nothing |
+| `notebook-assistant eval-extract --vault <path> --captures <dir>` | *Experimental, not part of the proof of concept* (`app/extract_eval.py`). Scores the planner on the fixture captures with the real model; reads the vault, writes nothing. Both this and `digest` take `--save-answers <dir>` to keep the model's raw answers for diagnosis |
 
 ### 5.6 Current machines
 
