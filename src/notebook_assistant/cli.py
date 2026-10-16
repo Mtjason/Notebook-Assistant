@@ -292,7 +292,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--save-answers", metavar="DIR", help="also save the model's raw answers")
     p.set_defaults(func=cmd_digest)
-    p = with_vault(sub.add_parser("eval-extract", help="score the planner on fixture captures"))
+    p = with_vault(
+        sub.add_parser("eval-extract", help="(experimental) score the planner on fixture captures")
+    )
     p.add_argument("--captures", required=True, help="folder of <case>/expected.yaml")
     p.add_argument("--save-answers", metavar="DIR", help="also save the model's raw answers")
     p.set_defaults(func=cmd_eval_extract)

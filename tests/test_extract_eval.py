@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 from typing import Any
 
@@ -15,6 +16,7 @@ from notebook_assistant.app.extract_eval import (
     ExpectedAtom,
     Score,
     parse_expected,
+    resolve_titles,
     score,
 )
 from notebook_assistant.app.index import VaultIndex
@@ -131,3 +133,47 @@ def one_atom(body: str) -> str:
 def test_malformed_expected_files_fail_loudly(text: str, message: str) -> None:
     with pytest.raises(EvalFormatError, match=re.escape(message)):
         parse_expected(text)
+
+
+def real_answer() -> dict[str, Any]:
+    """claude-sonnet-5's answer on 2026-10-17 (test checkpoint 1): sound split, different name."""
+    text = (UV_CAPTURE / "real-answer-2026-10-17.json").read_text(encoding="utf-8")
+    data: dict[str, Any] = json.loads(text)
+    return data
+
+
+def test_a_renamed_note_costs_one_item_not_everything_aimed_at_it() -> None:
+    result = scored(real_answer())
+    assert result.failed == [
+        "note curl pipe to shell install: the plan calls it 'curl pipe install pattern'",
+        "atom curl-flags (principle → curl pipe to shell install): curl pipe to shell install:"
+        " it is in 60-Knowledge/Software, not the Systems topic",
+        "atom command-rows (extracted → Bash commands)",
+        "atom path-correction (correction → SOP - Install uv (Linux), curl pipe to shell install)",
+        "atom path-correction (correction → SOP - Install uv (Linux), curl pipe to shell"
+        " install): cites a source",
+        "link curl pipe to shell install → MOC - Systems",
+    ]
+    assert round(result.fraction, 2) == 0.67
+
+
+def test_titles_resolve_exactly_then_by_role_and_operation() -> None:
+    titles = resolve_titles(parse_plan(real_answer()), EXPECTED)
+    assert titles["curl pipe to shell install"] == "curl pipe install pattern"
+    assert titles["sop - install uv (linux)"] == "SOP - Install uv (Linux)"
+    assert titles["moc - systems"] is None  # the plan doesn't touch it
+
+    expected = Expected(
+        "capture.md",
+        "ai-chat",
+        (
+            ExpectedAtom("a", Role.PRINCIPLE, ("First",), op=NoteOp.CREATE),
+            ExpectedAtom("b", Role.PRINCIPLE, ("Second",), op=NoteOp.CREATE),
+            ExpectedAtom("c", Role.FILLER, ("Third",), op=NoteOp.PATCH),
+        ),
+        (),
+    )
+    resolved = resolve_titles(parse_plan(real_answer()), expected)
+    assert resolved["first"] == "curl pipe install pattern"
+    assert resolved["second"] is None  # already claimed by "First"
+    assert resolved["third"] is None  # no patched note receives filler

@@ -6,7 +6,12 @@ note(s); its target note must also have the expected operation (create or patch)
 folder and shape, and a correction must cite a source. Expected links must exist in the resulting
 notes. ``must_not`` lines are prose for the reviewer and aren't scored.
 
-Atom ids are the plan's own names, so matching never depends on them.
+Atom ids are the plan's own names, so matching never depends on them, and a note the plan names
+differently is matched by its part in the plan (:func:`resolve_titles`); the name is one item.
+
+**Experimental, not part of the proof of concept.** Runnable by hand; its score gates nothing.
+Known limits, for the branch that revives it: an atom matches on role and target note only, not
+on its content, and the fixture set is a single capture.
 """
 
 from __future__ import annotations
@@ -124,9 +129,45 @@ def parse_expected(text: str) -> Expected:
     )
 
 
-def _matching(plan: SplitPlan, want: ExpectedAtom) -> list[Atom]:
+def resolve_titles(plan: SplitPlan, expected: Expected) -> dict[str, str | None]:
+    """Each expected note title (by ``name_key``) → the plan's note playing that part.
+
+    A plan note with the same title is that note. Otherwise it's the not-yet-claimed plan note
+    with the expected operation that receives the most atoms of the roles expected there, so a
+    different name costs one scored item instead of failing everything aimed at the note.
+    None when no plan note fits.
+    """
+    titles = _expected_titles(expected)
+    resolved: dict[str, str | None] = {}
+    claimed: set[str] = set()
+    for title in titles:
+        exact = plan.note(title)
+        if exact is not None:
+            resolved[name_key(title)] = exact.title
+            claimed.add(name_key(exact.title))
+    for title in titles:
+        key = name_key(title)
+        if key in resolved:
+            continue
+        wanted = [w for w in expected.atoms if key in {name_key(t) for t in w.notes}]
+        roles = {w.role for w in wanted}
+        ops = {w.op for w in wanted if w.op is not None}
+        best: tuple[int, str] | None = None
+        for note in plan.notes:
+            if name_key(note.title) in claimed or (ops and note.op not in ops):
+                continue
+            hits = sum(1 for a in plan.atoms_for(note.title) if a.role in roles)
+            if hits and (best is None or hits > best[0]):
+                best = (hits, note.title)
+        resolved[key] = best[1] if best else None
+        if best:
+            claimed.add(name_key(best[1]))
+    return resolved
+
+
+def _matching(plan: SplitPlan, want: ExpectedAtom, titles: Mapping[str, str | None]) -> list[Atom]:
     """The plan's atoms with the expected role, landing in exactly the expected notes."""
-    keys = {name_key(n) for n in want.notes}
+    keys = {name_key(titles.get(name_key(n)) or n) for n in want.notes}
     return [a for a in plan.atoms if a.role is want.role and {name_key(n) for n in a.notes} == keys]
 
 
@@ -155,22 +196,37 @@ def score(
 ) -> Score:
     """How much of ``expected`` the plan gets right; ``paths`` are the vault's files after it."""
     result = Score()
+    titles = resolve_titles(plan, expected)
+
+    def outcome_for(title: str) -> Outcome | None:
+        planned = titles.get(name_key(title))
+        return outcomes.get(name_key(planned)) if planned else None
+
+    for title, planned in ((t, titles[name_key(t)]) for t in _expected_titles(expected)):
+        if planned is not None and name_key(planned) != name_key(title):
+            result.check(False, f"note {title}: the plan calls it {planned!r}")
     for want in expected.atoms:
         label = f"atom {want.id} ({want.role.value} → {', '.join(want.notes)})"
-        found = _matching(plan, want)
+        found = _matching(plan, want, titles)
         result.check(bool(found), label)
         for title in want.notes:
-            problem = _target_ok(want, outcomes.get(name_key(title)))
+            problem = _target_ok(want, outcome_for(title))
             result.check(problem is None, f"{label}: {title}" + (f": {problem}" if problem else ""))
         if want.requires_citation:
             result.check(any(a.citation for a in found), f"{label}: cites a source")
     resolver = Resolver(paths)
     for source, target in expected.links:
-        outcome = outcomes.get(name_key(source))
+        outcome = outcome_for(source)
+        target_title = titles.get(name_key(target)) or target
         ok = outcome is not None and any(
             (hit := resolver.resolve(link, outcome.after.path)) is not None
-            and name_key(hit.stem) == name_key(target)
+            and name_key(hit.stem) == name_key(target_title)
             for link in find_links(outcome.after.render())
         )
         result.check(ok, f"link {source} → {target}")
     return result
+
+
+def _expected_titles(expected: Expected) -> list[str]:
+    titles = list(dict.fromkeys(t for want in expected.atoms for t in want.notes))
+    return titles + [t for link in expected.links for t in link if t not in titles]
