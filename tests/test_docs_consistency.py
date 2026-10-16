@@ -33,6 +33,7 @@ DEFAULT_TARGET = {
     "docs/architecture.md": ARCHITECTURE,
     "docs/maintenance-job.md": HANDBOOK,
     "docs/design.html": HANDBOOK,
+    "docs/20261017_classification_two_stage_check/design.md": HANDBOOK,
     "CLAUDE.md": HANDBOOK,
     "README.md": HANDBOOK,
 }
@@ -138,7 +139,8 @@ def test_design_examples_follow_the_handbook() -> None:
 
 def test_environment_variables_use_the_project_prefix() -> None:
     names = set()
-    for path in [*DOCS.glob("*"), REPO / "README.md", REPO / "CLAUDE.md"]:
+    docs = [p for p in DOCS.rglob("*") if p.is_file()]
+    for path in [*docs, REPO / "README.md", REPO / "CLAUDE.md"]:
         names |= set(re.findall(r"`([A-Z][A-Z0-9]*_[A-Z0-9_]+)=?`", _read(path)))
     for path in (REPO / "src").rglob("*.py"):
         names |= set(re.findall(r"environ(?:\.get)?\(\s*\"([A-Z0-9_]+)\"", _read(path)))
