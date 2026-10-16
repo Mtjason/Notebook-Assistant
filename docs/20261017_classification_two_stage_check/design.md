@@ -25,7 +25,7 @@ judges that for itself.
 Evidence, from the first real eval run on 2026-10-17 (`uv-install-answer` fixture, `claude-sonnet-5`):
 the model filed the general `curl … | sh` note under Software instead of Systems. Both are
 defensible from Handbook §2.3 (Systems covers the shell; tie-breaker 3 sends installing a tool to
-Software). It made the call without hesitation, and nothing flagged it for review.
+Software, or to Systems for an OS-level problem). It made the call without hesitation, and nothing flagged it for review.
 
 ## Design
 
