@@ -25,6 +25,7 @@ from notebook_assistant.domain.changeset import Changeset, Operation
 from notebook_assistant.domain.config import Config
 from notebook_assistant.domain.ids import content_hash, new_note_id
 from notebook_assistant.domain.invariants import VaultFacts
+from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.domain.names import name_key
 from notebook_assistant.domain.note import Note
 from notebook_assistant.domain.plan_checks import PlanContext, check_plan
@@ -83,9 +84,10 @@ Hard requirements (a plan that breaks one is rejected):
 class ExtractionError(Exception):
     """The model's plans kept failing the checks."""
 
-    def __init__(self, problems: list[str]) -> None:
+    def __init__(self, problems: list[str], answers: list[JsonObject]) -> None:
         super().__init__("the split plan failed its checks:\n" + "\n".join(problems))
         self.problems = problems
+        self.answers = answers  # the model's raw answers, for diagnosis
 
 
 @dataclass(frozen=True)
@@ -102,6 +104,7 @@ class Extraction:
     changeset: Changeset
     attempts: int = 1
     rejected: list[list[str]] = field(default_factory=list)  # problems of discarded plans
+    answers: list[JsonObject] = field(default_factory=list)  # the model's raw answers
 
 
 # --------------------------------------------------------------------------- the request
@@ -307,10 +310,12 @@ def plan_extraction(
     today = now.date().isoformat()
     feedback: list[str] = []
     rejected: list[list[str]] = []
+    answers: list[JsonObject] = []
     for attempt in range(1, ATTEMPTS + 1):
         request = build_request(capture, index, config=config, handbook=handbook, feedback=feedback)
+        answers.append(model.complete_json(request))
         try:
-            plan = parse_plan(model.complete_json(request))
+            plan = parse_plan(answers[-1])
         except PlanFormatError as exc:
             feedback = [f"the plan is malformed: {exc}"]
             rejected.append(feedback)
@@ -330,5 +335,5 @@ def plan_extraction(
             now=now,
             review=split_map(plan, outcomes),
         )
-        return Extraction(plan, outcomes, changeset, attempt, rejected)
-    raise ExtractionError(feedback)
+        return Extraction(plan, outcomes, changeset, attempt, rejected, answers)
+    raise ExtractionError(feedback, answers)

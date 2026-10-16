@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import shutil
 from pathlib import Path, PurePosixPath
 
@@ -113,3 +114,18 @@ def test_eval_rejects_a_malformed_expected_file(
         code == 2
         and "bad: expected.yaml: expected.yaml must be a mapping" in capsys.readouterr().err
     )
+
+
+def test_save_answers_writes_the_raw_answers_on_success_and_failure(
+    fs_vault: FsVault, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out = tmp_path / "answers"
+    use_model(monkeypatch, ScriptedModel([uv_plan_json()]))
+    assert cli.main([*digest_args(str(fs_vault.root)), "--save-answers", str(out)]) == 0
+    saved = json.loads((out / "capture.answers.json").read_text(encoding="utf-8"))
+    assert saved == [uv_plan_json()]
+
+    use_model(monkeypatch, ScriptedModel([{"atoms": []}, {"atoms": []}]))
+    assert cli.main([*eval_args(UV_CAPTURE.parent), "--save-answers", str(out)]) == 1
+    saved = json.loads((out / "uv-install-answer.answers.json").read_text(encoding="utf-8"))
+    assert saved == [{"atoms": []}, {"atoms": []}]

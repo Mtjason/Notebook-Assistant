@@ -191,3 +191,11 @@ def test_the_assistants_own_state_is_never_shown_to_the_model(memory_vault: Memo
     index = VaultIndex.build(memory_vault)
     assert "cs-1" not in catalog(index)
     assert all(n.title != "cs-1" for n in related_notes(index, CAPTURE.text, 50))
+
+
+def test_the_models_raw_answers_are_kept_for_diagnosis(memory_vault: MemoryVault) -> None:
+    result = run(memory_vault, ScriptedModel([unlinked_plan(), uv_plan_json()]))
+    assert result.answers == [unlinked_plan(), uv_plan_json()]
+    with pytest.raises(ExtractionError) as info:
+        run(memory_vault, ScriptedModel([{"atoms": []}, unlinked_plan()]))
+    assert info.value.answers == [{"atoms": []}, unlinked_plan()]
