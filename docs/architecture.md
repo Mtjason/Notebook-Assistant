@@ -359,13 +359,15 @@ fixture vault            ─────▶  1. lint + unit + contract tests    
 | 10 | `feat/chat` | Chat with citations and changeset cards; credential cards on the personal PC |
 | 11 | `feat/embeddings` | Optional CPU embeddings per PC |
 
-**Deferred feature (not in the proof of concept):** a two-stage check that routes uncertain classifications to you; proposal in `docs/20261017_classification_two_stage_check/design.md`.
+**Deferred feature (not in the proof of concept):** a two-stage check that routes uncertain classifications to you; proposal in `notes/20261017_classification_two_stage_check/design.md`.
 
 **Deferred decision (lock when the feature set is settled):** only the assistant writes to the vault; other AI tools, including Claude chats, may read it but not edit it. Until then, run `notebook-assistant check` after any edit made outside the assistant.
 
 ### 5.4.2 Test checkpoints with you
 
 Short hands-on sessions (20–30 min) right after the branch that first makes something usable, so problems surface before later branches build on them. Each pull request carries a checklist; findings go into a test-log note in `99-System/Assistant/` and are fixed in a small follow-up branch before the next feature branch.
+
+**You call them, not the branch order** (decision 2026-10-17): feature branches proceed without waiting, and you run the checkpoints once the proof of concept is done. Checkpoint 1 is deferred to then; the fixture runs made so far are recorded in pull request #10.
 
 | # | After | What you test | Where |
 |---|---|---|---|
