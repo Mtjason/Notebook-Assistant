@@ -33,7 +33,7 @@ DEFAULT_TARGET = {
     "docs/architecture.md": ARCHITECTURE,
     "docs/maintenance-job.md": HANDBOOK,
     "docs/design.html": HANDBOOK,
-    "docs/20261017_classification_two_stage_check/design.md": HANDBOOK,
+    "notes/20261017_classification_two_stage_check/design.md": HANDBOOK,
     "CLAUDE.md": HANDBOOK,
     "README.md": HANDBOOK,
 }
