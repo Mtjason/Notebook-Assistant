@@ -150,6 +150,7 @@ def test_tags() -> None:
         ("99-System/Tags.md", True),
         ("60-Knowledge/ML/x.md", True),
         ("Attachments/a.png", False),
+        ("97-Transfer/notes from laptop.md", False),
     ],
 )
 def test_checked_locations(path: str, checked: bool) -> None:
