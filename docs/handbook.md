@@ -1,11 +1,11 @@
 ---
 type: system
 title: Vault Handbook
-version: "2.13"
+version: "2.14"
 scope: personal
 status: active
 created: 2026-09-26
-updated: 2026-09-28
+updated: 2026-10-20
 aliases: [Handbook, 筆記手冊, 分類規則, Vault rules, Golden rule]
 ---
 
@@ -36,7 +36,7 @@ Every file in the vault satisfies all of these. The lint (§14) checks each one 
 | I-5 | It has **at least one outbound link**: to its MOC, project/area, or source (§7). Exceptions: `00-Inbox/`, `01-Daily/`, `90-Views/`, `98-Templates/`, `99-System/`, and code-tree files (§11). A link inside a property (e.g. `topic`) counts. |
 | I-6 | Its folder is at most **3 levels** below the vault root. Code folders inside projects are exempt (§11). |
 
-**Scope:** the invariants apply to every Markdown note except those in `00-Inbox/`, `90-Views/`, `98-Templates/`, `Attachments/` and `99-System/Assistant/`. The Inbox holds unprocessed captures, Views and Templates hold Obsidian's own files, and `99-System/Assistant/` holds the assistant's machine-managed state (changesets, sessions, snapshots, run logs).
+**Scope:** the invariants apply to every Markdown note except those in `00-Inbox/`, `90-Views/`, `97-Transfer/`, `98-Templates/`, `Attachments/` and `99-System/Assistant/`. The Inbox holds unprocessed captures, Views and Templates hold Obsidian's own files, Transfer holds files that are only passing between devices (§10), and `99-System/Assistant/` holds the assistant's machine-managed state (changesets, sessions, snapshots, run logs).
 
 A note that breaks an invariant is non-compliant. It gets fixed or flagged; it is never left silently broken.
 
@@ -88,6 +88,7 @@ If no rule decides where something goes, or the assistant's classification is un
 80-Writing/        Things you author for others: essays, story banks, drafts, posts.
 90-Views/          Bases dashboards.
 95-Archive/        Retired notes; mirrors the top-level folders.
+97-Transfer/       Files only passing between your devices through Obsidian Sync. Not vault content (§10).
 98-Templates/      Obsidian note templates only, one per type.
 99-System/         Link to the handbook, tag registry, lint reports, and the assistant's state (`Assistant/`).
 Attachments/       All embedded files (images, PDFs…). Nothing else.
@@ -407,6 +408,7 @@ A list of like items (vocabulary, commands, installed packages, quotes, SQL snip
 Delete only:
 - Zero-byte notes and empty folders.
 - Byte-identical duplicate attachments (hash-verified), after repointing their links.
+- Files in `97-Transfer/` once they've arrived (§10).
 - Notes whose entire content was merged into another note (§8.2).
 - Inbox captures judged to be noise (no information worth keeping), **with your approval**.
 - Assistant chat sessions (`99-System/Assistant/Sessions/`) older than 90 days, in one approved batch. Changesets that came from them keep the session's title and date as text.
@@ -436,6 +438,7 @@ Delete only:
 | **Attachments** (images, PDFs, docs) | Anything embedded in a note lives in `Attachments/`, flat. Rename to `<note title> - <n>.<ext>` when processed. |
 | **Project-internal files** (files referenced by code, e.g. example diagrams in a repo) | Stay inside the project's code tree (§11). They are not attachments. |
 | **Orphan attachment** (embedded by no note) | Flagged by lint; deleted only after your confirmation. |
+| **Transfer files** (anything you only want to move to another device) | Go in `97-Transfer/`, flat. They aren't vault content: no properties, no naming pattern, nothing links to them, and the assistant never processes them (§16.4). Delete them once they've arrived (§8.4). To keep one, move it to `00-Inbox/` and it's captured like any other file (§12). |
 | **Daily notes** | `01-Daily/YYYY-MM-DD.md`, type `daily`. They're a capture log: anything durable written there is **extracted** into typed notes during processing, and the daily note keeps a link to them. Daily notes are never archived or deleted. |
 
 ---
@@ -555,7 +558,7 @@ A note is processed only after **30 minutes without edits**. This means the job 
 
 1. **Lose or change information.** Restructuring may move, split, or add text, but every piece of information in the original must still exist afterwards. The job checks this automatically before proposing, and any proposal that fails the check is discarded.
 2. **Rewrite your wording** in organized notes. Only raw text it is integrating may be reformatted.
-3. **Touch notes marked `assistant: skip`**, anything in `95-Archive/`, or project code (§11). **Restructure anything in `15-Incubator/`**: there it may only add properties and links (§18.3).
+3. **Touch notes marked `assistant: skip`**, anything in `95-Archive/` or `97-Transfer/`, or project code (§11). **Restructure anything in `15-Incubator/`**: there it may only add properties and links (§18.3).
 4. **Apply a stale proposal.** If a note changes after a proposal was made for it, the proposal is discarded and regenerated on the next run.
 5. **Apply anything without approval** (§15.1).
 
@@ -814,6 +817,7 @@ When you hand a capture to the assistant directly (pasted into chat, or sent wit
 
 ## Version history
 
+- **2.14 (2026-10-20):** New folder `97-Transfer/` for files only passing between devices through Obsidian Sync: exempt from the invariants (§0.1), never processed by the assistant (§16.4), deleted once they've arrived (§8.4). Rule in §10; folder map §2.
 - **2.13 (2026-09-28):** The changelog is a Bases view over the applied changeset records (`90-Views/Changelog.base`) instead of a file the assistant appends to, so each change is recorded once (§15.9, §2, §3). The existing `99-System/Changelog.md` stays as the record of changes before 2.13; nothing is appended to it.
 - **2.12 (2026-09-28):** Pasted AI answers never get a `source` note, whatever their length; their notes keep `origin: ai-chat` and record corrections in `## History` (§12). `ai-chat` removed from the source `kind` values (§4.2), and §3.1 says what the notes of a source-less capture link to.
 - **2.11 (2026-09-28):** Merge criteria (§8.2): three gates (same subject, same scope, the target's type accepts the content), four triggers (stub, platform variants, near-duplicate, covered by a collection), when not to merge, and how a merge is carried out. Any fully merged note may be deleted, not only stubs (§8.4).
