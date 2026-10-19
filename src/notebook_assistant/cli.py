@@ -21,8 +21,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import socket
 import sys
 from collections import Counter
 from datetime import datetime
@@ -48,6 +46,7 @@ from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.domain.invariants import check_note, is_checked
 from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.handbook import handbook_text, load_rules
+from notebook_assistant.host import current_host
 from notebook_assistant.ports.llm import LanguageModel, LLMError
 from notebook_assistant.ports.vault import VaultStore
 from notebook_assistant.store import changesets as cs_store
@@ -57,8 +56,9 @@ def _now() -> datetime:
     return datetime.now().astimezone()
 
 
-def _machine() -> str:
-    return os.environ.get("NA_MACHINE") or socket.gethostname()
+def _machine(args: argparse.Namespace) -> str:
+    """This install's name, recorded on the changesets it proposes and applies (§5.3)."""
+    return current_host(args.vault).machine.name
 
 
 def _vault(args: argparse.Namespace) -> FsVault:
@@ -117,7 +117,7 @@ def cmd_plan_move(args: argparse.Namespace) -> int:
     except PlanError as exc:
         print(f"not planned: {exc}", file=sys.stderr)
         return 2
-    cs.machine = _machine()
+    cs.machine = _machine(args)
     path = cs_store.save(store, cs)
     print(f"{cs.id} pending · {len(cs.ops)} operation(s) · record: {path}")
     for op in cs.ops:
@@ -149,7 +149,7 @@ def cmd_apply(args: argparse.Namespace, *, undo: bool = False) -> int:
     result = (
         undo_changeset(store, cs, now=_now())
         if undo
-        else apply_changeset(store, cs, now=_now(), machine=_machine())
+        else apply_changeset(store, cs, now=_now(), machine=_machine(args))
     )
     cs_store.save(store, result.changeset, with_diff=False)
     print(
@@ -203,7 +203,7 @@ def cmd_digest(args: argparse.Namespace) -> int:
         return 1
     _save_answers(args.save_answers, source.stem, result.answers)
     cs = result.changeset
-    cs.machine = _machine()
+    cs.machine = _machine(args)
     path = cs_store.save(store, cs)
     print(f"{cs.id} pending · {len(cs.ops)} operation(s) · record: {path}")
     for op in cs.ops:

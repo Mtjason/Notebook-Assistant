@@ -8,6 +8,7 @@ license = { text = "Proprietary" }
 authors = [{ name = "Jason" }]
 dependencies = [
     "anthropic>=1.9.0",
+    "platformdirs>=4.13.5",
     "pyyaml>=6.0",
 ]
 
