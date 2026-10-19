@@ -26,6 +26,7 @@ from notebook_assistant.platform.profiles import Profile, ProfileError, parse_pr
 APP_NAME = "notebook-assistant"
 FILE_NAME = "config.yaml"
 SEARCH_OPTIONS = ("keyword",)  # the per-PC search backends that exist (embeddings: branch 11)
+DEFAULT_PORT = 8765
 
 
 class MachineConfigError(ValueError):
@@ -40,6 +41,7 @@ class MachineConfig:
     profile: Profile | None = None  # overrides detection (§5.1)
     bitwarden: bool = False  # features.bitwarden: whether credential cards may use `bw`
     search: str = SEARCH_OPTIONS[0]
+    port: int = DEFAULT_PORT  # `serve` listens on 127.0.0.1 at this port
 
 
 def config_dir() -> Path:
@@ -76,7 +78,9 @@ def parse_machine_config(text: str) -> MachineConfig:
         raise MachineConfigError(f"config.yaml: invalid YAML: {exc}") from exc
     if not isinstance(data, dict):
         raise MachineConfigError("config.yaml must be a mapping")
-    unknown = sorted(set(data) - {"machine_id", "name", "vault", "profile", "features", "search"})
+    unknown = sorted(
+        set(data) - {"machine_id", "name", "vault", "profile", "features", "search", "port"}
+    )
     if unknown:
         raise MachineConfigError(f"config.yaml: unknown setting(s): {', '.join(unknown)}")
     features = data.get("features") or {}
@@ -94,6 +98,9 @@ def parse_machine_config(text: str) -> MachineConfig:
         parsed_profile = parse_profile(profile) if profile else None
     except ProfileError as exc:
         raise MachineConfigError(f"config.yaml: {exc}") from None
+    port = _value(data, "port", int) or DEFAULT_PORT
+    if not 1024 <= port <= 65535:
+        raise MachineConfigError(f"config.yaml: port must be between 1024 and 65535, not {port}")
     return MachineConfig(
         machine_id=machine_id,
         name=name,
@@ -101,6 +108,7 @@ def parse_machine_config(text: str) -> MachineConfig:
         profile=parsed_profile,
         bitwarden=bool(_value(features, "bitwarden", bool, "features.")),
         search=search,
+        port=port,
     )
 
 
@@ -112,6 +120,7 @@ def render_machine_config(config: MachineConfig) -> str:
         "profile": config.profile.value if config.profile else None,
         "features": {"bitwarden": config.bitwarden},
         "search": config.search,
+        "port": config.port,
     }
     header = (
         "# This PC's notebook-assistant settings (docs/architecture.md §4.1.1). Never synced.\n"

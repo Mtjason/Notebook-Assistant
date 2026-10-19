@@ -32,7 +32,7 @@ def test_first_run_creates_the_file_with_a_new_machine_id() -> None:
 
 
 def test_round_trip_through_the_file() -> None:
-    config = MachineConfig("id-1", "work-pc", "/mnt/c/Vault", Profile.LINUX, False, "keyword")
+    config = MachineConfig("id-1", "work-pc", "/mnt/c/Vault", Profile.LINUX, False, "keyword", 9000)
     save_machine_config(config)
     text = config_path().read_text(encoding="utf-8")
     assert text.startswith("# This PC's notebook-assistant settings")
@@ -57,6 +57,8 @@ def test_default_name_is_the_hostname_and_profile() -> None:
         ("machine_id: a\nname: b\nfeatures: {bitwarden: yes}\n", "bitwarden must be bool"),
         ("machine_id: a\nname: b\nfeatures: {clipboard: true}\n", "features may hold only"),
         ("machine_id: [\n", "invalid YAML"),
+        ("machine_id: a\nname: b\nport: 80\n", "port must be between 1024 and 65535"),
+        ("machine_id: a\nname: b\nport: '8765'\n", "port must be int"),
     ],
 )
 def test_mistakes_fail_loudly(text: str, message: str) -> None:

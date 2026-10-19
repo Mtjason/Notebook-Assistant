@@ -9,6 +9,8 @@ Branch 1 ships developer commands for exercising the core library against a real
     notebook-assistant changesets --vault PATH       list changeset records
     notebook-assistant apply --vault PATH ID         apply a pending changeset (your approval)
     notebook-assistant undo --vault PATH ID          revert an applied changeset
+    notebook-assistant serve [--vault PATH] [--port N] [--profile NAME]
+                                                     run the local service and web app
     notebook-assistant doctor [--vault PATH] [--profile NAME]
                                                      check that this host can run the assistant
     notebook-assistant digest --vault PATH --text FILE --origin ORIGIN
@@ -16,7 +18,7 @@ Branch 1 ships developer commands for exercising the core library against a real
     notebook-assistant eval-extract --vault PATH --captures DIR
                                                      score the planner on fixture captures
 
-``serve`` (the web app) arrives with the service-shell branch.
+``serve`` binds to 127.0.0.1 only: the web app is for this PC alone.
 """
 
 from __future__ import annotations
@@ -28,10 +30,13 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
+import uvicorn
+
 from notebook_assistant import __version__
 from notebook_assistant.adapters.anthropic_llm import AnthropicModel
 from notebook_assistant.adapters.fs_vault import FsVault
 from notebook_assistant.adapters.memory_vault import MemoryVault
+from notebook_assistant.api.server import create_app, default_web_dir
 from notebook_assistant.app.apply import apply_changeset, undo_changeset
 from notebook_assistant.app.doctor import Status, run_checks, worst
 from notebook_assistant.app.extract import (
@@ -290,6 +295,27 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 1 if worst(checks) is Status.FAIL else 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        host = current_host(args.vault, args.profile)
+    except (MachineConfigError, ProfileError) as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 1
+    vault = args.vault or host.machine.vault
+    if vault is None:
+        print("no vault: pass --vault or set vault in config.yaml", file=sys.stderr)
+        return 2
+    folder = Path(vault).expanduser()
+    if not folder.is_dir():
+        print(f"no such vault folder: {folder}", file=sys.stderr)
+        return 2
+    port = args.port or host.machine.port
+    app = create_app(FsVault(folder), host, vault_label=str(folder), web_dir=default_web_dir())
+    print(f"notebook-assistant on http://127.0.0.1:{port} · vault {folder} · {host.profile.value}")
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="notebook-assistant", description=__doc__.split("\n")[0])
     parser.add_argument("--version", action="version", version=__version__)
@@ -317,6 +343,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = with_vault(sub.add_parser("undo", help="revert an applied changeset"))
     p.add_argument("id")
     p.set_defaults(func=lambda a: cmd_apply(a, undo=True))
+    p = sub.add_parser("serve", help="run the local service and web app (127.0.0.1 only)")
+    p.add_argument("--vault", help="the vault to serve (default: vault in config.yaml)")
+    p.add_argument("--port", type=int, help="port on 127.0.0.1 (default: port in config.yaml)")
+    p.add_argument("--profile", help="force a host profile (architecture §5.1)")
+    p.set_defaults(func=cmd_serve)
     p = sub.add_parser("doctor", help="check that this host can run the assistant")
     p.add_argument("--vault", help="the vault to check (default: vault in config.yaml)")
     p.add_argument("--profile", help="force a host profile (architecture §5.1)")

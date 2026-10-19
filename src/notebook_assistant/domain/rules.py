@@ -14,7 +14,8 @@ drifting silently. Sections read:
   §4.2: per-type required properties and vocabularies; §4.3: allowed statuses; §5: title
   patterns;
 - §13: the archive folder;
-- §19.6: the digest state of notes made from a direct capture.
+- §19.1: the digestion flow, in order; §19.6: the digest state of notes made from a direct
+  capture.
 
 Pure: takes text, returns data. Loading the file is :mod:`notebook_assistant.handbook`.
 """
@@ -66,6 +67,7 @@ class Rules:
     code_folders: frozenset[str]  # folder names that hold project code (§11)
     inbox: str  # where unprocessed or uncertain notes go (§3 row 1, §0.3)
     assistant_managed: frozenset[str]  # properties only the assistant writes (§4.1)
+    digest_flow: tuple[str, ...]  # digest states in order, the queue first (§19.1)
     direct_capture_digest: tuple[
         str, str
     ]  # (type, digest state) of notes from a direct capture (§19.6)
@@ -397,6 +399,16 @@ def _inbox(text: str) -> str:
     raise HandbookFormatError("§3 names no Inbox row (a folder without a type)")
 
 
+def _digest_flow(text: str) -> tuple[str, ...]:
+    """The ``digest`` row of the §19.1 table: `pending → approved → review → graduated`."""
+    for row in _table_rows(_section(text, "19.1")):
+        if _ticks(row[0]) == ["digest"] and len(row) > 1:
+            flow = _ticks(row[1])
+            if flow and "→" in flow[0]:
+                return tuple(s.strip() for s in flow[0].split("→"))
+    raise HandbookFormatError("§19.1 has no digest flow (`a → b → …`)")
+
+
 def _direct_capture_digest(text: str) -> tuple[str, str]:
     m = re.search(r"New (\w[\w-]*) notes from it get `digest: ([\w-]+)`", _section(text, "19.6"))
     if not m:
@@ -469,5 +481,6 @@ def parse_handbook(text: str) -> Rules:
         code_folders=_code_folders(text),
         inbox=_inbox(text),
         assistant_managed=_assistant_managed(text),
+        digest_flow=_digest_flow(text),
         direct_capture_digest=_direct_capture_digest(text),
     )
