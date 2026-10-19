@@ -127,3 +127,41 @@ def test_api_and_connection_failures_become_llm_errors() -> None:
     model, _ = model_with(anthropic.APIConnectionError(message="offline", request=request))
     with pytest.raises(LLMError, match="can't reach the Claude API"):
         model.complete_json(REQUEST)
+
+
+class ModelsClient:
+    """Just enough of ``anthropic.Anthropic`` for ``count_models``: ``models.list``."""
+
+    def __init__(self, result: list[str] | Exception) -> None:
+        self.result = result
+        self.models = self
+
+    def list(self) -> list[str]:
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
+def test_count_models_proves_reach_and_login() -> None:
+    request = httpx2.Request("GET", "https://api.anthropic.com/v1/models")
+    model = AnthropicModel(cast(anthropic.Anthropic, ModelsClient(["a", "b"])))
+    assert model.count_models() == 2
+    cases: list[tuple[Exception, str]] = [
+        (
+            anthropic.AuthenticationError(
+                "bad key", response=httpx2.Response(401, request=request), body=None
+            ),
+            "not logged in",
+        ),
+        (
+            anthropic.InternalServerError(
+                "boom", response=httpx2.Response(500, request=request), body=None
+            ),
+            "Claude API error 500",
+        ),
+        (anthropic.APIConnectionError(message="offline", request=request), "can't reach"),
+    ]
+    for error, message in cases:
+        failing = AnthropicModel(cast(anthropic.Anthropic, ModelsClient(error)))
+        with pytest.raises(LLMError, match=message):
+            failing.count_models()

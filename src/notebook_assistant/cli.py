@@ -9,6 +9,8 @@ Branch 1 ships developer commands for exercising the core library against a real
     notebook-assistant changesets --vault PATH       list changeset records
     notebook-assistant apply --vault PATH ID         apply a pending changeset (your approval)
     notebook-assistant undo --vault PATH ID          revert an applied changeset
+    notebook-assistant doctor [--vault PATH] [--profile NAME]
+                                                     check that this host can run the assistant
     notebook-assistant digest --vault PATH --text FILE --origin ORIGIN
                                                      turn a capture into a pending changeset
     notebook-assistant eval-extract --vault PATH --captures DIR
@@ -31,6 +33,7 @@ from notebook_assistant.adapters.anthropic_llm import AnthropicModel
 from notebook_assistant.adapters.fs_vault import FsVault
 from notebook_assistant.adapters.memory_vault import MemoryVault
 from notebook_assistant.app.apply import apply_changeset, undo_changeset
+from notebook_assistant.app.doctor import Status, run_checks, worst
 from notebook_assistant.app.extract import (
     Capture,
     Extraction,
@@ -47,6 +50,8 @@ from notebook_assistant.domain.invariants import check_note, is_checked
 from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import current_host
+from notebook_assistant.machine import MachineConfigError
+from notebook_assistant.platform.profiles import ProfileError
 from notebook_assistant.ports.llm import LanguageModel, LLMError
 from notebook_assistant.ports.vault import VaultStore
 from notebook_assistant.store import changesets as cs_store
@@ -255,6 +260,36 @@ def cmd_eval_extract(args: argparse.Namespace) -> int:
     return 0 if fractions and all(f == 1.0 for f in fractions) else 1
 
 
+def count_models() -> int:
+    """How many models the Claude API offers these credentials. Tests replace this function."""
+    return AnthropicModel().count_models()
+
+
+_MARKS = {Status.OK: "✓", Status.WARN: "!", Status.FAIL: "✗"}
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    try:
+        host = current_host(args.vault, args.profile)
+    except (MachineConfigError, ProfileError) as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 1
+    vault = args.vault or host.machine.vault
+    store = (
+        FsVault(Path(vault).expanduser()) if vault and Path(vault).expanduser().is_dir() else None
+    )
+    checks = run_checks(
+        host,
+        store,
+        vault,
+        load_config=lambda: load_config(store) if store is not None else None,
+        count_models=count_models,
+    )
+    for check in checks:
+        print(f"{_MARKS[check.status]} {check.name:<11} {check.detail}")
+    return 1 if worst(checks) is Status.FAIL else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="notebook-assistant", description=__doc__.split("\n")[0])
     parser.add_argument("--version", action="version", version=__version__)
@@ -282,6 +317,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = with_vault(sub.add_parser("undo", help="revert an applied changeset"))
     p.add_argument("id")
     p.set_defaults(func=lambda a: cmd_apply(a, undo=True))
+    p = sub.add_parser("doctor", help="check that this host can run the assistant")
+    p.add_argument("--vault", help="the vault to check (default: vault in config.yaml)")
+    p.add_argument("--profile", help="force a host profile (architecture §5.1)")
+    p.set_defaults(func=cmd_doctor)
     p = with_vault(sub.add_parser("digest", help="turn a capture into a pending changeset"))
     p.add_argument("--text", required=True, help="the capture, as a UTF-8 text file")
     p.add_argument(
