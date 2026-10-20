@@ -1,0 +1,28 @@
+name: Release
+
+# A tag v0.x.y on main builds the wheel (web app inside) and attaches it to a GitHub Release;
+# each PC installs it with `uv tool install <wheel URL>` (architecture §5.4).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: frontend
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build --wheel -o dist
+      - run: gh release create "$GITHUB_REF_NAME" dist/*.whl --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

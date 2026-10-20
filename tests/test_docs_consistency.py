@@ -44,7 +44,7 @@ NAMED_HANDBOOK = re.compile(r"(handbook(\.md)?|Handbook)\W*$")
 CONNECTOR = re.compile(r"^[\s,;]*(\([^()]{0,40}\))?[\s,;)]*(and|or|to)?[\s,;(]*$")
 REF = re.compile(r"§(\d+(?:\.\d+)*)")
 HEADING = re.compile(r"^#{2,4} (\d+(?:\.\d+)*)\.?\s", re.M)
-EXTERNAL_ENV = {"ANTHROPIC_API_KEY", "PYTHONUTF8"}
+EXTERNAL_ENV = {"ANTHROPIC_API_KEY", "PYTHONUTF8", "WSL_DISTRO_NAME"}  # set by others, not ours
 
 
 def _read(path: Path) -> str:

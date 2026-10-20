@@ -23,6 +23,21 @@ uv run ruff check src tests && uv run ruff format --check src tests
 uv run mypy                      # strict type checking
 ```
 
+The web app lives in `frontend/` (Node 22). Its build lands in the Python package, so `serve`
+shows it, and the release wheel ships it:
+
+```bash
+cd frontend && npm ci            # once
+npm run lint && npm run typecheck && npm test
+npm run build                    # → src/notebook_assistant/web/
+npm run dev                      # hot reload; /api goes to `notebook-assistant serve` (NA_PORT, default 8765)
+```
+
+```bash
+uv run notebook-assistant doctor --vault <vault>   # can this PC run the assistant?
+uv run notebook-assistant serve  --vault <vault>   # the web app on http://127.0.0.1:8765
+```
+
 Golden tests against your real vault are **local only and read-only**:
 
 ```bash

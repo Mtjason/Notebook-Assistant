@@ -11,6 +11,8 @@ Branch 1 ships developer commands for exercising the core library against a real
     notebook-assistant undo --vault PATH ID          revert an applied changeset
     notebook-assistant serve [--vault PATH] [--port N] [--profile NAME]
                                                      run the local service and web app
+    notebook-assistant autostart install|remove [--vault PATH] [--profile NAME]
+                                                     start the service at login, or stop that
     notebook-assistant doctor [--vault PATH] [--profile NAME]
                                                      check that this host can run the assistant
     notebook-assistant digest --vault PATH --text FILE --origin ORIGIN
@@ -25,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from collections import Counter
 from datetime import datetime
@@ -56,6 +59,7 @@ from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import current_host
 from notebook_assistant.machine import MachineConfigError
+from notebook_assistant.platform import autostart
 from notebook_assistant.platform.profiles import ProfileError
 from notebook_assistant.ports.llm import LanguageModel, LLMError
 from notebook_assistant.ports.vault import VaultStore
@@ -316,6 +320,33 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_autostart(args: argparse.Namespace) -> int:
+    try:
+        host = current_host(args.vault, args.profile)
+    except (MachineConfigError, ProfileError) as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 1
+    vault = args.vault or host.machine.vault
+    if args.action == "install" and vault is None:
+        print("no vault: pass --vault or set vault in config.yaml", file=sys.stderr)
+        return 2
+    argv = [sys.executable, "-m", "notebook_assistant", "serve"]
+    if args.vault:
+        argv += ["--vault", str(Path(args.vault).expanduser().resolve())]
+    try:
+        entry = autostart.plan(host.profile, argv, home=Path.home(), distro=autostart.wsl_distro())
+        autostart.apply(entry, install=args.action == "install")
+    except autostart.AutostartError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 1
+    except (OSError, subprocess.CalledProcessError) as exc:
+        print(f"✗ {args.action} failed: {exc}", file=sys.stderr)
+        return 1
+    done = "starts at login" if args.action == "install" else "no longer starts at login"
+    print(f"notebook-assistant {done} ({host.profile.value})")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="notebook-assistant", description=__doc__.split("\n")[0])
     parser.add_argument("--version", action="version", version=__version__)
@@ -348,6 +379,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--port", type=int, help="port on 127.0.0.1 (default: port in config.yaml)")
     p.add_argument("--profile", help="force a host profile (architecture §5.1)")
     p.set_defaults(func=cmd_serve)
+    p = sub.add_parser("autostart", help="start the service at login, or stop that")
+    p.add_argument("action", choices=["install", "remove"])
+    p.add_argument("--vault", help="the vault to serve (default: vault in config.yaml)")
+    p.add_argument("--profile", help="force a host profile (architecture §5.1)")
+    p.set_defaults(func=cmd_autostart)
     p = sub.add_parser("doctor", help="check that this host can run the assistant")
     p.add_argument("--vault", help="the vault to check (default: vault in config.yaml)")
     p.add_argument("--profile", help="force a host profile (architecture §5.1)")

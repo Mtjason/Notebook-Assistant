@@ -70,6 +70,8 @@ Drawn in `docs/design.html` (UI schematic): the app shell, every screen, and the
 - **Mermaid** diagrams.
 - **HTML output** (charts, reports the agent generates) in a sandboxed iframe.
 
+Built so far (`frontend/src/MarkdownView.tsx`): wikilinks and embeds, callouts, tables, task lists and math. Shiki, Mermaid and HTML frames come with the screens that first show such content.
+
 ### 2.4 Stack
 
 - **React + TypeScript**, built with **Vite** (a fast bundler).
@@ -209,7 +211,7 @@ Models, limits, thresholds and toggles are read from this note at startup and wh
 **Settings and defaults:** [`src/notebook_assistant/default_config.md`](../src/notebook_assistant/default_config.md) is the default `Config.md`: it lists every setting with a comment and its default value, and it is the only place those values are written. The settings' names and types are the dataclasses in `domain/config.py`. A vault's `Config.md` needs only the keys it changes; the rest keep their defaults. An unknown section or key, a value of the wrong type, or a number out of range stops loading with an error naming the key.
 
 **Not in `Config.md`:**
-- **Per-machine settings** (vault path, profile, `machine_id` (§5.3), `features.bitwarden`, search option) live in `config.yaml` in the OS config directory, via `platformdirs`: `%APPDATA%\notebook-assistant\` on Windows, `~/.config/notebook-assistant/` on Linux and WSL, `~/Library/Application Support/notebook-assistant/` on macOS.
+- **Per-machine settings** (vault path, profile, `machine_id` (§5.3), `features.bitwarden`, search option) live in `config.yaml` in the OS config directory, via `platformdirs`: `%APPDATA%\notebook-assistant\` on Windows, `~/.config/notebook-assistant/` on Linux and WSL, `~/Library/Application Support/notebook-assistant/` on macOS (`NA_CONFIG_DIR` moves it). It's created on first run; its settings and their meaning are in `src/notebook_assistant/machine.py`: `machine_id`, `name`, `vault`, `profile`, `features.bitwarden`, `search` and `port`.
 - **Anything the handbook decides** (e.g. manual-only sweeps and settle time, Handbook §16; session retention, Handbook §8.4; which email formats are captured, Handbook §12) is a rule, not configuration, and is not repeated here. Rules are the same for every vault: the handbook ships inside the release (`handbook.py`), no vault can override it, and a rule changes only through a handbook pull request (Handbook §15). `Config.md` holds only what a vault's owner may tune.
 
 **Sessions** (one file per conversation):
@@ -380,9 +382,9 @@ Short hands-on sessions (20–30 min) right after the branch that first makes so
 
 | Command | Does |
 |---|---|
-| `notebook-assistant serve --vault <path>` | Starts the service and web UI on `127.0.0.1:<port>` (local-only) |
-| `notebook-assistant doctor` | Checks the host: the detected profile, a write test in the vault, the encoding, the file-watch mode, `bw` status, whether `api.anthropic.com` is reachable, and a benchmark of the chosen search option |
-| `notebook-assistant autostart install\|remove` | Registers the service with the profile's start-at-login mechanism |
+| `notebook-assistant serve [--vault <path>] [--port <n>] [--profile <name>]` | Starts the service and web UI on `127.0.0.1:<port>` (local-only). The vault and port default to `config.yaml` (§4.1.1) |
+| `notebook-assistant doctor [--vault <path>] [--profile <name>]` | Checks the host: the detected profile and file-watch mode, the encoding, a write test in the vault, `Config.md`, `bw` status, and whether the Claude API is reachable with working credentials (listing models, which is free). The search option is reported; its benchmark arrives with the search index (branch 9). Exits 1 on any failure |
+| `notebook-assistant autostart install\|remove [--vault <path>]` | Registers the service with the profile's start-at-login mechanism (§5.1), or removes it; the entries are in `platform/autostart.py` |
 | `notebook-assistant update` | Installs the latest release wheel |
 | `notebook-assistant index rebuild` | Rebuilds the per-PC cache |
 | `notebook-assistant digest --vault <path> --text <file> --origin <origin>` | Turns a capture into a pending changeset through the extraction planner (`maintenance-job.md`, Extraction); its record shows the split map. Nothing is written to notes until `apply` |

@@ -45,10 +45,10 @@ NOT_BUILT = (
 
 
 def default_web_dir() -> Path | None:
-    """The built web app: bundled in the release wheel, else ``frontend/dist`` of a checkout."""
-    bundled = Path(str(resources.files("notebook_assistant") / "web"))
-    checkout = Path(__file__).resolve().parents[3] / "frontend" / "dist"
-    return next((d for d in (bundled, checkout) if (d / "index.html").is_file()), None)
+    """The built web app inside the package (``npm run build`` in ``frontend/`` puts it there,
+    and the release wheel ships it); None when it isn't built."""
+    web = Path(str(resources.files("notebook_assistant") / "web"))
+    return web if (web / "index.html").is_file() else None
 
 
 @dataclass(frozen=True)

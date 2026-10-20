@@ -8,7 +8,8 @@ const servicePort = process.env.NA_PORT ?? "8765";
 export default defineConfig({
   plugins: [react()],
   server: { proxy: { "/api": `http://127.0.0.1:${servicePort}` } },
-  // KaTeX and its fonts make one large chunk; the app is served from this PC, so size is fine.
-  build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 2000 },
+  // The build goes inside the Python package, so a checkout, an editable install and the
+  // release wheel all serve it from one place. KaTeX makes one large chunk; it's served locally.
+  build: { outDir: "../src/notebook_assistant/web", emptyOutDir: true, chunkSizeWarningLimit: 2000 },
   test: { environment: "jsdom", globals: true },
 });
