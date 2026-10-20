@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api, type ServiceStatus } from "./api";
 import { ContextPanel } from "./ContextPanel";
 import { DigestScreen } from "./DigestScreen";
+import { InboxScreen } from "./InboxScreen";
 import { resolveLink } from "./notes";
 import { ReviewScreen } from "./ReviewScreen";
 import { SCREENS, type Screen, type ScreenId } from "./screens";
@@ -50,6 +51,7 @@ export function App() {
   useEvents();
   const [screen, setScreen] = useState<ScreenId>("chat");
   const [selected, setSelected] = useState<string | null>(null);
+  const [focus, setFocus] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const status = useQuery({ queryKey: ["status"], queryFn: api.status });
   const counts = useQuery({ queryKey: ["counts"], queryFn: api.counts, refetchInterval: 60_000 });
@@ -104,7 +106,14 @@ export function App() {
         ) : screen === "settings" ? (
           <SettingsScreen status={status.data} />
         ) : screen === "review" ? (
-          <ReviewScreen onOpenLink={openLink} />
+          <ReviewScreen key={focus ?? "list"} onOpenLink={openLink} focus={focus} />
+        ) : screen === "inbox" ? (
+          <InboxScreen
+            onOpenReview={(id) => {
+              setFocus(id);
+              setScreen("review");
+            }}
+          />
         ) : screen === "digest" ? (
           <DigestScreen onOpenLink={openLink} />
         ) : (

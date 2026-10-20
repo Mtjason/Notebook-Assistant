@@ -54,12 +54,20 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-function renderReview() {
+function renderReview(focus: string | null = null) {
   const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={queries}><ReviewScreen onOpenLink={() => undefined} /></QueryClientProvider>);
+  return render(<QueryClientProvider client={queries}><ReviewScreen onOpenLink={() => undefined} focus={focus} /></QueryClientProvider>);
 }
 
 describe("ReviewScreen", () => {
+  it("opens the changeset it is focused on, e.g. one the Inbox proposed", async () => {
+    renderReview("cs-9");
+    await screen.findByRole("heading", { name: "Digest uv answer" });
+    const fetched = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(fetched).toContain("/api/changesets/cs-9");
+    expect(fetched).not.toContain("/api/changesets/cs-1");
+  });
+
   it("shows the changeset, its checks and the first operation's diff", async () => {
     renderReview();
     expect(await screen.findByRole("heading", { name: "Digest uv answer" })).toBeTruthy();

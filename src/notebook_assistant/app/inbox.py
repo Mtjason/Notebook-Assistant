@@ -46,12 +46,21 @@ class InboxItem:
     origin: str
     captured: str | None
     preview: str
-    files: int  # files it embeds
+    files: list[str]  # vault paths of the files it embeds, in order
     gap: str | None  # `handbook_gap`, for a note waiting on the handbook (§0.3)
 
 
 def _in_inbox(note: Note, rules: Rules) -> bool:
     return note.path.parts[0] == rules.inbox and is_note_path(note.path)
+
+
+def embedded_files(index: VaultIndex, note: Note) -> list[str]:
+    found: list[str] = []
+    for link in find_links(note.body):
+        target = index.resolver.resolve(link, note.path) if link.embed else None
+        if target is not None and target.as_posix() not in found:
+            found.append(target.as_posix())
+    return found
 
 
 def kind_of(index: VaultIndex, note: Note) -> str:
@@ -86,7 +95,7 @@ def inbox_items(store: VaultStore, rules: Rules) -> list[InboxItem]:
                 origin=str(note.prop(capture.ORIGIN) or rules.default_origin),
                 captured=str(captured) if captured else None,
                 preview=text[:PREVIEW],
-                files=sum(1 for link in find_links(note.body) if link.embed),
+                files=embedded_files(index, note),
                 gap=str(gap) if gap else None,
             )
         )

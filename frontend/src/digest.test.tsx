@@ -46,7 +46,7 @@ function renderDigest() {
 }
 
 const job = (steps: string[], jobState: JobView["state"], message = ""): JobView => ({
-  id: "job-1", kind: "digest", ref: STUB, state: jobState, steps, message,
+  id: "job-1", kind: "digest", ref: STUB, state: jobState, steps, message, changeset: null,
 });
 
 describe("DigestScreen", () => {
