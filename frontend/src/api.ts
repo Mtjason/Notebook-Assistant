@@ -151,6 +151,33 @@ export interface MaintenanceReport {
   changesets: string[];
 }
 
+export interface TaskRow {
+  path: string;
+  title: string;
+  kind: string;
+  status: string;
+  priority: string | null;
+  due: string | null;
+  topic: string | null;
+  waiting_on: string | null;
+  produced: string[];
+  updated: string | null;
+}
+
+export interface TasksView {
+  views: { name: string; groups: { label: string; tasks: TaskRow[] }[] }[];
+  statuses: string[];
+}
+
+export interface IdeaCard {
+  path: string;
+  title: string;
+  status: string;
+  question: string | null;
+  next_step: string | null;
+  updated: string | null;
+}
+
 export interface CaptureView {
   paths: string[];
   changeset: string;
@@ -223,6 +250,12 @@ export const api = {
     return post<CaptureView>("/api/capture", form);
   },
   processInbox: (path: string) => post<JobView>(`/api/inbox/process/${pathUrl(path)}`),
+  tasks: () => get<TasksView>("/api/views/tasks"),
+  incubator: () => get<{ columns: Record<string, IdeaCard[]> }>("/api/views/incubator"),
+  setStatus: (path: string, status: string, produced: string[] | null = null) =>
+    post<{ changeset: string }>(`/api/status/${pathUrl(path)}`, { status, produced }),
+  promote: (path: string, title: string) =>
+    post<{ changeset: string }>(`/api/ideas/promote/${pathUrl(path)}`, { title }),
   sweepReports: () => get<Record<string, MaintenanceReport>>("/api/sweep"),
   runSweep: (kind: string) => post<JobView>("/api/sweep/run", { kind }),
 };

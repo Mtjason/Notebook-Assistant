@@ -10,6 +10,8 @@
   arrive as ``job`` events; graduate, send back, graduate as-is); ``/api/jobs/{id}``;
 - ``/api/inbox`` and ``POST /api/capture``: the Inbox screen (what waits there; save a capture;
   processing one runs as a job that proposes a changeset for Review);
+- ``/api/views/tasks``, ``/api/views/incubator``, ``/api/status/{path}``,
+  ``/api/ideas/promote/{path}``: the Tasks and Incubator screens;
 - ``/api/sweep``: the maintenance buttons (Sweep changes, Lint, Deep pass, Archive check) run as
   jobs; each one's last report;
 - ``GET /api/files/{path}``: a note's images, for the screens that show them;
@@ -42,7 +44,7 @@ from notebook_assistant.adapters.email_files import read_email
 from notebook_assistant.adapters.overlay_vault import OverlayVault
 from notebook_assistant.api.events import Event, EventBus
 from notebook_assistant.api.jobs import Job, JobBusyError, JobResult, JobRunner, Progress
-from notebook_assistant.app import clicks, images, inbox, maintenance, review
+from notebook_assistant.app import clicks, images, inbox, maintenance, review, views
 from notebook_assistant.app import digest as buttons
 from notebook_assistant.app.browse import (
     Counts,
@@ -94,6 +96,22 @@ class ApplyRequest:
 @dataclass(frozen=True)
 class MoveRequest:
     note: str | None = None  # the planned note to move the atom to; None drops it
+
+
+@dataclass(frozen=True)
+class StatusRequest:
+    status: str
+    produced: list[str] | None = None  # titles, for a question or learn task marked done
+
+
+@dataclass(frozen=True)
+class PromoteRequest:
+    title: str  # the new project's title
+
+
+@dataclass(frozen=True)
+class ChangesetRef:
+    changeset: str
 
 
 @dataclass(frozen=True)
@@ -435,6 +453,41 @@ def create_app(
             return job_view(jobs.start("process", note.path.as_posix(), work))
         except JobBusyError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.get("/api/views/tasks")
+    def tasks_view() -> views.TasksView:
+        return views.tasks_view(store, load_rules(), clock().date())
+
+    @app.get("/api/views/incubator")
+    def incubator_view() -> views.IncubatorView:
+        return views.incubator_view(store, load_rules())
+
+    @app.post("/api/status/{ref:path}", dependencies=writes)
+    def set_status(ref: str, request: StatusRequest) -> ChangesetRef:
+        try:
+            cs_id = views.set_status(
+                store,
+                ref,
+                request.status,
+                rules=load_rules(),
+                click=click(),
+                produced=request.produced,
+            )
+        except views.ViewError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        changed()
+        return ChangesetRef(cs_id)
+
+    @app.post("/api/ideas/promote/{ref:path}", dependencies=writes)
+    def promote(ref: str, request: PromoteRequest) -> ChangesetRef:
+        try:
+            cs_id = views.promote(
+                store, ref, request.title.strip(), rules=load_rules(), now=clock()
+            )
+        except views.ViewError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        changed()
+        return ChangesetRef(cs_id)
 
     reports: dict[str, maintenance.Report] = {}
 

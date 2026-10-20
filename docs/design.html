@@ -525,13 +525,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
       </div>
       <div class="spec">
         <h3>Incubator</h3>
-        <p>Ideas without a roadmap yet, as a board by stage (Handbook §18). Dragging a card or clicking Promote proposes the property change; Promote also proposes a new project note in 20-Projects.</p>
+        <p>Ideas without a roadmap yet, as a board by stage (Handbook §18.4), oldest first. A card's buttons move it along its lifecycle; that one-note status change is applied on the click. <b>Promote</b> asks for the project's title (titles are unique, §5) and proposes the new project hub in 20-Projects together with the idea's <code>promoted_to</code>, as a changeset opened on Review.</p>
         <h4>Components</h4>
-        <ul><li>Board with stage columns</li><li>IdeaCard, IdeaPreview</li></ul>
+        <ul><li>Board with a column per status (exploring, shaping, promoted, parked, dropped)</li><li>IdeaCard: question, next step, moves, Promote with the project's title</li></ul>
         <h4>Calls</h4>
         <ul class="api">
           <li><span class="m">GET</span>/api/views/incubator</li>
-          <li><span class="m">POST</span>/api/changesets {intent: promote | park | drop}</li>
+          <li><span class="m">POST</span>/api/status/{path} {status}</li>
+          <li><span class="m">POST</span>/api/ideas/promote/{path} {title} → changeset</li>
         </ul>
       </div>
     </div>
@@ -539,20 +540,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
     <!-- Tasks -->
     <div class="scr" id="scr-tasks" role="tabpanel" aria-labelledby="t-tasks">
       <div class="wf" role="img" aria-label="Tasks screen wireframe">
-        <div class="row"><span class="b p">All</span><span class="b">action</span><span class="b">question</span><span class="b">learn</span><span class="b">priority ▾</span><span class="b">topic ▾</span><span class="b">due ▾</span></div>
-        <div class="r"><span class="t">Due this week</span>☐ Ask Amy about recipe access · p1 · 10-02<br>☐ Why can't a LazyFrame use .dt？ · question</div>
-        <div class="r"><span class="t">To learn</span>☐ Learn Kedro hooks · Software<br>☐ Learn terminal setup from agentic workflow video · Systems</div>
-        <div class="r acc"><span class="t">Inline confirm</span>Mark done: status todo → done <span class="b p">Apply</span><span class="b">Cancel</span></div>
+        <div class="row"><span class="b p">Today 2</span><span class="b">Next 5</span><span class="b">Waiting 1</span><span class="b">Learning queue 3</span><span class="b">Recently learned</span><span class="b">Someday</span></div>
+        <div class="row"><span class="b p">all</span><span class="b">action</span><span class="b">question</span><span class="b">learn</span></div>
+        <div class="r"><span class="t">Overdue</span>☐ Ask Amy about recipe access · action · p1 · due 2026-10-02</div>
+        <div class="r"><span class="t">Doing</span>☐ Why can't a LazyFrame use .dt？ · question · p2</div>
+        <div class="r acc"><span class="t">Inline confirm</span>Why can't a LazyFrame use .dt？: status doing → done · produced [[Polars LazyFrame dt error]] <span class="b p">Apply</span><span class="b">Cancel</span></div>
       </div>
       <div class="spec">
         <h3>Tasks</h3>
-        <p>To-dos, open questions and things to learn, grouped and filtered (Handbook §17). Ticking a task is still a change, so it shows a one-line inline confirm instead of a full review.</p>
+        <p>To-dos, open questions and things to learn in the Handbook §17.5 views (Today, Next, Waiting, Learning queue, Recently learned, Someday), filtered by kind. Ticking a task is still a change, so it shows a one-line inline confirm instead of a full review; a question or learn task marked done asks for the knowledge note it produced (§17.1).</p>
         <h4>Components</h4>
-        <ul><li>TaskFilters, TaskGroup, TaskRow</li><li>InlineConfirm (single-operation changeset)</li></ul>
+        <ul><li>ViewTabs, KindFilter, TaskGroup, TaskRow</li><li>InlineConfirm (single-operation changeset, applied on Apply)</li></ul>
         <h4>Calls</h4>
         <ul class="api">
-          <li><span class="m">GET</span>/api/views/tasks?kind=&amp;topic=</li>
-          <li><span class="m">POST</span>/api/changesets {ops:[set status]} → apply</li>
+          <li><span class="m">GET</span>/api/views/tasks → views, statuses</li>
+          <li><span class="m">POST</span>/api/status/{path} {status, produced}</li>
         </ul>
       </div>
     </div>

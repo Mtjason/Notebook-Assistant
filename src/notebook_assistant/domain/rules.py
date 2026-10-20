@@ -14,7 +14,8 @@ drifting silently. Sections read:
   §4.2: per-type required properties and vocabularies; §4.3: allowed statuses; §5: title
   patterns;
 - §2: the attachments folder; §12: which captures keep a ``source`` note, and the email formats;
-- §13: the archive folder and archive ages; §8.4, §16.2, §17.6, §18.4: the review time limits;
+- §13: the archive folder and archive ages; §8.4, §14, §16.2, §17.6, §18.4: the review time
+  limits and the lint report; §17.5: the task views;
 - §19.1: the digestion flow, in order, and the digest reasons; §19.2, §19.3, §19.5: what
   graduating sets, how a learn task closes, the Original capture and Unverified boxes;
 - §19.6: the digest state of notes made from a direct capture.
@@ -46,6 +47,7 @@ class TypeRule:
     one_of: tuple[tuple[str, ...], ...] = ()  # groups where at least one key is required
     enums: dict[str, frozenset[str]] = field(default_factory=dict)
     statuses: frozenset[str] = frozenset()
+    lifecycle: tuple[str, ...] = ()  # the same statuses in the §4.3 order
     title_pattern: re.Pattern[str] | None = None
     hub_of: str | None = None  # container root this type is the hub of, e.g. "20-Projects"
     container_member: bool = False  # may live inside any container (Handbook §2.1)
@@ -96,6 +98,14 @@ class ReviewRules:
 
 
 @dataclass(frozen=True)
+class TaskViews:
+    """The task views (Handbook §17.5), in the handbook's order."""
+
+    names: tuple[str, ...]
+    recent_days: int  # "Recently learned" looks back this far
+
+
+@dataclass(frozen=True)
 class Rules:
     version: str
     common_required: tuple[str, ...]
@@ -121,6 +131,7 @@ class Rules:
     ]  # (type, digest state) of notes from a direct capture (§19.6)
     capture: CaptureRules  # §12, §2
     review: ReviewRules  # §8.4, §13, §16.2, §17.6, §18.4
+    task_views: TaskViews  # §17.5
 
     @property
     def container_roots(self) -> frozenset[str]:
@@ -411,16 +422,17 @@ def _per_type(text: str) -> dict[str, dict[str, object]]:
     return out
 
 
-def _statuses(text: str) -> dict[str, frozenset[str]]:
-    out: dict[str, frozenset[str]] = {}
+def _statuses(text: str) -> dict[str, tuple[str, ...]]:
+    """Each type's statuses in the order §4.3 lists them (its lifecycle)."""
+    out: dict[str, tuple[str, ...]] = {}
     for row in _table_rows(_section(text, "4.3")):
         if len(row) < 2:
             continue
-        values = {w for tick in _ticks(row[1]) for w in re.findall(r"[a-z][\w-]*", tick)}
+        values = [w for tick in _ticks(row[1]) for w in re.findall(r"[a-z][\w-]*", tick)]
         if "archived" in row[1]:
-            values.add("archived")
+            values.append("archived")
         for name in _ticks(row[0]):
-            out[name] = frozenset(values)
+            out[name] = tuple(dict.fromkeys(values))
     return out
 
 
@@ -546,6 +558,14 @@ def _review(text: str) -> ReviewRules:
     )
 
 
+def _task_views(text: str) -> TaskViews:
+    block = _section(text, "17.5")
+    names = tuple(m for row in _table_rows(block) for m in re.findall(r"\*\*(.+?)\*\*", row[0]))
+    if not names:
+        raise HandbookFormatError("§17.5 names no task views (**View**)")
+    return TaskViews(names, _number(block, r"done in the last (\d+) days", "§17.5"))
+
+
 def _lint_report(text: str) -> str:
     m = re.search(r"`([^`]*YYYY-MM\.md)`", _section(text, "14"))
     if not m:
@@ -594,7 +614,8 @@ def parse_handbook(text: str) -> Rules:
             required=tuple(required),
             one_of=tuple(one_of),
             enums=dict(enums),
-            statuses=statuses[name],
+            statuses=frozenset(statuses[name]),
+            lifecycle=statuses[name],
             title_pattern=patterns.get(name),
             hub_of=containers.get(name),
             container_member=name in members,
@@ -624,4 +645,5 @@ def parse_handbook(text: str) -> Rules:
         direct_capture_digest=_direct_capture_digest(text),
         capture=_capture(text),
         review=_review(text),
+        task_views=_task_views(text),
     )

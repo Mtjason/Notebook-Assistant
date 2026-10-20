@@ -13,11 +13,11 @@ from notebook_assistant.app.archive_check import (
     age_in_days,
     archive_candidates,
     archive_changeset,
-    live_statuses,
     review_items,
 )
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.domain.note import Note
+from notebook_assistant.domain.tasks import live_statuses
 from notebook_assistant.handbook import load_rules
 
 P = PurePosixPath
