@@ -38,6 +38,19 @@ def test_parsed_rules_are_complete() -> None:
     assert rules.assistant_managed == {"id", "assistant_hash"}
     assert rules.digest_flow == ("pending", "approved", "review", "graduated")
     assert set(rules.digest_flow) == rules.common_enums["digest"]  # §19.1 agrees with §4.1
+    d = rules.digestion
+    assert d.reasons == {"raw-capture", "stub", "screenshot-only", "ai-unverified"}
+    assert d.graduate == {"status": "evergreen", "origin": "own"}
+    assert d.as_is == {
+        "status": "evergreen",
+        "origin": "own",
+        "digest": "graduated",
+        "graduated_via": "direct",
+    }
+    assert (d.task_done, d.produced) == ("done", "produced")
+    assert d.original_box == "> [!quote]- Original capture"
+    assert d.unverified_box == "> [!question] Unverified"
+    assert d.as_is["digest"] == rules.digest_flow[-1]  # §19.5 agrees with §19.1
     for rule in rules.types.values():
         placed = rule.folders or rule.hub_of or rule.container_member
         assert placed, f"{rule.name} has no folder"
@@ -66,6 +79,8 @@ def test_topic_mocs_match_folders() -> None:
         ("| → `00-Inbox/` (§0.3) |", "| → Inbox (§0.3) |", "§3 names no Inbox"),
         ("get `digest: review`", "get the review state", "§19.6"),
         ("`pending → approved → review → graduated`", "pending, then approved", "§19.1"),
+        ("the task is set `done` with `produced`", "the task is closed", "§19"),
+        ("`> [!quote]- Original capture`", "an original box", "§19.3"),
     ],
 )
 def test_unreadable_handbook_edits_fail_loudly(old: str, new: str, message: str) -> None:

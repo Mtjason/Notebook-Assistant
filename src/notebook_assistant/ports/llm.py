@@ -9,13 +9,25 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 
 from notebook_assistant.domain.jsontypes import JsonObject, JsonValue
 
 
 class LLMError(Exception):
     """The model gave no usable answer: an API error, a refusal, or a cut-off response."""
+
+
+MediaType = Literal["image/png", "image/jpeg", "image/gif", "image/webp"]
+
+
+@dataclass(frozen=True)
+class Image:
+    """A picture the model reads with the prompt, e.g. a note's screenshot (Handbook §19.3)."""
+
+    label: str  # how the prompt refers to it, e.g. "screenshot 1: Confusion matrix - 1.png"
+    media_type: MediaType
+    data: bytes
 
 
 @dataclass(frozen=True)
@@ -31,6 +43,7 @@ class JsonRequest:
     prompt: str
     schema: Mapping[str, JsonValue]
     max_tokens: int
+    images: tuple[Image, ...] = ()  # sent before the prompt, each followed by its label
 
 
 class LanguageModel(Protocol):

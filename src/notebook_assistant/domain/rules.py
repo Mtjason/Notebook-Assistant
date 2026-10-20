@@ -14,8 +14,9 @@ drifting silently. Sections read:
   §4.2: per-type required properties and vocabularies; §4.3: allowed statuses; §5: title
   patterns;
 - §13: the archive folder;
-- §19.1: the digestion flow, in order; §19.6: the digest state of notes made from a direct
-  capture.
+- §19.1: the digestion flow, in order, and the digest reasons; §19.2, §19.3, §19.5: what
+  graduating sets, how a learn task closes, the Original capture and Unverified boxes;
+- §19.6: the digest state of notes made from a direct capture.
 
 Pure: takes text, returns data. Loading the file is :mod:`notebook_assistant.handbook`.
 """
@@ -50,6 +51,19 @@ class TypeRule:
 
 
 @dataclass(frozen=True)
+class DigestionRules:
+    """What the Digest buttons do to a note (Handbook §19.2, §19.3, §19.5)."""
+
+    reasons: frozenset[str]  # digest_reason values (§19.1)
+    graduate: dict[str, str]  # properties Approve to graduate sets (§19.2, step 4a)
+    as_is: dict[str, str]  # properties Graduate as-is sets (§19.5)
+    task_done: str  # the status a learn task gets when its draft graduates (§19.2)
+    produced: str  # the task property linking what it produced (§19.2)
+    original_box: str  # first line of the folded box keeping the original (§19.3)
+    unverified_box: str  # first line of the box marking unsupported claims (§19.3)
+
+
+@dataclass(frozen=True)
 class Rules:
     version: str
     common_required: tuple[str, ...]
@@ -68,6 +82,7 @@ class Rules:
     inbox: str  # where unprocessed or uncertain notes go (§3 row 1, §0.3)
     assistant_managed: frozenset[str]  # properties only the assistant writes (§4.1)
     digest_flow: tuple[str, ...]  # digest states in order, the queue first (§19.1)
+    digestion: DigestionRules  # §19.2, §19.3, §19.5
     direct_capture_digest: tuple[
         str, str
     ]  # (type, digest state) of notes from a direct capture (§19.6)
@@ -409,6 +424,36 @@ def _digest_flow(text: str) -> tuple[str, ...]:
     raise HandbookFormatError("§19.1 has no digest flow (`a → b → …`)")
 
 
+def _pairs(cell: str) -> dict[str, str]:
+    """`key: value` ticks of a sentence, in order."""
+    found = (re.fullmatch(r"([a-z_]+): ([\w-]+)", t) for t in _ticks(cell))
+    return {m.group(1): m.group(2) for m in found if m}
+
+
+def _digestion(text: str) -> DigestionRules:
+    s191, s192, s193, s195 = (_section(text, n) for n in ("19.1", "19.2", "19.3", "19.5"))
+    reasons_row = next((r for r in _table_rows(s191) if _ticks(r[0]) == ["digest_reason"]), [])
+    graduate_row = next((r for r in _table_rows(s192) if "Approve to graduate" in r[0]), [])
+    as_is = re.search(r"^\s*- Sets (.+)$", s195, re.M)
+    task = re.search(r"the task is set `([\w-]+)` with `([\w-]+)`", s192)
+    boxes = re.findall(r"`(> \[![a-z]+\]-? [^`]+)`", s193)
+    if not (reasons_row and graduate_row and as_is and task):
+        raise HandbookFormatError("§19 doesn't define the digest reasons or graduation")
+    original = next((b for b in boxes if "[!quote]" in b), None)
+    unverified = next((b for b in boxes if "[!question]" in b), None)
+    if original is None or unverified is None:
+        raise HandbookFormatError("§19.3 names no Original capture or Unverified box")
+    return DigestionRules(
+        reasons=frozenset(_ticks(reasons_row[1])),
+        graduate=_pairs(graduate_row[-1]),
+        as_is=_pairs(as_is.group(1)),
+        task_done=task.group(1),
+        produced=task.group(2),
+        original_box=original,
+        unverified_box=unverified,
+    )
+
+
 def _direct_capture_digest(text: str) -> tuple[str, str]:
     m = re.search(r"New (\w[\w-]*) notes from it get `digest: ([\w-]+)`", _section(text, "19.6"))
     if not m:
@@ -482,5 +527,6 @@ def parse_handbook(text: str) -> Rules:
         inbox=_inbox(text),
         assistant_managed=_assistant_managed(text),
         digest_flow=_digest_flow(text),
+        digestion=_digestion(text),
         direct_capture_digest=_direct_capture_digest(text),
     )
