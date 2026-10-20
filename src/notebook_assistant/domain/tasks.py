@@ -23,8 +23,26 @@ from notebook_assistant.domain.rules import Rules
 TASK, IDEA, PROJECT = "task", "idea", "project"
 ACTION, QUESTION, LEARN = "action", "question", "learn"
 ARCHIVED, PARKED, PROMOTED = "archived", "parked", "promoted"
-TODO, DOING, WAITING, DONE, SOMEDAY = "todo", "doing", "waiting", "done", "someday"
 PRIORITY_ORDER = ("p1", "p2", "p3")  # §4.2: p1 first
+
+
+@dataclass(frozen=True)
+class TaskStatuses:
+    """The task lifecycle's steps by role, read from Handbook §4.3 (`someday → todo → doing →
+    waiting → done`); the views and the closing rule (§17.1) need to know which is which."""
+
+    someday: str
+    todo: str
+    doing: str
+    waiting: str
+    done: str
+
+    @classmethod
+    def of(cls, rules: Rules) -> TaskStatuses:
+        steps = rules.types[TASK].lifecycle
+        if len(steps) < 5:
+            raise ValueError(f"Handbook §4.3 task lifecycle {steps} has fewer than five steps")
+        return cls(*steps[:5])
 
 
 class StatusError(ValueError):
@@ -100,7 +118,7 @@ def _by_priority(row: TaskRow) -> tuple[int, str]:
     return rank, row.due or "9999-12-31"
 
 
-def _today(rows: list[TaskRow], live: frozenset[str], today: date) -> list[Group]:
+def _today(rows: list[TaskRow], live: frozenset[str], doing: str, today: date) -> list[Group]:
     iso = today.isoformat()
     open_rows = [r for r in rows if r.status in live]
     return [
@@ -111,14 +129,14 @@ def _today(rows: list[TaskRow], live: frozenset[str], today: date) -> list[Group
             [
                 r
                 for r in open_rows
-                if r.status == DOING and r.due != iso and not (r.due and r.due < iso)
+                if r.status == doing and r.due != iso and not (r.due and r.due < iso)
             ],
         ),
     ]
 
 
-def _learning(rows: list[TaskRow], live: frozenset[str]) -> list[Group]:
-    learning = [r for r in rows if r.kind in (LEARN, QUESTION) and r.status in live - {SOMEDAY}]
+def _learning(rows: list[TaskRow], live: frozenset[str], someday: str) -> list[Group]:
+    learning = [r for r in rows if r.kind in (LEARN, QUESTION) and r.status in live - {someday}]
     topics = sorted({r.topic or "No topic" for r in learning})
     return [Group(t, [r for r in learning if (r.topic or "No topic") == t]) for t in topics]
 
@@ -128,19 +146,20 @@ def task_views(notes: list[Note], rules: Rules, today: date) -> list[TaskView]:
     handbook edit can't silently drop one."""
     rows = sorted((task_row(n) for n in notes if n.type == TASK), key=lambda r: r.title.casefold())
     live = live_statuses(rules, TASK)
+    st = TaskStatuses.of(rules)
     since = (today - timedelta(days=rules.task_views.recent_days)).isoformat()
     builders = {
-        "Today": lambda: _today(rows, live, today),
+        "Today": lambda: _today(rows, live, st.doing, today),
         "Next": lambda: [
-            Group("To do", sorted((r for r in rows if r.status == TODO), key=_by_priority))
+            Group("To do", sorted((r for r in rows if r.status == st.todo), key=_by_priority))
         ],
         "Waiting": lambda: [
             Group(
                 "Waiting",
-                sorted((r for r in rows if r.status == WAITING), key=lambda r: r.updated or ""),
+                sorted((r for r in rows if r.status == st.waiting), key=lambda r: r.updated or ""),
             )
         ],
-        "Learning queue": lambda: _learning(rows, live),
+        "Learning queue": lambda: _learning(rows, live, st.someday),
         "Recently learned": lambda: [
             Group(
                 "Done",
@@ -148,12 +167,12 @@ def task_views(notes: list[Note], rules: Rules, today: date) -> list[TaskView]:
                     r
                     for r in rows
                     if r.kind in (LEARN, QUESTION)
-                    and r.status == DONE
+                    and r.status == st.done
                     and (r.updated or "") >= since
                 ],
             )
         ],
-        "Someday": lambda: [Group("Someday", [r for r in rows if r.status == SOMEDAY])],
+        "Someday": lambda: [Group("Someday", [r for r in rows if r.status == st.someday])],
     }
     views: list[TaskView] = []
     for name in rules.task_views.names:
@@ -207,7 +226,11 @@ def with_status(
         raise StatusError(f"{note.title}: {status!r} isn't a status here; one of {allowed}")
     copy = Note.parse(note.path, note.render())
     fm = copy.ensure_frontmatter()
-    if note.type == TASK and status == DONE and note.prop("kind") in (QUESTION, LEARN):
+    if (
+        note.type == TASK
+        and status == TaskStatuses.of(rules).done
+        and note.prop("kind") in (QUESTION, LEARN)
+    ):
         links = [f"[[{t}]]" for t in produced or []] or list(fm.get_list(rules.digestion.produced))
         if not links:
             raise StatusError(

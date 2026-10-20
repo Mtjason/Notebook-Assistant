@@ -117,3 +117,19 @@ def test_promoting_an_idea_creates_a_project_hub() -> None:
     no_scope = Note.parse(P("15-Incubator/C.md"), "---\ntype: idea\nstatus: exploring\n---\n")
     with pytest.raises(tasks.StatusError, match="no scope"):
         tasks.promoted(no_scope, "X", RULES, today="d")
+
+
+def test_task_statuses_come_from_the_lifecycle() -> None:
+    st = tasks.TaskStatuses.of(RULES)
+    assert (st.someday, st.todo, st.doing, st.waiting, st.done) == (
+        "someday",
+        "todo",
+        "doing",
+        "waiting",
+        "done",
+    )
+    short = replace(
+        RULES, types={**RULES.types, "task": replace(RULES.types["task"], lifecycle=("a",))}
+    )
+    with pytest.raises(ValueError, match="fewer than five"):
+        tasks.TaskStatuses.of(short)

@@ -21,10 +21,10 @@ from notebook_assistant.domain.changeset import Changeset, Operation
 from notebook_assistant.domain.ids import content_hash
 from notebook_assistant.domain.note import Note
 from notebook_assistant.domain.rules import Rules
-from notebook_assistant.domain.tasks import live_statuses
+from notebook_assistant.domain.tasks import TaskStatuses, live_statuses
 
 # Vocabulary (Handbook §4.3, §13, §17): statuses and property names these checks read or set.
-ARCHIVED, WAITING, TASK, IDEA, LEARN = "archived", "waiting", "task", "idea", "learn"
+ARCHIVED, TASK, IDEA, LEARN = "archived", "task", "idea", "learn"
 
 
 @dataclass(frozen=True)
@@ -87,7 +87,11 @@ def review_items(index: VaultIndex, rules: Rules, today: date) -> list[ReviewIte
             continue
         status, kind = note.prop("status"), note.prop("kind")
         path, title = note.path.as_posix(), note.title
-        if note.type == TASK and status == WAITING and days > r.waiting_nudge_days:
+        if (
+            note.type == TASK
+            and status == TaskStatuses.of(rules).waiting
+            and days > r.waiting_nudge_days
+        ):
             items.append(ReviewItem(path, title, "nudge", days, "ask again or drop it"))
         elif (
             note.type == TASK
