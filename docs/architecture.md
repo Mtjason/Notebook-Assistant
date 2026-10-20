@@ -259,7 +259,7 @@ The changelog is a Bases view over applied changesets (Handbook §15.9); nothing
 
 `index.sqlite` in the OS cache directory (§5.1: `%LOCALAPPDATA%\notebook-assistant\` on Windows, `~/.cache/…` on Linux and WSL, `~/Library/Caches/…` on macOS), built from the vault:
 - **Full-text index:** SQLite FTS5 with jieba-segmented Chinese.
-- **Vectors (optional, per PC):** sqlite-vec, a SQLite extension for vector search. See §4.3 for the embedding model.
+- **Vectors (optional, per PC):** each note's passages as float32 vectors in the same file, compared by brute force (a few thousand passages take well under a second, so no vector extension is needed). See §4.3 for the embedding model.
 - **Link graph:** outgoing links, backlinks, embeds.
 - **Tree and properties table:** folder tree, type, status, topic, digest per note.
 
@@ -290,6 +290,7 @@ v1 ships keyword search. Meaning-based search is an optional add-on that each PC
 - **Embeddings are computed per PC** (they're cache, not state), so each machine can choose. For example: bge-m3 on the personal PC, e5-small or keyword-only on the work PC.
 - Models run on the CPU with ONNX Runtime, a lightweight inference engine; no GPU or PyTorch needed.
 - Retrieval merges keyword and vector results (reciprocal rank fusion) when vectors are on. It works identically, just keyword-only, when they're off.
+- **Turning it on:** set this PC's `search` in `config.yaml` to `e5-small` or `bge-m3` (Settings does this), install the optional extra (`notebook-assistant[embeddings]`: ONNX Runtime, `tokenizers`, `huggingface-hub`), and restart the service. The int8 model downloads once into the cache folder; the service embeds the vault in the background when it starts, then only changed notes. `doctor` times 16 passages with the chosen model.
 
 ## 5. Platforms, development and release
 
@@ -387,7 +388,7 @@ Short hands-on sessions (20–30 min) right after the branch that first makes so
 | Command | Does |
 |---|---|
 | `notebook-assistant serve [--vault <path>] [--port <n>] [--profile <name>]` | Starts the service and web UI on `127.0.0.1:<port>` (local-only). The vault and port default to `config.yaml` (§4.1.1) |
-| `notebook-assistant doctor [--vault <path>] [--profile <name>]` | Checks the host: the detected profile and file-watch mode, the encoding, a write test in the vault, `Config.md`, `bw` status, and whether the Claude API is reachable with working credentials (listing models, which is free). The search option is reported; measuring an embedding model's speed arrives with embeddings (branch 11). Exits 1 on any failure |
+| `notebook-assistant doctor [--vault <path>] [--profile <name>]` | Checks the host: the detected profile and file-watch mode, the encoding, a write test in the vault, `Config.md`, `bw` status, and whether the Claude API is reachable with working credentials (listing models, which is free). The search option is reported and, with an embedding model, how long it takes on this CPU (§4.3). Exits 1 on any failure |
 | `notebook-assistant autostart install\|remove [--vault <path>]` | Registers the service with the profile's start-at-login mechanism (§5.1), or removes it; the entries are in `platform/autostart.py` |
 | `notebook-assistant update` | Installs the latest release wheel |
 | `notebook-assistant index rebuild --vault <path>` | Rebuilds this PC's search index for that vault from scratch (§4.2: `index-<vault key>.sqlite` in the cache folder, which `NA_CACHE_DIR` moves). `serve` keeps it current on its own, so this is only needed after deleting or damaging it |

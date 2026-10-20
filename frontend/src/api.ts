@@ -8,6 +8,8 @@ export interface ServiceStatus {
   profile: string;
   watch: string;
   vault: string;
+  search: string;
+  search_options: string[];
 }
 
 export interface Counts {
@@ -301,6 +303,7 @@ export const api = {
   transcript: (path: string) => get<Transcript>(`/api/sessions/view/${pathUrl(path)}`),
   ask: (path: string, text: string, pinned: string[]) =>
     post<JobView>(`/api/sessions/turn/${pathUrl(path)}`, { text, pinned }),
+  setSearch: (search: string) => post<ServiceStatus>("/api/machine/search", { search }),
   rebuildIndex: () => post<{ indexed: number; removed: number; total: number }>("/api/index/rebuild"),
   sweepReports: () => get<Record<string, MaintenanceReport>>("/api/sweep"),
   runSweep: (kind: string) => post<JobView>("/api/sweep/run", { kind }),

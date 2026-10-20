@@ -92,6 +92,18 @@ class SqliteSearch:
             self._db.execute("DELETE FROM docs")
             self._db.execute("DELETE FROM fts")
 
+    def hit(self, path: str) -> Hit | None:
+        with self._lock:
+            row = self._db.execute(
+                "SELECT path, title, kind, text FROM docs WHERE path = ?", (path,)
+            ).fetchone()
+        if row is None:
+            return None
+        flat = " ".join(str(row[3]).split())
+        return Hit(
+            row[0], row[1], row[2], flat[:SNIPPET] + ("…" if len(flat) > SNIPPET else ""), 0.0
+        )
+
     def search(
         self, query: str, *, limit: int, kind: DocKind | None = None, every_word: bool = True
     ) -> list[Hit]:

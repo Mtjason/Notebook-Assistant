@@ -20,6 +20,13 @@ dependencies = [
 [project.scripts]
 notebook-assistant = "notebook_assistant.cli:main"
 
+[project.optional-dependencies]
+embeddings = [
+    "huggingface-hub>=0.26",
+    "onnxruntime>=1.20",
+    "tokenizers>=0.20",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8",
@@ -62,10 +69,16 @@ ignore = ["RUF001", "RUF002", "RUF003"]  # full-width punctuation (？) is inten
 
 [tool.mypy]
 strict = true
-python_version = "3.11"
+# 3.12: numpy's stubs use 3.12 syntax. The code still runs on 3.11: ruff's target-version
+# keeps the syntax to 3.11, and CI runs the tests on 3.11.
+python_version = "3.12"
 mypy_path = "src"
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
 module = ["hypothesis.*", "jieba"]  # jieba ships no type information
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["onnxruntime", "onnxruntime.*"]  # ships no type information
 ignore_missing_imports = true

@@ -26,7 +26,11 @@ from notebook_assistant.platform.profiles import Profile, ProfileError, parse_pr
 
 APP_NAME = "notebook-assistant"
 FILE_NAME = "config.yaml"
-SEARCH_OPTIONS = ("keyword",)  # the per-PC search backends that exist (embeddings: branch 11)
+SEARCH_OPTIONS = (
+    "keyword",
+    "e5-small",
+    "bge-m3",
+)  # keyword only, or with an embedding model (§4.3)
 DEFAULT_PORT = 8765
 
 

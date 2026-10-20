@@ -42,9 +42,32 @@ class SearchIndex(Protocol):
 
     def clear(self) -> None: ...
 
+    def hit(self, path: str) -> Hit | None:
+        """One indexed document as a hit, its snippet the start of its text (for a match found
+        by meaning, where no word matched)."""
+        ...
+
     def search(
         self, query: str, *, limit: int, kind: DocKind | None = None, every_word: bool = True
     ) -> list[Hit]:
         """Ranked hits. With ``every_word`` each query word must appear (a search box); without
         it any may (a question asked in a sentence), and more matching words rank higher."""
+        ...
+
+
+class VectorIndex(Protocol):
+    """The optional meaning index next to the full-text one: each note's passages as vectors."""
+
+    def known(self, model: str) -> dict[str, str]:
+        """Every path with vectors from ``model``, and the hash they were made from."""
+        ...
+
+    def upsert(self, path: str, doc_hash: str, model: str, vectors: list[list[float]]) -> None: ...
+
+    def remove(self, paths: Iterable[str]) -> None: ...
+
+    def clear(self) -> None: ...
+
+    def nearest(self, vector: list[float], model: str, *, limit: int) -> list[tuple[str, float]]:
+        """The notes whose best passage is closest to ``vector`` (cosine), best first."""
         ...
