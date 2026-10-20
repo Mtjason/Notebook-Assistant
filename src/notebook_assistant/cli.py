@@ -270,6 +270,7 @@ def count_models() -> int:
     return AnthropicModel().count_models()
 
 
+SHUTDOWN_SECONDS = 2  # how long stopping waits for open requests before closing them
 _MARKS = {Status.OK: "✓", Status.WARN: "!", Status.FAIL: "✗"}
 
 
@@ -312,7 +313,15 @@ def cmd_serve(args: argparse.Namespace) -> int:
     port = args.port or host.machine.port
     app = create_app(FsVault(folder), host, vault_label=str(folder), web_dir=default_web_dir())
     print(f"notebook-assistant on http://127.0.0.1:{port} · vault {folder} · {host.profile.value}")
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    # An open page holds its event stream forever; without a deadline, stopping the service
+    # waits for every browser tab to close.
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=port,
+        log_level="warning",
+        timeout_graceful_shutdown=SHUTDOWN_SECONDS,
+    )
     return 0
 
 
