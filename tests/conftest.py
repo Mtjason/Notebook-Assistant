@@ -65,3 +65,11 @@ def sequential_ids() -> Callable[[], str]:
     """Predictable note ids for assertions: n-test-0, n-test-1, …"""
     counter = itertools.count()
     return lambda: f"n-test-{next(counter)}"
+
+
+@pytest.fixture(autouse=True)
+def _isolated_machine_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Every test gets its own per-machine config folder, never the real one."""
+    folder = tmp_path / "machine-config"
+    monkeypatch.setenv("NA_CONFIG_DIR", str(folder))
+    return folder

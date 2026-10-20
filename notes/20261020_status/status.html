@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notebook Assistant Status</title>
+<style>
+:root{
+  --bg:#F4F5F1; --surface:#FFFFFF; --sunk:#E9EBE5; --ink:#1B2130; --muted:#5B6372; --rule:#D5D9D0;
+  --accent:#2B47C4; --accent-soft:#E3E8FB;
+  --done:#1F7A45; --done-soft:#DDF1E4; --next:#2B47C4; --next-soft:#E3E8FB;
+  --later:#5B6372; --later-soft:#E9EBE5; --warn:#A35A0B; --warn-soft:#FBEBD6;
+  --body:"Segoe UI", system-ui, -apple-system, "Microsoft JhengHei", "PingFang TC", sans-serif;
+  --mono:ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#12151C; --surface:#1A1F29; --sunk:#232937; --ink:#E7E9EE; --muted:#9AA2B1; --rule:#2E3544;
+    --accent:#8FA2F5; --accent-soft:#232C4D;
+    --done:#6FD39A; --done-soft:#17321F; --next:#8FA2F5; --next-soft:#232C4D;
+    --later:#9AA2B1; --later-soft:#232937; --warn:#F0AE5E; --warn-soft:#3A2A16;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#12151C; --surface:#1A1F29; --sunk:#232937; --ink:#E7E9EE; --muted:#9AA2B1; --rule:#2E3544;
+  --accent:#8FA2F5; --accent-soft:#232C4D;
+  --done:#6FD39A; --done-soft:#17321F; --next:#8FA2F5; --next-soft:#232C4D;
+  --later:#9AA2B1; --later-soft:#232937; --warn:#F0AE5E; --warn-soft:#3A2A16;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--body);padding:0 16px 64px}
+.wrap{max-width:980px;margin:0 auto}
+a{color:var(--accent)}
+code{font:.86em var(--mono);background:var(--sunk);padding:1px 5px;border-radius:4px}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);margin:40px 0 4px;letter-spacing:-.01em}
+h2{font-size:1.3rem;margin:44px 0 6px}
+.sub{color:var(--muted);margin:0}
+.lead{color:var(--muted);max-width:70ch;margin:6px 0 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:24px}
+.kpi{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+.kpi b{display:block;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:.85rem}
+.tblwrap{overflow-x:auto;margin-top:14px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+tr:last-child td{border-bottom:0}
+td.num{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}
+.pill{display:inline-block;font:600 .72rem/1 var(--body);padding:4px 8px;border-radius:999px;white-space:nowrap}
+.done{background:var(--done-soft);color:var(--done)}
+.next{background:var(--next-soft);color:var(--next)}
+.later{background:var(--later-soft);color:var(--later)}
+.warn{background:var(--warn-soft);color:var(--warn)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:14px}
+.card{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--warn);border-radius:10px;padding:14px 16px}
+.card h3{margin:0 0 6px;font-size:1rem}
+.card p{margin:0 0 6px;font-size:.9rem}
+.card .when{font-size:.8rem;color:var(--muted)}
+ul.plain{margin:10px 0 0;padding-left:20px}
+ul.plain li{margin:4px 0}
+footer{margin-top:48px;color:var(--muted);font-size:.82rem;border-top:1px solid var(--rule);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Notebook Assistant: status</h1>
+<p class="sub">2026-10-20 · <code>main</code> at <code>62a15e8</code> (PR #11)</p>
+<p class="lead">Branches 1 and 2 of the eleven feature branches are merged: the vault core and the
+extraction planner. The next step is Branch 3, the service and web app shell; it has not started.
+Several checks were deliberately skipped or deferred along the way; they are listed in their own
+section below so they come back.</p>
+
+<div class="kpis">
+  <div class="kpi"><b>2 / 11</b><span>feature branches merged</span></div>
+  <div class="kpi"><b>11</b><span>pull requests merged</span></div>
+  <div class="kpi"><b>248</b><span>tests passing (2 skipped: real-vault, local only)</span></div>
+  <div class="kpi"><b>3 × 2</b><span>CI: Linux, Windows, macOS × Python 3.11, 3.12</span></div>
+  <div class="kpi"><b>2.13</b><span>Vault Handbook version</span></div>
+</div>
+
+<h2>What's done</h2>
+<div class="tblwrap"><table>
+<thead><tr><th>PR</th><th>Merged</th><th>What it delivered</th></tr></thead>
+<tbody>
+<tr><td class="num">#1</td><td class="num">09-27</td><td><b>Branch 1, core vault:</b> note model, frontmatter with minimal diffs, rules parsed from the handbook, invariant checker, nothing-lost check, link-safe rename and move, changesets with apply and undo, vault-backed store</td></tr>
+<tr><td class="num">#2–#7</td><td class="num">09-27</td><td><b>Design:</b> extraction made a core requirement, test checkpoints, the <code>design.html</code> review page, single source of truth (code reads rules from the handbook), decisions of 2026-09-28, merge criteria (Handbook 2.11–2.12)</td></tr>
+<tr><td class="num">#8</td><td class="num">09-27</td><td><b>Docs agree with each other:</b> Handbook 2.13 (changelog becomes a view over changesets); <code>Config.md</code> per vault holds only tunables; a docs consistency test in CI; a Stop hook that sends Claude to a consistency review whenever docs change; CLAUDE.md rules for configuration and clean code</td></tr>
+<tr><td class="num">#9</td><td class="num">09-29</td><td><b>Branch 2, extraction:</b> the planner (model proposes a split plan, code checks it: nothing lost, no duplicated principle, links both ways, cited corrections, no rule broken), apply re-checks the rules, <code>Config.md</code> loader with packaged defaults, model port with Claude API and scripted adapters, <code>digest</code> and <code>eval-extract</code> commands</td></tr>
+<tr><td class="num">#10</td><td class="num">10-16</td><td><b>First real-model runs:</b> raw model answers saved (<code>--save-answers</code>), fairer eval scoring (a renamed note costs one item), eval marked experimental, the two-stage check proposal</td></tr>
+<tr><td class="num">#11</td><td class="num">10-16</td><td><b>Decision:</b> test checkpoints are called by Jason once the proof of concept is done; branches don't wait for them</td></tr>
+</tbody>
+</table></div>
+
+<h2>Roadmap</h2>
+<p class="lead">From <a href="../../docs/architecture.md">architecture.md</a> §5.4.1.</p>
+<div class="tblwrap"><table>
+<thead><tr><th>#</th><th>Branch</th><th>Delivers</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td><code>feat/core-vault</code></td><td>Note model, rules, invariants, link-safe rename, changesets</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">2</td><td><code>feat/extract</code></td><td>Paste-to-digest: extraction planner, checks, <code>digest</code> CLI</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">3</td><td><code>feat/service-shell</code></td><td>FastAPI service, SSE, web app shell, platform profiles, <code>doctor</code>, release wheel</td><td><span class="pill next">next</span></td></tr>
+<tr><td class="num">4</td><td><code>feat/review</code></td><td>Review screen: changesets, diff view, split map, apply, undo</td><td><span class="pill later">later</span></td></tr>
+<tr><td class="num">5</td><td><code>feat/digest</code></td><td>Digest screen: approve to digest, graduate, send back</td><td><span class="pill later">later</span></td></tr>
+<tr><td class="num">6</td><td><code>feat/capture</code></td><td>Inbox: text, screenshots, <code>.eml</code>, <code>.msg</code></td><td><span class="pill later">later</span></td></tr>
+<tr><td class="num">7</td><td><code>feat/sweep</code></td><td>Sweep, Lint, Deep pass, Archive check, session retention</td><td><span class="pill later">later</span></td></tr>
+<tr><td class="num">8</td><td><code>feat/views</code></td><td>Tasks and Incubator screens</td><td><span class="pill later">later</span></td></tr>
+<tr><td class="num">9</td><td><code>feat/search</code></td><td>Per-PC search index, global search, Sessions screen</td><td><span class="pill later">later</span></td></tr>
+<tr><td class="num">10</td><td><code>feat/chat</code></td><td>Chat with citations and changeset cards</td><td><span class="pill later">later</span></td></tr>
+<tr><td class="num">11</td><td><code>feat/embeddings</code></td><td>Optional CPU embeddings per PC</td><td><span class="pill later">later</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>To do next: Branch 3</h2>
+<ul class="plain">
+  <li>Per-machine <code>config.yaml</code> and platform profiles: <code>windows</code>, <code>wsl-drvfs</code>, <code>linux</code>, <code>macos</code>, with the <code>NA_PROFILE</code> override</li>
+  <li><code>doctor</code>: profile, vault write test, encoding, file-watch mode, <code>bw</code>, API reachability</li>
+  <li>FastAPI service and <code>serve</code> on <code>127.0.0.1</code>: status, counts, note preview, SSE event bus</li>
+  <li>Web app shell in React + TypeScript + Vite: top bar, nav rail, main pane, context panel, Markdown renderer</li>
+  <li>CI builds the frontend and bundles it into one release wheel, so neither PC needs Node</li>
+</ul>
+
+<h2>Skipped or deferred: check back</h2>
+<p class="lead">Each of these was a conscious decision to move on. None blocks Branch 3, but each needs a
+decision or a test before the proof of concept is called done.</p>
+<div class="cards">
+  <div class="card">
+    <h3>Test checkpoint 1: real captures</h3>
+    <p>Digest 2–3 of your own captures on the real vault, judge the split maps, then apply and undo. Only fixture runs have happened so far.</p>
+    <p class="when">Deferred 10-16 · You call it after the POC (architecture §5.4.2). Checkpoints 2–4 follow the same rule.</p>
+  </div>
+  <div class="card">
+    <h3>Three handbook questions</h3>
+    <p>(1) Software or Systems for shell mechanics like <code>curl … | sh</code>; (2) collections hold one-line rows only, explanations go in a knowledge note; (3) where an AI answer's own reference list goes.</p>
+    <p class="when">Found in the 10-16 real run · Your decision; each is a handbook amendment (§15)</p>
+  </div>
+  <div class="card">
+    <h3>How corrections get verified</h3>
+    <p>The model has no web access, so it can't cite a source for a correction. Options: give the planner web search, or expect an <code>Unverified</code> callout instead.</p>
+    <p class="when">Found in the 10-16 real run · Your decision</p>
+  </div>
+  <div class="card">
+    <h3>Two-stage uncertainty check</h3>
+    <p>Cheap signal from the plan, then self-consistency only for close calls; uncertain placements wait in the Inbox for you.</p>
+    <p class="when">Deferred 10-17 · Not in the POC · <a href="../20261017_classification_two_stage_check/design.md">proposal</a></p>
+  </div>
+  <div class="card">
+    <h3>The eval is experimental</h3>
+    <p><code>eval-extract</code> runs by hand and gates nothing. Known limits: atoms match on role and target note only, not content; one fixture capture. Real run scored 67%.</p>
+    <p class="when">Since 10-16 · Limits listed in <code>app/extract_eval.py</code></p>
+  </div>
+  <div class="card">
+    <h3>Digest takes about 5 minutes</h3>
+    <p>Too slow for paste-to-digest. Ideas: atoms point to line numbers instead of retyping text; an effort setting; a different model per task.</p>
+    <p class="when">Measured 10-16 · Revisit with the eval</p>
+  </div>
+  <div class="card">
+    <h3>Monthly spend cap isn't enforced</h3>
+    <p><code>limits.monthly_spend_usd</code> exists in <code>Config.md</code>, but nothing counts cost yet. Until then, the spending limit in the Anthropic Console is the real protection.</p>
+    <p class="when">Needs cost accounting (architecture §3.6)</p>
+  </div>
+  <div class="card">
+    <h3>Subscription vs API credit</h3>
+    <p>Digest uses API credit today. A Claude Code adapter could use your subscription instead (personal use only). Not built.</p>
+    <p class="when">Discussed 10-17 · Optional small branch</p>
+  </div>
+  <div class="card">
+    <h3>Credentials for the unattended service</h3>
+    <p>Today: <code>ant auth login</code> (expires, needs a browser). Once the service starts at login (Branch 3+), use an API key in a dedicated workspace with a spend limit, never in the vault.</p>
+    <p class="when">Revisit in Branch 3</p>
+  </div>
+  <div class="card">
+    <h3>Refusal fallback not enabled</h3>
+    <p>The Claude API can retry a declined request on another model. Not enabled, because <code>Config.md</code> already names a fallback model.</p>
+    <p class="when">Your call, any time</p>
+  </div>
+  <div class="card">
+    <h3>Who may write to the vault</h3>
+    <p>Only the assistant writes; other AI tools may read. Until it's locked, run <code>notebook-assistant check</code> after any outside edit.</p>
+    <p class="when">Open decision in architecture §5.4.1</p>
+  </div>
+  <div class="card">
+    <h3>Housekeeping</h3>
+    <p>The docs Stop hook doesn't watch <code>notes/</code>; merged branches from PRs #1–#7 remain on GitHub; the real-vault golden tests (<code>NA_REAL_VAULT</code>) haven't been run in these sessions.</p>
+    <p class="when">Low priority</p>
+  </div>
+</div>
+
+<h2>Where things live</h2>
+<ul class="plain">
+  <li>Vault rules: <a href="../../docs/handbook.md">docs/handbook.md</a></li>
+  <li>Architecture, roadmap, checkpoints: <a href="../../docs/architecture.md">docs/architecture.md</a></li>
+  <li>Extraction planner and maintenance job: <a href="../../docs/maintenance-job.md">docs/maintenance-job.md</a></li>
+  <li>Screens: <a href="../../docs/design.html">docs/design.html</a></li>
+  <li>Working rules for Claude: <a href="../../CLAUDE.md">CLAUDE.md</a></li>
+</ul>
+
+<footer>A snapshot on 2026-10-20, not a source of truth: for anything that has changed since, the documents above win.</footer>
+</div>
+</body>
+</html>

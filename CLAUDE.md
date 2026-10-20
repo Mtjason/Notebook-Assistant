@@ -110,4 +110,5 @@ A value that someone might want to change lives in exactly one of three homes, n
 - A pull request that adds a CLI command updates `docs/architecture.md` §5.5.
 - When a design change touches several docs, check every file in `docs/` for references that
   now point wrong before calling it done.
-- Before pushing: `uv run ruff format src tests && uv run ruff check src tests && uv run mypy && uv run pytest`.
+- Before pushing: `uv run ruff format src tests && uv run ruff check src tests && uv run mypy && uv run pytest`,
+  and in `frontend/`: `npm run lint && npm run typecheck && npm test`.

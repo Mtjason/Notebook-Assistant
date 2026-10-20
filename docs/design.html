@@ -358,10 +358,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
       </div>
 
       <div class="legend">
-        <div><span class="bd">1</span><span><b>Top bar</b>Global search (notes and past sessions), which PC this is, AI spend this month against the cap in <code>Config.md</code>, and the job tray showing running digests and sweeps.<br><small>GET /api/status · GET /api/search?q=</small></span></div>
-        <div><span class="bd">2</span><span><b>Nav rail</b>Eight screens with live counts, then recent sessions grouped by Today / This week.<br><small>GET /api/counts · GET /api/sessions?limit=20</small></span></div>
+        <div><span class="bd">1</span><span><b>Top bar</b>Global search (notes and past sessions), which PC this is, AI spend this month against the cap in <code>Config.md</code>, and the job tray showing running digests and sweeps.<br><small>GET /api/status · GET /api/notes (titles and aliases; full text with the search index, GET /api/search?q=)</small></span></div>
+        <div><span class="bd">2</span><span><b>Nav rail</b>Eight screens with live counts, then recent sessions grouped by Today / This week.<br><small>GET /api/counts, refreshed by SSE /api/events · GET /api/sessions?limit=20</small></span></div>
         <div><span class="bd">3</span><span><b>Main pane</b>The active screen. All Markdown renders the same way everywhere: wikilinks, callouts, math, Mermaid, code, and HTML in a sandboxed frame (an isolated frame that can't touch the page or your files).</span></div>
-        <div><span class="bd">4</span><span><b>Context panel</b>Notes cited in the current answer or selected in a list, previewed without leaving the app. Collapses on narrow windows.<br><small>GET /api/notes/{id}</small></span></div>
+        <div><span class="bd">4</span><span><b>Context panel</b>Notes cited in the current answer or selected in a list, previewed without leaving the app. Collapses on narrow windows.<br><small>GET /api/notes/{id or path}</small></span></div>
         <div><span class="bd">5</span><span><b>Composer</b>Shown on Chat, and on Inbox for captures. <code>@</code> pins a note as context, <code>/</code> runs a command (/capture /digest /sop /undo), 📎 attaches a screenshot, PDF, email or transcript.</span></div>
       </div>
     </div>

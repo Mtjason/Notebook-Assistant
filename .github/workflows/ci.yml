@@ -36,3 +36,59 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked
       - run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: src/notebook_assistant/web
+
+  wheel:
+    # One py3-none-any wheel with the web app inside; installed and smoke-tested on each OS
+    # (architecture §5.4), so neither PC ever needs Node.
+    needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: src/notebook_assistant/web
+      - run: uv build --wheel -o dist
+      - name: Smoke test the installed wheel
+        run: |
+          WHEEL="$(ls dist/*.whl)"
+          uvx --from "$WHEEL" notebook-assistant --version
+          uvx --from "$WHEEL" notebook-assistant check --vault tests/fixtures/vault
+          uv run --no-project --with "$WHEEL" python -c "from notebook_assistant.api.server import default_web_dir; assert default_web_dir(), 'web app missing from the wheel'"
+      - if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: dist/*.whl

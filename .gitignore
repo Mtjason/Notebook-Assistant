@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# frontend (its build lands in the package and ships in the wheel)
+node_modules/
+src/notebook_assistant/web/

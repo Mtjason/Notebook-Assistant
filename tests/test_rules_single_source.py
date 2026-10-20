@@ -36,6 +36,8 @@ def test_parsed_rules_are_complete() -> None:
     assert rules.inbox == "00-Inbox"
     assert rules.direct_capture_digest == ("knowledge", "review")
     assert rules.assistant_managed == {"id", "assistant_hash"}
+    assert rules.digest_flow == ("pending", "approved", "review", "graduated")
+    assert set(rules.digest_flow) == rules.common_enums["digest"]  # §19.1 agrees with §4.1
     for rule in rules.types.values():
         placed = rule.folders or rule.hub_of or rule.container_member
         assert placed, f"{rule.name} has no folder"
@@ -63,6 +65,7 @@ def test_topic_mocs_match_folders() -> None:
         ("## 4.3", "## 4.3x", "§4.3"),
         ("| → `00-Inbox/` (§0.3) |", "| → Inbox (§0.3) |", "§3 names no Inbox"),
         ("get `digest: review`", "get the review state", "§19.6"),
+        ("`pending → approved → review → graduated`", "pending, then approved", "§19.1"),
     ],
 )
 def test_unreadable_handbook_edits_fail_loudly(old: str, new: str, message: str) -> None:

@@ -46,6 +46,17 @@ class AnthropicModel:
             raise LLMError(f"can't reach the Claude API: {exc}") from exc
         return _answer(message)
 
+    def count_models(self) -> int:
+        """How many models these credentials can use: free, and proves both reach and login."""
+        try:
+            return sum(1 for _ in self._client.models.list())
+        except anthropic.AuthenticationError as exc:
+            raise LLMError("not logged in: run `ant auth login` or set ANTHROPIC_API_KEY") from exc
+        except anthropic.APIStatusError as exc:
+            raise LLMError(f"Claude API error {exc.status_code}: {exc.message}") from exc
+        except anthropic.APIConnectionError as exc:
+            raise LLMError(f"can't reach the Claude API: {exc}") from exc
+
 
 def _answer(message: Message) -> JsonObject:
     """The parsed JSON of a finished message, or :class:`LLMError` saying why there is none."""
