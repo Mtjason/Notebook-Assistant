@@ -61,6 +61,23 @@ def test_parsed_rules_are_complete() -> None:
     assert (r.settle_minutes, r.waiting_nudge_days, r.session_days) == (30, 14, 90)
     assert r.learn_untouched_days == 90 and r.idea_untouched_days == 90
     assert r.lint_report == "99-System/Lint YYYY-MM.md"
+    assert rules.task_views.names == (
+        "Today",
+        "Next",
+        "Waiting",
+        "Learning queue",
+        "Recently learned",
+        "Someday",
+    )
+    assert rules.task_views.recent_days == 30
+    assert rules.types["idea"].lifecycle == (
+        "exploring",
+        "shaping",
+        "promoted",
+        "parked",
+        "dropped",
+        "archived",
+    )
     for rule in rules.types.values():
         placed = rule.folders or rule.hub_of or rule.container_member
         assert placed, f"{rule.name} has no folder"
@@ -94,6 +111,7 @@ def test_topic_mocs_match_folders() -> None:
         ("over about 30 lines", "that is long", "§12"),
         ("All embedded files", "Every embed", "§12"),
         ("30 minutes without edits", "half an hour without edits", "§16.2"),
+        ("done in the last 30 days", "done lately", "§17.5"),
         ("for 90+ days |", "for ninety days |", "§13"),
     ],
 )

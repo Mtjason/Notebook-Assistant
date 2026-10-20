@@ -6,11 +6,13 @@ import { api } from "./api";
 import { ContextPanel } from "./ContextPanel";
 import { DigestScreen } from "./DigestScreen";
 import { InboxScreen } from "./InboxScreen";
+import { IncubatorScreen } from "./IncubatorScreen";
 import { resolveLink } from "./notes";
 import { ReviewScreen } from "./ReviewScreen";
 import { SCREENS, type Screen, type ScreenId } from "./screens";
 import { SearchPalette } from "./SearchPalette";
 import { SettingsScreen } from "./SettingsScreen";
+import { TasksScreen } from "./TasksScreen";
 import { useEvents } from "./useEvents";
 
 function Placeholder({ screen }: { screen: Screen }) {
@@ -92,6 +94,15 @@ export function App() {
           <ReviewScreen key={focus ?? "list"} onOpenLink={openLink} focus={focus} />
         ) : screen === "inbox" ? (
           <InboxScreen
+            onOpenReview={(id) => {
+              setFocus(id);
+              setScreen("review");
+            }}
+          />
+        ) : screen === "tasks" ? (
+          <TasksScreen />
+        ) : screen === "incubator" ? (
+          <IncubatorScreen
             onOpenReview={(id) => {
               setFocus(id);
               setScreen("review");

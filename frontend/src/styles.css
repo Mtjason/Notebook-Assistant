@@ -184,3 +184,22 @@ button.btn { cursor: pointer; margin-top: 0; }
 .report-rows { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.86rem; }
 .report-rows td { border-top: 1px solid var(--rule); padding: 4px 6px; vertical-align: top; overflow-wrap: anywhere; }
 .mono { font-family: var(--mono); font-size: 0.8rem; }
+
+/* Tasks */
+.row-filters { display: flex; gap: 6px; margin: 8px 0 14px; }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.task-group h4 { margin: 14px 0 6px; font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.task-group ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.task-row { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: baseline; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+.task-row .muted { font-size: 0.85rem; overflow-wrap: anywhere; }
+.tick { border: none; background: none; font-size: 1.1rem; cursor: pointer; color: var(--ink); padding: 0; }
+.task-title { font-weight: 600; }
+.task-confirm { grid-column: 1 / -1; }
+
+/* Incubator */
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; align-items: start; }
+.column h3 { margin: 0 0 8px; font-size: 0.95rem; text-transform: capitalize; }
+.idea-card { border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); padding: 10px 12px; margin-bottom: 8px; display: grid; gap: 6px; }
+.idea-card h4 { margin: 0; }
+.idea-card p { margin: 0; font-size: 0.88rem; }
+.idea-card input { font: inherit; border: 1px solid var(--rule); border-radius: 6px; padding: 2px 6px; background: var(--surface); color: var(--ink); }

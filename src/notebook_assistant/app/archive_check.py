@@ -21,10 +21,10 @@ from notebook_assistant.domain.changeset import Changeset, Operation
 from notebook_assistant.domain.ids import content_hash
 from notebook_assistant.domain.note import Note
 from notebook_assistant.domain.rules import Rules
+from notebook_assistant.domain.tasks import TaskStatuses, live_statuses
 
 # Vocabulary (Handbook §4.3, §13, §17): statuses and property names these checks read or set.
-ARCHIVED, WAITING, TASK, IDEA, LEARN = "archived", "waiting", "task", "idea", "learn"
-PARKED = "parked"  # an idea that's left the default view on purpose (§18.4)
+ARCHIVED, TASK, IDEA, LEARN = "archived", "task", "idea", "learn"
 
 
 @dataclass(frozen=True)
@@ -77,14 +77,6 @@ def archive_candidates(index: VaultIndex, rules: Rules, today: date) -> list[Can
     return found
 
 
-def live_statuses(rules: Rules, type_name: str) -> frozenset[str]:
-    """A type's statuses before it's finished: not the ones §13 archives, not ``archived``, and
-    not a parked idea."""
-    ending = rules.review.archive.get(type_name)
-    done = (ending.statuses if ending else frozenset()) | {ARCHIVED, PARKED}
-    return rules.types[type_name].statuses - done
-
-
 def review_items(index: VaultIndex, rules: Rules, today: date) -> list[ReviewItem]:
     r = rules.review
     live_tasks, live_ideas = live_statuses(rules, TASK), live_statuses(rules, IDEA)
@@ -95,7 +87,11 @@ def review_items(index: VaultIndex, rules: Rules, today: date) -> list[ReviewIte
             continue
         status, kind = note.prop("status"), note.prop("kind")
         path, title = note.path.as_posix(), note.title
-        if note.type == TASK and status == WAITING and days > r.waiting_nudge_days:
+        if (
+            note.type == TASK
+            and status == TaskStatuses.of(rules).waiting
+            and days > r.waiting_nudge_days
+        ):
             items.append(ReviewItem(path, title, "nudge", days, "ask again or drop it"))
         elif (
             note.type == TASK
