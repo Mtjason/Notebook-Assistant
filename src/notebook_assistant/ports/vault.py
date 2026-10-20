@@ -7,6 +7,7 @@ host OS. Adapters translate them to real paths.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime
 from pathlib import PurePosixPath
 from typing import Protocol
 
@@ -43,6 +44,10 @@ class VaultStore(Protocol):
         ...
 
     def write_bytes(self, path: PurePosixPath, data: bytes) -> None: ...
+
+    def modified(self, path: PurePosixPath) -> datetime:
+        """When the file was last written (timezone-aware), for the sweep's settle time."""
+        ...
 
     def move(self, src: PurePosixPath, dest: PurePosixPath) -> None:
         """Move a file. Refuses to overwrite a different existing file."""

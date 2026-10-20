@@ -51,6 +51,7 @@ class Limits:
 @dataclass(frozen=True)
 class Checks:
     preservation_similarity: float  # a fraction: at most 1
+    duplicate_similarity: float  # a fraction: at most 1
 
 
 @dataclass(frozen=True)
@@ -72,7 +73,7 @@ class Config:
     extraction: Extraction
 
 
-_FRACTIONS = {("checks", "preservation_similarity")}
+_FRACTIONS = {("checks", "preservation_similarity"), ("checks", "duplicate_similarity")}
 
 
 def _settings(text: str, source: str) -> dict[str, Any]:

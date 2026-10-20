@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -91,3 +92,24 @@ def test_fs_specifics(fs_vault: FsVault) -> None:
 def test_missing_vault_folder(tmp_path: Path) -> None:
     with pytest.raises(VaultError):
         FsVault(tmp_path / "nope")
+
+
+def test_modified_is_when_the_content_was_last_written(any_vault: Store) -> None:
+    path = P("00-Inbox/new.md")
+    before = datetime.now(UTC) - timedelta(seconds=5)
+    any_vault.write_text(path, "x")
+    written = any_vault.modified(path)
+    assert written.tzinfo is not None and written >= before
+    any_vault.move(path, P("00-Inbox/moved.md"))  # a move keeps it
+    assert abs((any_vault.modified(P("00-Inbox/moved.md")) - written).total_seconds()) < 1
+    assert any_vault.modified(P("00-Inbox/raw capture.md")) <= datetime.now(UTC)
+    with pytest.raises(VaultError):
+        any_vault.modified(P("nowhere.md"))
+
+
+def test_the_memory_clock_stamps_writes() -> None:
+    when = datetime(2026, 1, 1, tzinfo=UTC)
+    vault = MemoryVault({"a.md": "x"}, clock=lambda: when)
+    assert vault.modified(P("a.md")) == when
+    vault.delete(P("a.md"))
+    assert not vault.exists(P("a.md"))

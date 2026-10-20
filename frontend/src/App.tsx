@@ -2,7 +2,7 @@
 // Screens arrive branch by branch; the shell, search palette and note preview work now.
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { api, type ServiceStatus } from "./api";
+import { api } from "./api";
 import { ContextPanel } from "./ContextPanel";
 import { DigestScreen } from "./DigestScreen";
 import { InboxScreen } from "./InboxScreen";
@@ -10,31 +10,8 @@ import { resolveLink } from "./notes";
 import { ReviewScreen } from "./ReviewScreen";
 import { SCREENS, type Screen, type ScreenId } from "./screens";
 import { SearchPalette } from "./SearchPalette";
+import { SettingsScreen } from "./SettingsScreen";
 import { useEvents } from "./useEvents";
-
-function SettingsScreen({ status }: { status: ServiceStatus | undefined }) {
-  if (!status) return <p className="muted">Loading…</p>;
-  const rows: [string, string][] = [
-    ["Machine", `${status.machine} (${status.machine_id})`],
-    ["Profile", `${status.profile} · file changes: ${status.watch}`],
-    ["Vault", status.vault],
-    ["Version", `${status.version} · handbook ${status.handbook_version}`],
-  ];
-  return (
-    <section>
-      <h2>This PC</h2>
-      <p className="muted">From this PC's config.yaml, never synced (architecture.md §4.1.1).</p>
-      <dl className="facts">
-        {rows.map(([k, v]) => (
-          <div key={k}>
-            <dt>{k}</dt>
-            <dd>{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
 
 function Placeholder({ screen }: { screen: Screen }) {
   return (
@@ -104,7 +81,13 @@ export function App() {
         {status.isError ? (
           <p className="error">The service isn't answering: {status.error.message}</p>
         ) : screen === "settings" ? (
-          <SettingsScreen status={status.data} />
+          <SettingsScreen
+            status={status.data}
+            onOpenReview={(id) => {
+              setFocus(id);
+              setScreen("review");
+            }}
+          />
         ) : screen === "review" ? (
           <ReviewScreen key={focus ?? "list"} onOpenLink={openLink} focus={focus} />
         ) : screen === "inbox" ? (

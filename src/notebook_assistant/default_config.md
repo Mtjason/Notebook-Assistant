@@ -12,6 +12,7 @@ limits:
   max_tokens_per_job: 60000
 checks:
   preservation_similarity: 0.9  # content-preservation check: how closely a sentence must survive
+  duplicate_similarity: 0.85    # deep pass: how alike two titles must be to list them as duplicates
 coordination:
   stale_run_minutes: 15       # a digest or sweep run older than this counts as abandoned
 extraction:

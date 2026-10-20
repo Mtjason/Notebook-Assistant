@@ -231,7 +231,7 @@ def test_a_recompile_after_the_inbox_note_went_says_so(memory_vault: MemoryVault
 
 
 def test_what_cant_be_processed(memory_vault: MemoryVault) -> None:
-    with pytest.raises(inbox.InboxError, match="isn't a note in the Inbox"):
+    with pytest.raises(inbox.InboxError, match="isn't a raw note"):
         process(memory_vault, "60-Knowledge/Software/Polars with_columns.md", {})
     only_files = save(memory_vault, "", [CapturedFile("x.png", b"\x89PNG")])
     with pytest.raises(inbox.InboxError, match="no text, only files"):

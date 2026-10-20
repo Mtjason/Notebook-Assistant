@@ -590,11 +590,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
       <div class="spec">
         <h3>Settings</h3>
         <p>Split in two on purpose. The left side belongs to this PC and never syncs (its <code>config.yaml</code>); the right side is this vault's <code>99-System/Assistant/Config.md</code>, which both PCs read, so each vault is tuned on its own. Editing it produces a changeset like any other note. What each file holds: <code>architecture.md</code> §4.1.1.</p>
+        <p>The maintenance buttons (Handbook §16.6) run one at a time on this PC with live steps. Each leaves a report: what it found, and the pending changesets it proposed, which open on Review. What each run does: <code>maintenance-job.md</code>.</p>
+        <h4>Components</h4>
+        <ul><li>ThisPc (config.yaml)</li><li>RunButtons: Sweep changes, Lint, Deep pass, Archive check, with ProgressSteps</li><li>ReportView: summary, findings, Open in Review</li></ul>
         <h4>Calls</h4>
         <ul class="api">
           <li><span class="m">GET</span>/api/status</li>
           <li><span class="m">POST</span>/api/index/rebuild</li>
-          <li><span class="m">POST</span>/api/sweep/run</li>
+          <li><span class="m">POST</span>/api/sweep/run {kind: changes | lint | deep | archive} → job</li>
+          <li><span class="m">GET</span>/api/sweep → each run's last report</li>
           <li><span class="m">POST</span>/api/secrets/unlock</li>
         </ul>
       </div>

@@ -10,6 +10,8 @@
   arrive as ``job`` events; graduate, send back, graduate as-is); ``/api/jobs/{id}``;
 - ``/api/inbox`` and ``POST /api/capture``: the Inbox screen (what waits there; save a capture;
   processing one runs as a job that proposes a changeset for Review);
+- ``/api/sweep``: the maintenance buttons (Sweep changes, Lint, Deep pass, Archive check) run as
+  jobs; each one's last report;
 - ``GET /api/files/{path}``: a note's images, for the screens that show them;
 - ``/``: the built web app.
 
@@ -40,7 +42,7 @@ from notebook_assistant.adapters.email_files import read_email
 from notebook_assistant.adapters.overlay_vault import OverlayVault
 from notebook_assistant.api.events import Event, EventBus
 from notebook_assistant.api.jobs import Job, JobBusyError, JobResult, JobRunner, Progress
-from notebook_assistant.app import clicks, images, inbox, review
+from notebook_assistant.app import clicks, images, inbox, maintenance, review
 from notebook_assistant.app import digest as buttons
 from notebook_assistant.app.browse import (
     Counts,
@@ -92,6 +94,11 @@ class ApplyRequest:
 @dataclass(frozen=True)
 class MoveRequest:
     note: str | None = None  # the planned note to move the atom to; None drops it
+
+
+@dataclass(frozen=True)
+class RunRequest:
+    kind: str  # one of app.maintenance.KINDS
 
 
 @dataclass(frozen=True)
@@ -426,6 +433,37 @@ def create_app(
 
         try:
             return job_view(jobs.start("process", note.path.as_posix(), work))
+        except JobBusyError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    reports: dict[str, maintenance.Report] = {}
+
+    @app.get("/api/sweep")
+    def sweep_reports() -> dict[str, maintenance.Report]:
+        return reports
+
+    @app.post("/api/sweep/run", dependencies=writes)
+    async def sweep_run(request: RunRequest) -> JobView:
+        if request.kind not in maintenance.KINDS:
+            raise HTTPException(status_code=400, detail=f"unknown run {request.kind!r}")
+
+        def work(progress: Progress) -> JobResult:
+            ctx = maintenance.Context(
+                store=store,
+                config=load_config(store),
+                rules=load_rules(),
+                handbook=handbook_text(),
+                now=clock(),
+                machine=host.machine.name,
+                model=model,
+            )
+            report = maintenance.run(request.kind, ctx, progress)
+            reports[request.kind] = report
+            first = report.changesets[0] if report.changesets else None
+            return JobResult(True, report.summary, first)
+
+        try:  # one maintenance run at a time on this PC (docs/maintenance-job.md, Two PCs)
+            return job_view(jobs.start(request.kind, "maintenance", work))
         except JobBusyError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 

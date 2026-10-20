@@ -1,8 +1,10 @@
-"""An in-memory vault, for tests and dry runs. Behaves like the filesystem adapter."""
+"""An in-memory vault, for tests and dry runs. Behaves like the filesystem adapter; ``clock``
+stamps each write, so tests control what the settle time sees."""
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
+from datetime import UTC, datetime
 from pathlib import PurePosixPath
 
 from notebook_assistant.domain.names import name_key, respell_folders
@@ -10,8 +12,14 @@ from notebook_assistant.ports.vault import FileExistsInVaultError, VaultError, V
 
 
 class MemoryVault:
-    def __init__(self, files: Mapping[str, str | bytes] | None = None) -> None:
+    def __init__(
+        self,
+        files: Mapping[str, str | bytes] | None = None,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self.clock = clock
         self._files: dict[str, tuple[PurePosixPath, bytes]] = {}
+        self._times: dict[str, datetime] = {}
         for path, data in (files or {}).items():
             raw = data.encode("utf-8") if isinstance(data, str) else data
             self._put(PurePosixPath(path), raw)
@@ -23,6 +31,7 @@ class MemoryVault:
 
     def _put(self, path: PurePosixPath, data: bytes) -> None:
         self._files[name_key(path.as_posix())] = (self._spell_folders(path), data)
+        self._times[name_key(path.as_posix())] = self.clock()
 
     def _spell_folders(self, path: PurePosixPath) -> PurePosixPath:
         return respell_folders(path, (stored for stored, _ in self._files.values()))
@@ -55,18 +64,26 @@ class MemoryVault:
         existing = self._files.get(key)
         # like NTFS: writing to an existing file keeps its original spelling
         self._files[key] = (existing[0] if existing else self._spell_folders(path), data)
+        self._times[key] = self.clock()
+
+    def modified(self, path: PurePosixPath) -> datetime:
+        self._get(path)
+        return self._times[name_key(path.as_posix())]
 
     def move(self, src: PurePosixPath, dest: PurePosixPath) -> None:
         stored_src, data = self._get(src)
         same_file = name_key(src.as_posix()) == name_key(dest.as_posix())
         if self.exists(dest) and not same_file:
             raise FileExistsInVaultError(f"target exists: {dest}")
+        when = self._times.pop(name_key(stored_src.as_posix()))
         del self._files[name_key(stored_src.as_posix())]
         self._put(dest, data)
+        self._times[name_key(dest.as_posix())] = when  # a move doesn't change the content
 
     def delete(self, path: PurePosixPath) -> None:
         stored, _ = self._get(path)
         del self._files[name_key(stored.as_posix())]
+        del self._times[name_key(stored.as_posix())]
 
     def snapshot(self) -> dict[str, bytes]:
         """All files as {path: bytes}, for assertions."""

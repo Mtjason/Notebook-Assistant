@@ -21,6 +21,7 @@ export function onJob(queries: QueryClient, job: JobView): void {
     void queries.invalidateQueries({ queryKey: ["digest-item", job.ref] });
     void queries.invalidateQueries({ queryKey: ["changesets"] });
     void queries.invalidateQueries({ queryKey: ["inbox"] });
+    void queries.invalidateQueries({ queryKey: ["sweep"] });
   }
 }
 

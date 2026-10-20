@@ -93,6 +93,15 @@ The first pass missed the principle note: it filed everything under uv. That's e
 - **Assertions:** every atom covered, the principle note exists and is linked both ways, no explanation duplicated, existing notes patched rather than duplicated.
 - **Digestion eval set** (*experimental, not part of the proof of concept*; status and known limits in `app/extract_eval.py`): prompt or model changes are judged by the difference they make on the whole set, like the golden vault tests. `notebook-assistant eval-extract --vault tests/fixtures/vault --captures tests/fixtures/captures` plans every capture with the real model on an in-memory copy of the vault and scores it against `expected.yaml`; the unit tests replay a recorded answer (`plan.json`) instead, so they need no API key.
 
+## What each button runs today
+
+| Button | Built | Not built yet |
+|---|---|---|
+| **Sweep changes** | Every raw note (in `00-Inbox/`, or anywhere with no `type`) past the settle time is planned through the extraction planner, one pending changeset each; a note with a pending proposal isn't planned again | Integrating text appended to organized notes (diff against snapshots); `type` change after your move |
+| **Lint** | Every check on every note, links to nothing and unreadable frontmatter; one batch with the mechanical fixes (missing `updated`, tag casing) and the monthly report note (Handbook §14) | Misspelled folder names (a typo fix needs judgment) |
+| **Deep pass** | Duplicate candidates (an alias equals another title, or titles at least `checks.duplicate_similarity` alike) and notes that name another note's title without linking it; reported, not changed | Contradictions, image descriptions (they need the model) |
+| **Archive check** | One changeset per §13 candidate (ages from `updated`; a container moves whole); `waiting` tasks to nudge, untouched learn tasks and ideas (§17.6, §18.4) | Someday-task review |
+
 ## State
 
 All job state lives in the vault: see `architecture.md` §4.1.
