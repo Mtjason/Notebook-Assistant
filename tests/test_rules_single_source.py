@@ -61,6 +61,7 @@ def test_parsed_rules_are_complete() -> None:
     assert (r.settle_minutes, r.waiting_nudge_days, r.session_days) == (30, 14, 90)
     assert r.learn_untouched_days == 90 and r.idea_untouched_days == 90
     assert r.lint_report == "99-System/Lint YYYY-MM.md"
+    assert r.sessions == "99-System/Assistant/Sessions"
     assert rules.task_views.names == (
         "Today",
         "Next",

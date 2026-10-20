@@ -52,3 +52,11 @@ def test_serve_refuses_without_a_vault(
 def test_default_web_dir_is_none_or_holds_index_html() -> None:
     found = default_web_dir()
     assert found is None or (found / "index.html").is_file()
+
+
+def test_index_rebuild_builds_this_pc_s_index(
+    fs_vault: FsVault, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert cli.main(["index", "rebuild", "--vault", str(fs_vault.root)]) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("indexed ") and "index-" in out

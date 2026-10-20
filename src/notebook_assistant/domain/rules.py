@@ -95,6 +95,7 @@ class ReviewRules:
     idea_untouched_days: int  # ideas untouched this long: parked or dropped (§18.4)
     session_days: int  # chat sessions older than this are deleted in a batch (§8.4)
     lint_report: str  # the monthly report's path, with YYYY-MM for the month (§14)
+    sessions: str  # the folder of the assistant's chat sessions (§8.4)
 
 
 @dataclass(frozen=True)
@@ -555,7 +556,15 @@ def _review(text: str) -> ReviewRules:
         idea_untouched_days=_number(_section(text, "18.4"), r"untouched for (\d+) days", "§18.4"),
         session_days=_number(_section(text, "8.4"), r"older than (\d+) days", "§8.4"),
         lint_report=_lint_report(text),
+        sessions=_sessions(text),
     )
+
+
+def _sessions(text: str) -> str:
+    m = re.search(r"chat sessions \(`([^`]+?)/?`\)", _section(text, "8.4"))
+    if not m:
+        raise HandbookFormatError("§8.4 doesn't name the chat sessions folder")
+    return m.group(1)
 
 
 def _task_views(text: str) -> TaskViews:

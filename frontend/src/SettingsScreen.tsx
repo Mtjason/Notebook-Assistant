@@ -14,6 +14,23 @@ const RUNS = [
   { kind: "archive", label: "Archive check", what: "Archive candidates, stale tasks, untouched ideas" },
 ] as const;
 
+function RebuildIndex() {
+  const rebuild = useMutation({ mutationFn: api.rebuildIndex });
+  return (
+    <p>
+      <button type="button" className="btn" disabled={rebuild.isPending} onClick={() => rebuild.mutate()}>
+        Rebuild index
+      </button>{" "}
+      <span className="muted">
+        {rebuild.data
+          ? `Indexed ${rebuild.data.indexed} of ${rebuild.data.total} notes and sessions.`
+          : "This PC's search index (a cache; rebuilding loses nothing)."}
+      </span>
+      {rebuild.isError && <span className="error"> {rebuild.error.message}</span>}
+    </p>
+  );
+}
+
 function ThisPc({ status }: { status: ServiceStatus }) {
   const rows: [string, string][] = [
     ["Machine", `${status.machine} (${status.machine_id})`],
@@ -33,6 +50,7 @@ function ThisPc({ status }: { status: ServiceStatus }) {
           </div>
         ))}
       </dl>
+      <RebuildIndex />
     </section>
   );
 }

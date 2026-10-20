@@ -9,6 +9,7 @@ may edit. Loading is strict, like ``Config.md``: an unknown key or a wrong type 
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import socket
@@ -47,6 +48,19 @@ class MachineConfig:
 def config_dir() -> Path:
     override = os.environ.get("NA_CONFIG_DIR")
     return Path(override) if override else Path(platformdirs.user_config_dir(APP_NAME, False))
+
+
+def cache_dir() -> Path:
+    """This PC's cache folder (docs/architecture.md §4.2): the search index; never synced, and
+    deleting it loses nothing. ``NA_CACHE_DIR`` moves it."""
+    override = os.environ.get("NA_CACHE_DIR")
+    return Path(override) if override else Path(platformdirs.user_cache_dir(APP_NAME, False))
+
+
+def index_path(vault: Path) -> Path:
+    """The search index of one vault: one file per vault, so two vaults never share one."""
+    key = hashlib.sha256(str(vault.expanduser().resolve()).encode("utf-8")).hexdigest()[:12]
+    return cache_dir() / f"index-{key}.sqlite"
 
 
 def config_path() -> Path:

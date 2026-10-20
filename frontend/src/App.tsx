@@ -11,6 +11,7 @@ import { resolveLink } from "./notes";
 import { ReviewScreen } from "./ReviewScreen";
 import { SCREENS, type Screen, type ScreenId } from "./screens";
 import { SearchPalette } from "./SearchPalette";
+import { SessionsScreen } from "./SessionsScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { TasksScreen } from "./TasksScreen";
 import { useEvents } from "./useEvents";
@@ -99,6 +100,8 @@ export function App() {
               setScreen("review");
             }}
           />
+        ) : screen === "sessions" ? (
+          <SessionsScreen onOpenPath={setSelected} />
         ) : screen === "tasks" ? (
           <TasksScreen />
         ) : screen === "incubator" ? (

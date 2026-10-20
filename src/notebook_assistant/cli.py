@@ -39,7 +39,9 @@ from notebook_assistant import __version__
 from notebook_assistant.adapters.anthropic_llm import AnthropicModel
 from notebook_assistant.adapters.fs_vault import FsVault
 from notebook_assistant.adapters.memory_vault import MemoryVault
+from notebook_assistant.adapters.sqlite_search import SqliteSearch
 from notebook_assistant.api.server import create_app, default_web_dir
+from notebook_assistant.app import search
 from notebook_assistant.app.apply import apply_changeset, undo_changeset
 from notebook_assistant.app.doctor import Status, run_checks, worst
 from notebook_assistant.app.extract import (
@@ -58,7 +60,7 @@ from notebook_assistant.domain.invariants import check_note, is_checked
 from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import current_host
-from notebook_assistant.machine import MachineConfigError
+from notebook_assistant.machine import MachineConfigError, index_path
 from notebook_assistant.platform import autostart
 from notebook_assistant.platform.profiles import ProfileError
 from notebook_assistant.ports.llm import LanguageModel, LLMError
@@ -311,7 +313,13 @@ def cmd_serve(args: argparse.Namespace) -> int:
         print(f"no such vault folder: {folder}", file=sys.stderr)
         return 2
     port = args.port or host.machine.port
-    app = create_app(FsVault(folder), host, vault_label=str(folder), web_dir=default_web_dir())
+    app = create_app(
+        FsVault(folder),
+        host,
+        vault_label=str(folder),
+        web_dir=default_web_dir(),
+        search=SqliteSearch(index_path(folder)),
+    )
     print(f"notebook-assistant on http://127.0.0.1:{port} · vault {folder} · {host.profile.value}")
     # An open page holds its event stream forever; without a deadline, stopping the service
     # waits for every browser tab to close.
@@ -322,6 +330,13 @@ def cmd_serve(args: argparse.Namespace) -> int:
         log_level="warning",
         timeout_graceful_shutdown=SHUTDOWN_SECONDS,
     )
+    return 0
+
+
+def cmd_index(args: argparse.Namespace) -> int:
+    folder = Path(args.vault).expanduser()
+    done = search.rebuild(FsVault(folder), SqliteSearch(index_path(folder)), load_rules())
+    print(f"indexed {done.indexed} of {done.total} notes and sessions · {index_path(folder)}")
     return 0
 
 
@@ -384,6 +399,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--port", type=int, help="port on 127.0.0.1 (default: port in config.yaml)")
     p.add_argument("--profile", help="force a host profile (architecture §5.1)")
     p.set_defaults(func=cmd_serve)
+    p = with_vault(sub.add_parser("index", help="manage this PC's search index"))
+    p.add_argument("action", choices=["rebuild"])
+    p.set_defaults(func=cmd_index)
     p = sub.add_parser("autostart", help="start the service at login, or stop that")
     p.add_argument("action", choices=["install", "remove"])
     p.add_argument("--vault", help="the vault to serve (default: vault in config.yaml)")
