@@ -111,7 +111,8 @@ def format_scalar(value: Any, *, in_flow: bool = False) -> str:
         raise TypeError(f"unsupported frontmatter value type: {type(value).__name__}")
     if _DATE.match(value):
         return value
-    if _plain_ok(value) and not (in_flow and "," in value):
+    # inside [a, b] a comma ends the item and PyYAML reads "?" as a key indicator ("[0?]" fails)
+    if _plain_ok(value) and not (in_flow and ("," in value or "?" in value)):
         return value
     return _quote(value)
 

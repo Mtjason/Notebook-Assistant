@@ -134,6 +134,7 @@ export interface InboxItem {
   preview: string;
   files: string[];
   gap: string | null;
+  blocked: string | null; // why Process can't plan it yet
 }
 
 export interface InboxView {

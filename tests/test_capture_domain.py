@@ -19,6 +19,13 @@ RULES = load_rules()
 INBOX = P("00-Inbox/2026-10-20 1402.md")
 
 
+def test_inbox_files_are_every_file_there_but_dotfiles() -> None:
+    assert capture.is_inbox_file(P("00-Inbox/a.7z"), RULES)
+    assert not capture.is_inbox_file(P("00-Inbox/.keep"), RULES)
+    assert not capture.is_inbox_file(P("01-Daily/2026-10-20.md"), RULES)
+    assert not capture.is_inbox_file(P(""), RULES)
+
+
 def test_the_inbox_title_is_the_minute_numbered_when_taken() -> None:
     now = datetime(2026, 10, 20, 14, 2, tzinfo=UTC)
     assert capture.inbox_title(now, lambda t: False) == "2026-10-20 1402"

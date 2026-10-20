@@ -1,7 +1,7 @@
 from pathlib import PurePosixPath
 
 import pytest
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 from notebook_assistant.domain.frontmatter import Frontmatter, FrontmatterError, load_yaml
@@ -99,6 +99,7 @@ def test_quoting_rules() -> None:
         max_size=6,
     )
 )
+@example(props={"a": ["0?"]})  # a "?" inside a flow list once broke the YAML
 def test_emitted_yaml_round_trips(props: dict[str, object]) -> None:
     props = {k: v for k, v in props.items() if v not in ("", [])}
     fm = Frontmatter.from_dict(props)
