@@ -27,6 +27,7 @@ def test_serve_binds_locally_on_the_configured_port(
     assert cli.main(["serve", "--vault", str(fs_vault.root)]) == 0
     [call] = served
     assert call["host"] == "127.0.0.1" and call["port"] == DEFAULT_PORT
+    assert call["timeout_graceful_shutdown"] == cli.SHUTDOWN_SECONDS  # open tabs can't block a stop
     assert f"http://127.0.0.1:{DEFAULT_PORT}" in capsys.readouterr().out
     assert cli.main(["serve", "--vault", str(fs_vault.root), "--port", "9100"]) == 0
     assert served[-1]["port"] == 9100
