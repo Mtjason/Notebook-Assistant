@@ -12,6 +12,7 @@ import pytest
 
 from notebook_assistant.adapters.fs_vault import FsVault
 from notebook_assistant.adapters.memory_vault import MemoryVault
+from notebook_assistant.adapters.overlay_vault import OverlayVault
 
 FIXTURE_VAULT = Path(__file__).parent / "fixtures" / "vault"
 NOW = datetime(2026, 9, 27, 10, 0, tzinfo=UTC)
@@ -38,13 +39,18 @@ def memory_vault() -> MemoryVault:
     return load_fixture_memory()
 
 
-@pytest.fixture(params=["fs", "memory"])
-def any_vault(request: pytest.FixtureRequest, tmp_path: Path) -> FsVault | MemoryVault:
-    """Both adapters, so every behaviour is checked on each (contract tests)."""
+@pytest.fixture(params=["fs", "memory", "overlay"])
+def any_vault(
+    request: pytest.FixtureRequest, tmp_path: Path
+) -> FsVault | MemoryVault | OverlayVault:
+    """Every adapter, so every behaviour is checked on each (contract tests). The overlay sits
+    on the fixture vault on disk, which it must never change."""
     if request.param == "memory":
         return load_fixture_memory()
     root = tmp_path / "vault"
     shutil.copytree(FIXTURE_VAULT, root)
+    if request.param == "overlay":
+        return OverlayVault(FsVault(root))
     return FsVault(root)
 
 

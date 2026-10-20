@@ -14,6 +14,7 @@ from pathlib import PurePosixPath
 from typing import Any, Literal
 
 from notebook_assistant.domain.ids import new_changeset_id
+from notebook_assistant.domain.jsontypes import JsonObject
 
 
 class Status(StrEnum):
@@ -76,6 +77,17 @@ class Operation:
         )
 
 
+@dataclass(frozen=True)
+class CaptureSource:
+    """The capture a changeset was planned from, and the split plan (as the model's JSON), so
+    the Review screen can show the split map and recompile it when you move or drop an atom."""
+
+    text: str
+    origin: str
+    name: str
+    plan: JsonObject
+
+
 @dataclass
 class Changeset:
     reason: str
@@ -89,6 +101,7 @@ class Changeset:
     applied: str | None = None
     error: str | None = None
     review: str = ""  # Markdown for the reviewer, e.g. a capture's split map
+    source: CaptureSource | None = None  # set when the changeset came from the extraction planner
 
     @property
     def targets(self) -> list[PurePosixPath]:

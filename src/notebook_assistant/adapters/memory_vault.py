@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from pathlib import PurePosixPath
 
-from notebook_assistant.domain.names import name_key
+from notebook_assistant.domain.names import name_key, respell_folders
 from notebook_assistant.ports.vault import FileExistsInVaultError, VaultError, VaultStore
 
 
@@ -25,15 +25,7 @@ class MemoryVault:
         self._files[name_key(path.as_posix())] = (self._spell_folders(path), data)
 
     def _spell_folders(self, path: PurePosixPath) -> PurePosixPath:
-        """Reuse the spelling of folders that already exist (as NTFS and APFS do)."""
-        parts = list(path.parts)
-        for stored, _ in self._files.values():
-            folders = stored.parts[:-1]
-            for i in range(min(len(folders), len(parts) - 1)):
-                if name_key(folders[i]) != name_key(parts[i]):
-                    break
-                parts[i] = folders[i]
-        return PurePosixPath(*parts)
+        return respell_folders(path, (stored for stored, _ in self._files.values()))
 
     def _get(self, path: PurePosixPath) -> tuple[PurePosixPath, bytes]:
         try:

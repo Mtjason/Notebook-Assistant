@@ -95,3 +95,49 @@ code, kbd { font: 0.88em var(--mono); }
   .navrail { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--rule); }
   .ctx { border-left: 0; border-top: 1px solid var(--rule); }
 }
+
+/* Review screen */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tabs button { border: 1px solid var(--rule); background: var(--surface); border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.review-cols { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.cs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cs-list button { width: 100%; text-align: left; display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); cursor: pointer; }
+.cs-list button[aria-current="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.cs-reason { font-weight: 600; font-size: 0.9rem; }
+.cs-detail h3 { margin: 0; }
+.cs-detail h4 { margin: 18px 0 6px; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.status { font: 500 0.75rem var(--mono); }
+.status-applied { color: #1f7a45; } .status-failed, .status-rejected { color: var(--error); }
+.checks { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 10px 0; font: 0.8rem var(--mono); }
+.checks li { padding: 3px 8px; border-radius: 6px; background: var(--sunk); }
+.checks .fail { background: var(--warn-soft); color: var(--error); }
+.ops { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.ops li { display: flex; gap: 8px; align-items: center; }
+.ops li.current .op-button { background: var(--accent-soft); }
+.op-button { flex: 1; text-align: left; border: 0; background: none; border-radius: 6px; padding: 4px 6px; cursor: pointer; font-size: 0.88rem; overflow-wrap: anywhere; }
+.op-kind { font: 500 0.72rem var(--mono); text-transform: uppercase; color: var(--accent); }
+.diff { margin-top: 10px; border: 1px solid var(--rule); border-radius: 8px; overflow-x: auto; font-size: 0.8rem; }
+.diff-head, .diff-row { display: grid; grid-template-columns: 1fr 1fr; }
+.diff-head span { padding: 4px 8px; font: 500 0.72rem var(--mono); color: var(--muted); background: var(--sunk); }
+.side { white-space: pre-wrap; padding: 1px 8px; min-height: 1.4em; overflow-wrap: anywhere; }
+.side.old { background: color-mix(in srgb, var(--error) 10%, transparent); }
+.side.new { background: color-mix(in srgb, #1f7a45 12%, transparent); }
+.side.empty { background: var(--sunk); }
+mark.del { background: color-mix(in srgb, var(--error) 30%, transparent); color: inherit; }
+mark.ins { background: color-mix(in srgb, #1f7a45 30%, transparent); color: inherit; }
+.atoms { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.atom { display: grid; grid-template-columns: 90px minmax(0, 1fr) minmax(140px, 220px); gap: 8px; align-items: center; font-size: 0.85rem; }
+.atom-role { font: 500 0.72rem var(--mono); color: var(--muted); }
+.atom-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atom select { width: 100%; font: inherit; padding: 3px; border-radius: 6px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); }
+.review-md { margin-top: 14px; }
+.notice { margin-top: 14px; padding: 8px 12px; border-radius: 8px; font-size: 0.88rem; }
+.notice.ok { background: color-mix(in srgb, #1f7a45 12%, transparent); }
+.notice.fail { background: var(--warn-soft); }
+.actions { display: flex; gap: 8px; margin-top: 16px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+button.btn { cursor: pointer; margin-top: 0; }
+@media (max-width: 980px) { .review-cols { grid-template-columns: 1fr; } .atom { grid-template-columns: 1fr; } }

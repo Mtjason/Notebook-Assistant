@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api, type ServiceStatus } from "./api";
 import { ContextPanel } from "./ContextPanel";
 import { resolveLink } from "./notes";
+import { ReviewScreen } from "./ReviewScreen";
 import { SCREENS, type Screen, type ScreenId } from "./screens";
 import { SearchPalette } from "./SearchPalette";
 import { useEvents } from "./useEvents";
@@ -101,6 +102,8 @@ export function App() {
           <p className="error">The service isn't answering: {status.error.message}</p>
         ) : screen === "settings" ? (
           <SettingsScreen status={status.data} />
+        ) : screen === "review" ? (
+          <ReviewScreen onOpenLink={openLink} />
         ) : (
           active && <Placeholder screen={active} />
         )}

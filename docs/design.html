@@ -494,14 +494,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
         <h3>Review</h3>
         <p>Every proposed change, from any source, in one place. Tick operations one by one, see a side-by-side diff (a before/after view of the changed lines), and apply. History keeps applied changesets with Undo, which applies the stored reverse operations.</p>
         <h4>Components</h4>
-        <ul><li>ChangesetList (pending / history)</li><li>OperationList with checkboxes</li><li>DiffView (side-by-side, word-level)</li><li>ChecksBar: preservation, links, invariants, base hash</li></ul>
+        <ul><li>ChangesetList (pending / history)</li><li>OperationList with checkboxes</li><li>DiffView (side-by-side, word-level)</li><li>ChecksBar: preservation, links, invariants, base hash (a dry run on a copy, before you apply)</li><li>SplitMap, for a planned capture: one row per atom with where it lands; move it to another note or drop it, and the plan is recompiled and checked again (no model call)</li></ul>
         <h4>Calls</h4>
         <ul class="api">
-          <li><span class="m">GET</span>/api/changesets?status=pending</li>
+          <li><span class="m">GET</span>/api/changesets · ?status=history</li>
           <li><span class="m">GET</span>/api/changesets/{id} → ops, diffs, checks</li>
           <li><span class="m">POST</span>/api/changesets/{id}/apply {ops}</li>
           <li><span class="m">POST</span>/api/changesets/{id}/reject</li>
           <li><span class="m">POST</span>/api/changesets/{id}/revert (Undo)</li>
+          <li><span class="m">POST</span>/api/changesets/{id}/atoms/{atom} {note | null}</li>
         </ul>
       </div>
     </div>

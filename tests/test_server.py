@@ -20,7 +20,10 @@ HOST = Host(MachineConfig("id-1", "test-pc"), Profile.WSL_DRVFS)
 
 
 def client(store: MemoryVault, web_dir: Path | None = None) -> TestClient:
-    return TestClient(create_app(store, HOST, vault_label="/vault", web_dir=web_dir))
+    app = create_app(
+        store, HOST, vault_label="/vault", web_dir=web_dir, allowed_hosts=["testserver"]
+    )
+    return TestClient(app)
 
 
 def test_status_names_this_pc_and_the_versions(memory_vault: MemoryVault) -> None:
@@ -86,3 +89,12 @@ def test_the_bus_fans_out_heartbeats_and_unsubscribes() -> None:
         ": heartbeat\n\n",
         'event: counts\ndata: {"review": 1}\n\n',
     ]
+
+
+def test_only_this_pcs_host_names_are_served(memory_vault: MemoryVault) -> None:
+    """A page on another site can't reach the service through DNS rebinding."""
+    api = TestClient(create_app(memory_vault, HOST, vault_label="/v", web_dir=None))
+    assert api.get("/api/status").status_code == 400  # Host: testserver
+    assert api.get("/api/status", headers={"host": "127.0.0.1:8765"}).status_code == 200
+    assert api.get("/api/status", headers={"host": "localhost"}).status_code == 200
+    assert api.get("/api/status", headers={"host": "evil.example"}).status_code == 400
