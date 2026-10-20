@@ -10,7 +10,8 @@ import pytest
 from notebook_assistant.adapters.fake_llm import ScriptedModel
 from notebook_assistant.adapters.memory_vault import MemoryVault
 from notebook_assistant.app import digest as buttons
-from notebook_assistant.app.digest import Button, DigestError
+from notebook_assistant.app.clicks import Button
+from notebook_assistant.app.digest import DigestError
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.config import load_default_config
 from notebook_assistant.domain.jsontypes import JsonObject

@@ -16,13 +16,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import PurePosixPath
 
 from notebook_assistant.app import canvas
-from notebook_assistant.app.apply import apply_changeset
 from notebook_assistant.app.browse import find_note
+from notebook_assistant.app.clicks import ApplyRefusedError, Button, apply_click
 from notebook_assistant.app.extract import Capture, ExtractionError, plan_extraction
+from notebook_assistant.app.images import embedded_images, screenshots
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.domain import digest, preserve
 from notebook_assistant.domain.changeset import Changeset, Operation
@@ -34,20 +34,12 @@ from notebook_assistant.domain.links import find_links
 from notebook_assistant.domain.names import name_key
 from notebook_assistant.domain.note import Note
 from notebook_assistant.domain.rules import Rules
-from notebook_assistant.ports.llm import Image, JsonRequest, LanguageModel, LLMError, MediaType
+from notebook_assistant.ports.llm import Image, JsonRequest, LanguageModel, LLMError
 from notebook_assistant.ports.vault import VaultStore
-from notebook_assistant.store import changesets as cs_store
 
 # Vocabulary (Handbook §3, §4.2): what a learn task and a knowledge note are called.
 TASK, LEARN, KNOWLEDGE, MOC = "task", "learn", "knowledge", "moc"
 
-IMAGE_TYPES: dict[str, MediaType] = {
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".gif": "image/gif",
-    ".webp": "image/webp",
-}
 DRAFT_SCHEMA: JsonObject = {
     "type": "object",
     "properties": {"body": {"type": "string", "description": "the note's new body"}},
@@ -82,18 +74,6 @@ class DigestOutcome:
     changesets: list[str]  # ids of the changesets recorded, in order
 
 
-@dataclass(frozen=True)
-class Button:
-    """Who clicks, where, when: what every changeset a button makes records."""
-
-    machine: str
-    now: datetime
-
-    @property
-    def today(self) -> str:
-        return self.now.date().isoformat()
-
-
 def _note(index: VaultIndex, ref: str) -> Note:
     note = find_note(index, ref)
     if note is None:
@@ -107,13 +87,10 @@ def _state(note: Note) -> str | None:
 
 
 def _apply_and_record(store: VaultStore, cs: Changeset, click: Button) -> str:
-    cs.machine = click.machine
-    cs_store.save(store, cs)
-    result = apply_changeset(store, cs, now=click.now, machine=click.machine)
-    cs_store.save(store, result.changeset, with_diff=False)
-    if not result.ok:
-        raise DigestError(result.error or "apply failed")
-    return cs.id
+    try:
+        return apply_click(store, cs, click)
+    except ApplyRefusedError as exc:
+        raise DigestError(str(exc)) from exc
 
 
 def _write(index: VaultIndex, before: Note, after: Note, label: str) -> Operation:
@@ -161,18 +138,6 @@ def _moc_change(index: VaultIndex, note: Note, today: str) -> list[Change]:
     return [(moc, linked)] if moc is not None and linked is not None else []
 
 
-def screenshots(store: VaultStore, index: VaultIndex, note: Note) -> list[Image]:
-    """The images the note embeds, in order, labelled "screenshot N: <file>" (§19.3)."""
-    images: list[Image] = []
-    for link in find_links(note.body):
-        target = index.resolver.resolve(link, note.path) if link.embed else None
-        media = IMAGE_TYPES.get(target.suffix.lower()) if target else None
-        if target is not None and media is not None:
-            label = f"screenshot {len(images) + 1}: {target.name}"
-            images.append(Image(label, media, store.read_bytes(target)))
-    return images
-
-
 def draft_request(
     note: Note, images: list[Image], *, config: Config, rules: Rules, handbook: str
 ) -> JsonRequest:
@@ -217,12 +182,10 @@ def digest_view(store: VaultStore, ref: str, rules: Rules) -> DigestView:
         links = find_links(item.draft)
         draft_note = _titled(index, links[0].target) if links else None
         draft = draft_note.body if draft_note else None
-    images: list[str] = []
-    for link in find_links(original):
-        target = index.resolver.resolve(link, note.path) if link.embed else None
-        if target is not None and target.suffix.lower() in IMAGE_TYPES:
-            images.append(target.as_posix())
-    return DigestView(item=item, original=original, draft=draft, screenshots=images)
+    images = embedded_images(index, Note(path=note.path, body=original))
+    return DigestView(
+        item=item, original=original, draft=draft, screenshots=[p.as_posix() for p in images]
+    )
 
 
 def is_learn_task(note: Note) -> bool:

@@ -21,6 +21,7 @@ from datetime import datetime
 
 from notebook_assistant.app.apply import ApplyResult, apply_changeset, undo_changeset
 from notebook_assistant.app.extract import Capture, compile_changeset, evaluate, split_map
+from notebook_assistant.app.filing import FilingError
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.domain.changeset import Changeset, Operation, Status
 from notebook_assistant.domain.config import Config
@@ -235,16 +236,31 @@ def move_atom_in(
         edited = move_atom(parse_plan(cs.source.plan), atom_id, to)
     except PlanEditError as exc:
         return [str(exc)]
-    capture = Capture(cs.source.text, cs.source.origin, cs.source.name)
+    capture = Capture(
+        cs.source.text,
+        cs.source.origin,
+        cs.source.name,
+        cites=cs.source.cites,
+        inbox=cs.source.inbox,
+    )
     index = VaultIndex.build(store)
     outcomes, problems = evaluate(
         edited, index, capture, config=config, today=now.date().isoformat(), new_id=new_id
     )
     if problems:
         return problems
-    rebuilt = compile_changeset(
-        outcomes, index, reason=cs.reason, created_by=cs.created_by, now=now, review=""
-    )
+    try:
+        rebuilt = compile_changeset(
+            outcomes,
+            index,
+            reason=cs.reason,
+            created_by=cs.created_by,
+            now=now,
+            review="",
+            source=cs.source,
+        )
+    except FilingError as exc:
+        return [str(exc)]
     cs.ops = rebuilt.ops
     cs.review = split_map(edited, outcomes)
     cs.source = replace(cs.source, plan=plan_to_json(edited))

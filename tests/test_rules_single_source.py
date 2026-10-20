@@ -52,6 +52,9 @@ def test_parsed_rules_are_complete() -> None:
     assert d.original_box == "> [!quote]- Original capture"
     assert d.unverified_box == "> [!question] Unverified"
     assert d.as_is["digest"] == rules.digest_flow[-1]  # §19.5 agrees with §19.1
+    c = rules.capture
+    assert (c.long_text_lines, c.ai_origin, c.email_formats) == (30, "ai-chat", (".eml", ".msg"))
+    assert c.attachments == "Attachments" and c.ai_origin in rules.common_enums["origin"]
     for rule in rules.types.values():
         placed = rule.folders or rule.hub_of or rule.container_member
         assert placed, f"{rule.name} has no folder"
@@ -82,6 +85,8 @@ def test_topic_mocs_match_folders() -> None:
         ("`pending → approved → review → graduated`", "pending, then approved", "§19.1"),
         ("the task is set `done` with `produced`", "the task is closed", "§19"),
         ("`> [!quote]- Original capture`", "an original box", "§19.3"),
+        ("over about 30 lines", "that is long", "§12"),
+        ("All embedded files", "Every embed", "§12"),
     ],
 )
 def test_unreadable_handbook_edits_fail_loudly(old: str, new: str, message: str) -> None:

@@ -77,6 +77,8 @@ def render(cs: Changeset, diffs: dict[int, str] | None = None) -> str:
         ("targets", [p.as_posix() for p in cs.targets]),
         ("capture_origin", cs.source.origin if cs.source else None),
         ("capture_name", cs.source.name if cs.source else None),
+        ("capture_inbox", _posix(cs.source.inbox) if cs.source else None),
+        ("capture_cites", _posix(cs.source.cites) if cs.source else None),
     ):
         if value not in (None, "", []):
             fm.set(key, value)
@@ -109,6 +111,14 @@ def render(cs: Changeset, diffs: dict[int, str] | None = None) -> str:
     return f"---\n{fm.render()}\n---\n" + "\n".join(parts)
 
 
+def _posix(path: PurePosixPath | None) -> str | None:
+    return path.as_posix() if path else None
+
+
+def _path(value: object) -> PurePosixPath | None:
+    return PurePosixPath(str(value)) if value else None
+
+
 def parse(text: str) -> Changeset:
     note = Note.parse(PurePosixPath("changeset.md"), text)
     props = note.props
@@ -122,6 +132,8 @@ def parse(text: str) -> Changeset:
             origin=str(props.get("capture_origin", "")),
             name=str(props.get("capture_name", "")),
             plan=blocks.get("Split plan", {}),
+            inbox=_path(props.get("capture_inbox")),
+            cites=_path(props.get("capture_cites")),
         )
         if capture
         else None

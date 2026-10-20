@@ -13,6 +13,7 @@ drifting silently. Sections read:
 - §4.1: common required properties, their vocabularies, and those the assistant manages;
   §4.2: per-type required properties and vocabularies; §4.3: allowed statuses; §5: title
   patterns;
+- §2: the attachments folder; §12: which captures keep a ``source`` note, and the email formats;
 - §13: the archive folder;
 - §19.1: the digestion flow, in order, and the digest reasons; §19.2, §19.3, §19.5: what
   graduating sets, how a learn task closes, the Original capture and Unverified boxes;
@@ -64,6 +65,16 @@ class DigestionRules:
 
 
 @dataclass(frozen=True)
+class CaptureRules:
+    """What a capture becomes (Handbook §12) and where captured files go (§2)."""
+
+    long_text_lines: int  # pasted text longer than this keeps a `source` note
+    ai_origin: str  # the `origin` of a pasted AI answer, which never keeps a `source` note
+    email_formats: tuple[str, ...]  # file suffixes captured as emails, e.g. ".eml"
+    attachments: str  # the folder of every embedded file
+
+
+@dataclass(frozen=True)
 class Rules:
     version: str
     common_required: tuple[str, ...]
@@ -87,6 +98,7 @@ class Rules:
     direct_capture_digest: tuple[
         str, str
     ]  # (type, digest state) of notes from a direct capture (§19.6)
+    capture: CaptureRules  # §12, §2
 
     @property
     def container_roots(self) -> frozenset[str]:
@@ -469,6 +481,20 @@ def _direct_capture_digest(text: str) -> tuple[str, str]:
     return m.group(1), m.group(2)
 
 
+def _capture(text: str) -> CaptureRules:
+    s12 = _section(text, "12")
+    lines = re.search(r"over about (\d+) lines", s12)
+    ai = re.search(r"always get `origin: ([\w-]+)`", s12)
+    email = re.search(r"^- \*\*Emails\*\* \((.+?)\)", s12, re.M)
+    attachments = re.search(r"^(\S+)/\s+All embedded files", _section(text, "2"), re.M)
+    formats = tuple(t for t in _ticks(email.group(1)) if t.startswith(".")) if email else ()
+    if not (lines and ai and formats and attachments):
+        raise HandbookFormatError(
+            "§12 or §2 doesn't define long text, AI answers, email formats or Attachments"
+        )
+    return CaptureRules(int(lines.group(1)), ai.group(1), formats, attachments.group(1))
+
+
 def _archive_root(text: str) -> str:
     m = re.search(r"moving a note into `([^`]+)/`", _section(text, "13"))
     if not m:
@@ -538,4 +564,5 @@ def parse_handbook(text: str) -> Rules:
         digest_flow=_digest_flow(text),
         digestion=_digestion(text),
         direct_capture_digest=_direct_capture_digest(text),
+        capture=_capture(text),
     )
