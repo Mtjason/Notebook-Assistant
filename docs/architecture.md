@@ -59,6 +59,8 @@ Drawn in `docs/design.html` (UI schematic): the app shell, every screen, and the
 | Credentials | Credential cards with **Copy username** / **Copy password**. The secret goes from Bitwarden to the clipboard and is never shown or sent to the model |
 | Sessions | Listed in the sidebar and read from the vault, so a conversation started on the work PC continues on the personal PC |
 
+Built so far (`app/chat.py`, `app/chat_tools.py`): Ask with citations, request actions as changeset cards (`propose_note`, `propose_edit`), `@` pins, `/digest`, scope, sessions. Not yet: the other `/` commands, dropping files into the chat (use the Inbox), Save to vault, and credential cards (Bitwarden).
+
 ### 2.3 Rendering
 
 - **Obsidian-flavored Markdown:**

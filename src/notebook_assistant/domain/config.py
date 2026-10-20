@@ -46,6 +46,7 @@ class Models:
 class Limits:
     monthly_spend_usd: float
     max_tokens_per_job: int
+    tool_calls_per_turn: int
 
 
 @dataclass(frozen=True)

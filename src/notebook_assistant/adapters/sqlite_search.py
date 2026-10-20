@@ -29,9 +29,10 @@ def tokens(text: str) -> list[str]:
     return [str(t).lower() for t in jieba.cut_for_search(text) if _WORD.search(str(t))]
 
 
-def _match_query(query: str) -> str | None:
+def _match_query(query: str, every_word: bool) -> str | None:
     words = dict.fromkeys(tokens(query))
-    return " AND ".join('"' + w.replace('"', '""') + '"' for w in words) or None
+    joiner = " AND " if every_word else " OR "
+    return joiner.join('"' + w.replace('"', '""') + '"' for w in words) or None
 
 
 def snippet(text: str, query: str) -> str:
@@ -91,8 +92,10 @@ class SqliteSearch:
             self._db.execute("DELETE FROM docs")
             self._db.execute("DELETE FROM fts")
 
-    def search(self, query: str, *, limit: int, kind: DocKind | None = None) -> list[Hit]:
-        match = _match_query(query)
+    def search(
+        self, query: str, *, limit: int, kind: DocKind | None = None, every_word: bool = True
+    ) -> list[Hit]:
+        match = _match_query(query, every_word)
         if match is None:
             return []
         with self._lock:

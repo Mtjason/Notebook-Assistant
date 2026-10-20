@@ -63,12 +63,12 @@ function renderApp() {
   return render(<QueryClientProvider client={queries}><App /></QueryClientProvider>);
 }
 
-it("shows the PC, live counts, and screens with the branch that builds them", async () => {
+it("shows the PC, live counts, and opens on Chat", async () => {
   renderApp();
   expect(await screen.findByText("test-pc")).toBeTruthy();
   const nav = screen.getByRole("navigation", { name: "Screens" });
   expect(await within(nav).findByText("5")).toBeTruthy(); // digest queue
-  expect(screen.getByText(/arrives with branch 10 feat\/chat/)).toBeTruthy();
+  expect(screen.getByText(/Answers cite the notes they come from/)).toBeTruthy();
   await userEvent.click(within(nav).getByRole("button", { name: /Settings/ }));
   expect(screen.getByText("wsl-drvfs · file changes: polling")).toBeTruthy();
 });

@@ -1,31 +1,20 @@
 // The app shell (design.html, UI schematic): top bar, nav rail, main pane, context panel.
-// Screens arrive branch by branch; the shell, search palette and note preview work now.
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "./api";
+import { ChatScreen } from "./ChatScreen";
 import { ContextPanel } from "./ContextPanel";
 import { DigestScreen } from "./DigestScreen";
 import { InboxScreen } from "./InboxScreen";
 import { IncubatorScreen } from "./IncubatorScreen";
 import { resolveLink } from "./notes";
 import { ReviewScreen } from "./ReviewScreen";
-import { SCREENS, type Screen, type ScreenId } from "./screens";
+import { SCREENS, type ScreenId } from "./screens";
 import { SearchPalette } from "./SearchPalette";
 import { SessionsScreen } from "./SessionsScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { TasksScreen } from "./TasksScreen";
 import { useEvents } from "./useEvents";
-
-function Placeholder({ screen }: { screen: Screen }) {
-  return (
-    <section>
-      <h2>{screen.label}</h2>
-      <p className="muted">
-        This screen arrives with branch {screen.branch}. Its design is in docs/design.html.
-      </p>
-    </section>
-  );
-}
 
 export function App() {
   useEvents();
@@ -53,7 +42,6 @@ export function App() {
     if (note) setSelected(note.path);
   }
 
-  const active = SCREENS.find((s) => s.id === screen);
   return (
     <div className="shell">
       <header className="topbar">
@@ -91,10 +79,17 @@ export function App() {
               setScreen("review");
             }}
           />
-        ) : screen === "review" ? (
-          <ReviewScreen key={focus ?? "list"} onOpenLink={openLink} focus={focus} />
         ) : screen === "inbox" ? (
           <InboxScreen
+            onOpenReview={(id) => {
+              setFocus(id);
+              setScreen("review");
+            }}
+          />
+        ) : screen === "chat" ? (
+          <ChatScreen
+            notes={notes.data ?? []}
+            onOpenLink={openLink}
             onOpenReview={(id) => {
               setFocus(id);
               setScreen("review");
@@ -114,7 +109,7 @@ export function App() {
         ) : screen === "digest" ? (
           <DigestScreen onOpenLink={openLink} />
         ) : (
-          active && <Placeholder screen={active} />
+          <ReviewScreen key={focus ?? "list"} onOpenLink={openLink} focus={focus} />
         )}
       </main>
       <ContextPanel

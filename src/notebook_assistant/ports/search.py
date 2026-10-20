@@ -42,4 +42,9 @@ class SearchIndex(Protocol):
 
     def clear(self) -> None: ...
 
-    def search(self, query: str, *, limit: int, kind: DocKind | None = None) -> list[Hit]: ...
+    def search(
+        self, query: str, *, limit: int, kind: DocKind | None = None, every_word: bool = True
+    ) -> list[Hit]:
+        """Ranked hits. With ``every_word`` each query word must appear (a search box); without
+        it any may (a question asked in a sentence), and more matching words rank higher."""
+        ...

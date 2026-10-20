@@ -196,6 +196,26 @@ export interface SessionSummary {
   preview: string;
 }
 
+export interface SessionTurn {
+  role: "You" | "Assistant";
+  time: string;
+  text: string;
+  tools: string[];
+}
+
+export interface Transcript {
+  session: SessionSummary;
+  turns: SessionTurn[];
+  changesets: string[];
+}
+
+export interface ChatEvent {
+  type: "token" | "tool" | "changeset" | "done" | "error";
+  text: string;
+  session: string;
+  changesets?: string[];
+}
+
 export interface CaptureView {
   paths: string[];
   changeset: string;
@@ -277,6 +297,10 @@ export const api = {
   search: (q: string) => get<SearchHit[]>(`/api/search?q=${encodeURIComponent(q)}`),
   sessions: (q: string) =>
     get<{ session: SessionSummary; snippet: string | null }[]>(`/api/sessions?q=${encodeURIComponent(q)}`),
+  newSession: (title: string, scope: string) => post<SessionSummary>("/api/sessions", { title, scope }),
+  transcript: (path: string) => get<Transcript>(`/api/sessions/view/${pathUrl(path)}`),
+  ask: (path: string, text: string, pinned: string[]) =>
+    post<JobView>(`/api/sessions/turn/${pathUrl(path)}`, { text, pinned }),
   rebuildIndex: () => post<{ indexed: number; removed: number; total: number }>("/api/index/rebuild"),
   sweepReports: () => get<Record<string, MaintenanceReport>>("/api/sweep"),
   runSweep: (kind: string) => post<JobView>("/api/sweep/run", { kind }),

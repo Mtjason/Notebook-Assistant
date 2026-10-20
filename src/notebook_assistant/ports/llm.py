@@ -2,12 +2,14 @@
 
 The planners never talk to a model API directly. They build a :class:`JsonRequest` (which model,
 the stable instructions, the per-call prompt, and the JSON schema the answer must match) and get
-back the parsed object. Adapters: the Claude API, and a scripted fake for tests.
+back the parsed object. Chat holds a conversation with tools instead (:class:`ChatModel`): each
+step streams text and may call tools, whose results go back in the next step. Adapters: the Claude
+API, and scripted fakes for tests.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
@@ -49,4 +51,64 @@ class JsonRequest:
 class LanguageModel(Protocol):
     def complete_json(self, request: JsonRequest) -> JsonObject:
         """The model's answer, parsed; it matches ``request.schema``. Raises :class:`LLMError`."""
+        ...
+
+
+# --------------------------------------------------------------------------- conversations
+
+
+@dataclass(frozen=True)
+class ToolSpec:
+    """A tool the model may call: its name, what it does, and its input's JSON schema."""
+
+    name: str
+    description: str
+    schema: Mapping[str, JsonValue]
+
+
+@dataclass(frozen=True)
+class ToolCall:
+    id: str
+    name: str
+    input: JsonObject
+
+
+@dataclass(frozen=True)
+class ToolResult:
+    call_id: str
+    content: str
+    is_error: bool = False
+
+
+@dataclass(frozen=True)
+class ChatMessage:
+    """One message: a user's text (or tool results), or the model's text and tool calls."""
+
+    role: Literal["user", "assistant"]
+    text: str = ""
+    tool_calls: tuple[ToolCall, ...] = ()
+    tool_results: tuple[ToolResult, ...] = ()
+
+
+@dataclass(frozen=True)
+class ChatRequest:
+    model: str
+    system: tuple[str, ...]  # stable prefix, cached like JsonRequest.system
+    messages: tuple[ChatMessage, ...]
+    tools: tuple[ToolSpec, ...]
+    max_tokens: int
+
+
+@dataclass(frozen=True)
+class ChatReply:
+    text: str
+    tool_calls: tuple[ToolCall, ...]
+    input_tokens: int
+    output_tokens: int
+
+
+class ChatModel(Protocol):
+    def converse(self, request: ChatRequest, on_text: Callable[[str], None]) -> ChatReply:
+        """One model step: streams its text to ``on_text`` as it arrives, and returns the whole
+        reply, with any tool calls the loop must answer. Raises :class:`LLMError`."""
         ...

@@ -396,10 +396,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
         <ul><li>SessionHeader, MessageList, ToolTrace (collapsible)</li><li>MarkdownView with citation chips</li><li>ChangesetCard, CredentialCard</li><li>Composer with @-mention and slash-command menus</li></ul>
         <h4>Calls</h4>
         <ul class="api">
-          <li><span class="m">POST</span>/api/sessions → new session note</li>
-          <li><span class="m">POST</span>/api/sessions/{id}/turns</li>
-          <li><span class="m sse">SSE</span>/api/sessions/{id}/stream · token, tool, changeset, done</li>
-          <li><span class="m">POST</span>/api/changesets/{id}/apply {ops, base_hash}</li>
+          <li><span class="m">POST</span>/api/sessions {title, scope} → new session note</li>
+          <li><span class="m">GET</span>/api/sessions/view/{path} → turns, changesets</li>
+          <li><span class="m">POST</span>/api/sessions/turn/{path} {text, pinned} → job</li>
+          <li><span class="m sse">SSE</span>/api/events · chat (token, tool, changeset, done, error)</li>
+          <li><span class="m">POST</span>/api/changesets/{id}/apply · /reject</li>
           <li><span class="m">POST</span>/api/secrets/{item}/copy → clipboard only</li>
         </ul>
       </div>

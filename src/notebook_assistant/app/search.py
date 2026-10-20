@@ -67,6 +67,7 @@ def search(
     *,
     limit: int,
     kind: DocKind | None = None,
+    every_word: bool = True,
 ) -> list[Hit]:
     refresh(store, search_index, rules)
-    return search_index.search(query, limit=limit, kind=kind)
+    return search_index.search(query, limit=limit, kind=kind, every_word=every_word)
