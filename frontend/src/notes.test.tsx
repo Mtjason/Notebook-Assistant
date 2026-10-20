@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { obsidianLink, type NoteSummary } from "./api";
 import { filterNotes, resolveLink } from "./notes";
 import { SearchPalette } from "./SearchPalette";
@@ -39,10 +40,34 @@ describe("obsidianLink", () => {
 });
 
 describe("SearchPalette", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      const hits = url.includes("lazy")
+        ? [{ path: "60-Knowledge/Data/Lazy evaluation.md", title: "Lazy evaluation", kind: "note", snippet: "a **lazy** plan", score: 3 }]
+        : [];
+      return new Response(JSON.stringify(hits));
+    }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  function renderPalette(pick = vi.fn(), close = vi.fn()) {
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={queries}><SearchPalette notes={NOTES} onPick={pick} onClose={close} /></QueryClientProvider>);
+  }
+
+  it("adds full-text hits from the index, with their snippet", async () => {
+    const pick = vi.fn();
+    renderPalette(pick);
+    await userEvent.type(screen.getByRole("textbox", { name: "Search notes" }), "lazy");
+    await userEvent.click(await screen.findByRole("button", { name: /Lazy evaluation/ }));
+    expect(screen.getByText("lazy", { selector: "b" })).toBeTruthy();
+    expect(pick).toHaveBeenCalledWith({ path: "60-Knowledge/Data/Lazy evaluation.md", title: "Lazy evaluation", type: null, aliases: [] });
+  });
+
   it("filters as you type and picks with Enter or a click", async () => {
     const pick = vi.fn();
     const close = vi.fn();
-    render(<SearchPalette notes={NOTES} onPick={pick} onClose={close} />);
+    renderPalette(pick, close);
     const input = screen.getByRole("textbox", { name: "Search notes" });
     await userEvent.type(input, "polars{ArrowDown}{Enter}");
     expect(pick).toHaveBeenCalledWith(NOTES[0]);

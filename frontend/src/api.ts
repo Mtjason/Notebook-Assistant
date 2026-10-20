@@ -178,6 +178,24 @@ export interface IdeaCard {
   updated: string | null;
 }
 
+export interface SearchHit {
+  path: string;
+  title: string;
+  kind: "note" | "session";
+  snippet: string;
+  score: number;
+}
+
+export interface SessionSummary {
+  path: string;
+  id: string;
+  title: string;
+  started: string | null;
+  device: string | null;
+  changesets: number;
+  preview: string;
+}
+
 export interface CaptureView {
   paths: string[];
   changeset: string;
@@ -256,6 +274,10 @@ export const api = {
     post<{ changeset: string }>(`/api/status/${pathUrl(path)}`, { status, produced }),
   promote: (path: string, title: string) =>
     post<{ changeset: string }>(`/api/ideas/promote/${pathUrl(path)}`, { title }),
+  search: (q: string) => get<SearchHit[]>(`/api/search?q=${encodeURIComponent(q)}`),
+  sessions: (q: string) =>
+    get<{ session: SessionSummary; snippet: string | null }[]>(`/api/sessions?q=${encodeURIComponent(q)}`),
+  rebuildIndex: () => post<{ indexed: number; removed: number; total: number }>("/api/index/rebuild"),
   sweepReports: () => get<Record<string, MaintenanceReport>>("/api/sweep"),
   runSweep: (kind: string) => post<JobView>("/api/sweep/run", { kind }),
 };

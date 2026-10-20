@@ -10,6 +10,8 @@
   arrive as ``job`` events; graduate, send back, graduate as-is); ``/api/jobs/{id}``;
 - ``/api/inbox`` and ``POST /api/capture``: the Inbox screen (what waits there; save a capture;
   processing one runs as a job that proposes a changeset for Review);
+- ``/api/search``, ``/api/index/rebuild``, ``/api/sessions``: full-text search over this PC's
+  index, and the Sessions screen;
 - ``/api/views/tasks``, ``/api/views/incubator``, ``/api/status/{path}``,
   ``/api/ideas/promote/{path}``: the Tasks and Incubator screens;
 - ``/api/sweep``: the maintenance buttons (Sweep changes, Lint, Deep pass, Archive check) run as
@@ -42,10 +44,13 @@ from notebook_assistant import __version__
 from notebook_assistant.adapters.anthropic_llm import AnthropicModel
 from notebook_assistant.adapters.email_files import read_email
 from notebook_assistant.adapters.overlay_vault import OverlayVault
+from notebook_assistant.adapters.sqlite_search import SqliteSearch
 from notebook_assistant.api.events import Event, EventBus
 from notebook_assistant.api.jobs import Job, JobBusyError, JobResult, JobRunner, Progress
 from notebook_assistant.app import clicks, images, inbox, maintenance, review, views
 from notebook_assistant.app import digest as buttons
+from notebook_assistant.app import search as finder
+from notebook_assistant.app import sessions as chats
 from notebook_assistant.app.browse import (
     Counts,
     NoteDetail,
@@ -69,6 +74,7 @@ from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import Host
 from notebook_assistant.ports.email import EmailReader
 from notebook_assistant.ports.llm import LanguageModel, LLMError
+from notebook_assistant.ports.search import DocKind, Hit, SearchIndex
 from notebook_assistant.ports.vault import VaultError, VaultStore
 
 HEARTBEAT_SECONDS = 15.0
@@ -96,6 +102,12 @@ class ApplyRequest:
 @dataclass(frozen=True)
 class MoveRequest:
     note: str | None = None  # the planned note to move the atom to; None drops it
+
+
+@dataclass(frozen=True)
+class SessionRow:
+    session: chats.SessionSummary
+    snippet: str | None  # where the search matched, when there's a query
 
 
 @dataclass(frozen=True)
@@ -202,8 +214,10 @@ def create_app(
     clock: Callable[[], datetime] = lambda: datetime.now().astimezone(),
     model: Callable[[], LanguageModel] = AnthropicModel,
     emails: EmailReader = read_email,
+    search: SearchIndex | None = None,
 ) -> FastAPI:
     events = bus or EventBus()
+    index_cache: SearchIndex = search or SqliteSearch(":memory:")
     jobs = JobRunner(events)
     app = FastAPI(title="notebook-assistant", version=__version__)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
@@ -453,6 +467,24 @@ def create_app(
             return job_view(jobs.start("process", note.path.as_posix(), work))
         except JobBusyError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.get("/api/search")
+    def search_notes(q: str, kind: DocKind | None = None, limit: int = 20) -> list[Hit]:
+        return finder.search(store, index_cache, load_rules(), q, limit=min(limit, 100), kind=kind)
+
+    @app.post("/api/index/rebuild", dependencies=writes)
+    def rebuild_index() -> finder.Refreshed:
+        return finder.rebuild(store, index_cache, load_rules())
+
+    @app.get("/api/sessions")
+    def list_sessions(q: str = "") -> list[SessionRow]:
+        rules = load_rules()
+        listed = chats.list_sessions(store, rules)
+        if not q.strip():
+            return [SessionRow(s, None) for s in listed]
+        by_path = {s.path: s for s in listed}
+        hits = finder.search(store, index_cache, rules, q, limit=50, kind="session")
+        return [SessionRow(by_path[h.path], h.snippet) for h in hits if h.path in by_path]
 
     @app.get("/api/views/tasks")
     def tasks_view() -> views.TasksView:

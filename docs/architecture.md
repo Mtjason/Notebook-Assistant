@@ -385,10 +385,10 @@ Short hands-on sessions (20–30 min) right after the branch that first makes so
 | Command | Does |
 |---|---|
 | `notebook-assistant serve [--vault <path>] [--port <n>] [--profile <name>]` | Starts the service and web UI on `127.0.0.1:<port>` (local-only). The vault and port default to `config.yaml` (§4.1.1) |
-| `notebook-assistant doctor [--vault <path>] [--profile <name>]` | Checks the host: the detected profile and file-watch mode, the encoding, a write test in the vault, `Config.md`, `bw` status, and whether the Claude API is reachable with working credentials (listing models, which is free). The search option is reported; its benchmark arrives with the search index (branch 9). Exits 1 on any failure |
+| `notebook-assistant doctor [--vault <path>] [--profile <name>]` | Checks the host: the detected profile and file-watch mode, the encoding, a write test in the vault, `Config.md`, `bw` status, and whether the Claude API is reachable with working credentials (listing models, which is free). The search option is reported; measuring an embedding model's speed arrives with embeddings (branch 11). Exits 1 on any failure |
 | `notebook-assistant autostart install\|remove [--vault <path>]` | Registers the service with the profile's start-at-login mechanism (§5.1), or removes it; the entries are in `platform/autostart.py` |
 | `notebook-assistant update` | Installs the latest release wheel |
-| `notebook-assistant index rebuild` | Rebuilds the per-PC cache |
+| `notebook-assistant index rebuild --vault <path>` | Rebuilds this PC's search index for that vault from scratch (§4.2: `index-<vault key>.sqlite` in the cache folder, which `NA_CACHE_DIR` moves). `serve` keeps it current on its own, so this is only needed after deleting or damaging it |
 | `notebook-assistant digest --vault <path> --text <file> --origin <origin>` | Turns a capture into a pending changeset through the extraction planner (`maintenance-job.md`, Extraction); its record shows the split map. Nothing is written to notes until `apply` |
 | `notebook-assistant eval-extract --vault <path> --captures <dir>` | *Experimental, not part of the proof of concept* (`app/extract_eval.py`). Scores the planner on the fixture captures with the real model; reads the vault, writes nothing. Both this and `digest` take `--save-answers <dir>` to keep the model's raw answers for diagnosis |
 

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import re
 import uuid
+from pathlib import Path
 
 import pytest
 
+from notebook_assistant import machine
 from notebook_assistant.machine import (
     MachineConfig,
     MachineConfigError,
@@ -64,3 +66,12 @@ def test_default_name_is_the_hostname_and_profile() -> None:
 def test_mistakes_fail_loudly(text: str, message: str) -> None:
     with pytest.raises(MachineConfigError, match=re.escape(message)):
         parse_machine_config(text)
+
+
+def test_the_cache_holds_one_index_per_vault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("NA_CACHE_DIR", str(tmp_path / "cache"))
+    a, b = machine.index_path(tmp_path / "a"), machine.index_path(tmp_path / "b")
+    assert a.parent == machine.cache_dir() == tmp_path / "cache" and a != b
+    assert a.name.startswith("index-") and a.suffix == ".sqlite"

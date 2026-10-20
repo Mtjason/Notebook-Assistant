@@ -569,13 +569,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
       </div>
       <div class="spec">
         <h3>Sessions</h3>
-        <p>Every past conversation, searchable by keyword (Chinese words split by jieba, a Chinese word segmenter) and, if enabled, by meaning. Continue any session on either PC, because the transcript is a note in the vault.</p>
+        <p>Every past conversation, newest first, searchable by keyword (Chinese words split by jieba, a Chinese word segmenter) and, if enabled, by meaning. A session is a note in the vault, so opening one previews it in the context panel, and either PC can continue it.</p>
         <h4>Components</h4>
-        <ul><li>SessionSearch with filters</li><li>ResultRow with highlighted snippet</li></ul>
+        <ul><li>SessionSearch</li><li>ResultRow: title, start, PC, changesets, and the highlighted snippet where the search matched</li></ul>
         <h4>Calls</h4>
         <ul class="api">
-          <li><span class="m">GET</span>/api/sessions?q=&amp;from=&amp;pc=</li>
-          <li><span class="m">GET</span>/api/sessions/{id}</li>
+          <li><span class="m">GET</span>/api/sessions?q= → sessions with snippets</li>
+          <li><span class="m">GET</span>/api/notes/{path} (the preview)</li>
         </ul>
       </div>
     </div>

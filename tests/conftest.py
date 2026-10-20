@@ -75,7 +75,8 @@ def sequential_ids() -> Callable[[], str]:
 
 @pytest.fixture(autouse=True)
 def _isolated_machine_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Every test gets its own per-machine config folder, never the real one."""
+    """Every test gets its own per-machine config and cache folders, never the real ones."""
     folder = tmp_path / "machine-config"
     monkeypatch.setenv("NA_CONFIG_DIR", str(folder))
+    monkeypatch.setenv("NA_CACHE_DIR", str(tmp_path / "machine-cache"))
     return folder
