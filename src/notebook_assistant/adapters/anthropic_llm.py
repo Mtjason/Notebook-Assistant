@@ -4,7 +4,8 @@
   (``output_config.format``), so it always parses.
 - **Prompt caching:** the system blocks (instructions, the handbook) are a stable prefix; the last
   one carries the cache breakpoint.
-- **Streaming**, because extraction answers can be long and ``max_tokens`` is large.
+- **Streaming**, because extraction answers can be long and ``max_tokens`` is large; in a chat
+  the text reaches the page word by word (:meth:`AnthropicModel.converse`, with tools).
 - The SDK already retries rate limits, server errors and dropped connections; whatever still
   fails, and any refusal or cut-off answer, becomes :class:`~notebook_assistant.ports.llm.LLMError`.
 
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import base64
 import json
+from collections.abc import Callable
 
 import anthropic
 from anthropic.types import (
@@ -23,11 +25,22 @@ from anthropic.types import (
     ContentBlockParam,
     ImageBlockParam,
     Message,
+    MessageParam,
     TextBlockParam,
+    ToolParam,
+    ToolResultBlockParam,
+    ToolUseBlockParam,
 )
 
 from notebook_assistant.domain.jsontypes import JsonObject
-from notebook_assistant.ports.llm import JsonRequest, LLMError
+from notebook_assistant.ports.llm import (
+    ChatMessage,
+    ChatReply,
+    ChatRequest,
+    JsonRequest,
+    LLMError,
+    ToolCall,
+)
 
 
 class AnthropicModel:
@@ -53,6 +66,40 @@ class AnthropicModel:
             raise LLMError(f"can't reach the Claude API: {exc}") from exc
         return _answer(message)
 
+    def converse(self, request: ChatRequest, on_text: Callable[[str], None]) -> ChatReply:
+        system: list[TextBlockParam] = [{"type": "text", "text": text} for text in request.system]
+        if system:
+            system[-1]["cache_control"] = {"type": "ephemeral"}
+        tools: list[ToolParam] = [
+            {"name": t.name, "description": t.description, "input_schema": dict(t.schema)}
+            for t in request.tools
+        ]
+        try:
+            with self._client.messages.stream(
+                model=request.model,
+                max_tokens=request.max_tokens,
+                system=system,
+                tools=tools,
+                messages=[_message(m) for m in request.messages],
+            ) as stream:
+                for text in stream.text_stream:
+                    on_text(text)
+                message = stream.get_final_message()
+        except anthropic.APIStatusError as exc:
+            raise LLMError(f"Claude API error {exc.status_code}: {exc.message}") from exc
+        except anthropic.APIConnectionError as exc:
+            raise LLMError(f"can't reach the Claude API: {exc}") from exc
+        if message.stop_reason == "refusal":
+            raise LLMError("the model declined the request")
+        calls = tuple(
+            ToolCall(b.id, b.name, _json_object(b.input))
+            for b in message.content
+            if b.type == "tool_use"
+        )
+        text = "".join(b.text for b in message.content if b.type == "text")
+        usage = message.usage
+        return ChatReply(text, calls, usage.input_tokens, usage.output_tokens)
+
     def count_models(self) -> int:
         """How many models these credentials can use: free, and proves both reach and login."""
         try:
@@ -63,6 +110,36 @@ class AnthropicModel:
             raise LLMError(f"Claude API error {exc.status_code}: {exc.message}") from exc
         except anthropic.APIConnectionError as exc:
             raise LLMError(f"can't reach the Claude API: {exc}") from exc
+
+
+def _json_object(value: object) -> JsonObject:
+    """A tool call's input as JSON data (the SDK types it loosely)."""
+    data = json.loads(json.dumps(value))
+    return data if isinstance(data, dict) else {}
+
+
+def _message(message: ChatMessage) -> MessageParam:
+    """A conversation message in the API's shape: text first, then tool calls or results."""
+    blocks: list[ContentBlockParam] = []
+    if message.text:
+        blocks.append({"type": "text", "text": message.text})
+    for call in message.tool_calls:
+        use: ToolUseBlockParam = {
+            "type": "tool_use",
+            "id": call.id,
+            "name": call.name,
+            "input": dict[str, object](call.input),
+        }
+        blocks.append(use)
+    for result in message.tool_results:
+        answer: ToolResultBlockParam = {
+            "type": "tool_result",
+            "tool_use_id": result.call_id,
+            "content": result.content,
+            "is_error": result.is_error,
+        }
+        blocks.append(answer)
+    return {"role": message.role, "content": blocks}
 
 
 def _content(request: JsonRequest) -> str | list[ContentBlockParam]:

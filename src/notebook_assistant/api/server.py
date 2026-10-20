@@ -11,7 +11,9 @@
 - ``/api/inbox`` and ``POST /api/capture``: the Inbox screen (what waits there; save a capture;
   processing one runs as a job that proposes a changeset for Review);
 - ``/api/search``, ``/api/index/rebuild``, ``/api/sessions``: full-text search over this PC's
-  index, and the Sessions screen;
+  index, and the Sessions screen; ``/api/sessions/view|turn/{path}``: Chat (a turn runs as a
+  job whose text, tool calls and proposals arrive as ``chat`` events);
+- with ``retention``: the daily session-retention job (Handbook §16.6);
 - ``/api/views/tasks``, ``/api/views/incubator``, ``/api/status/{path}``,
   ``/api/ideas/promote/{path}``: the Tasks and Incubator screens;
 - ``/api/sweep``: the maintenance buttons (Sweep changes, Lint, Deep pass, Archive check) run as
@@ -28,8 +30,10 @@ hundred notes take well under a second (``app/index.py``).
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+import asyncio
+from collections.abc import AsyncIterator, Callable, Sequence
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 from datetime import datetime
 from importlib import resources
 from pathlib import Path, PurePosixPath
@@ -47,6 +51,7 @@ from notebook_assistant.adapters.overlay_vault import OverlayVault
 from notebook_assistant.adapters.sqlite_search import SqliteSearch
 from notebook_assistant.api.events import Event, EventBus
 from notebook_assistant.api.jobs import Job, JobBusyError, JobResult, JobRunner, Progress
+from notebook_assistant.app import chat as chatting
 from notebook_assistant.app import clicks, images, inbox, maintenance, review, views
 from notebook_assistant.app import digest as buttons
 from notebook_assistant.app import search as finder
@@ -63,21 +68,25 @@ from notebook_assistant.app.browse import (
 from notebook_assistant.app.capture import CaptureError, capture_to_inbox
 from notebook_assistant.app.extract import ExtractionError
 from notebook_assistant.app.index import VaultIndex
+from notebook_assistant.app.retention import run_retention
 from notebook_assistant.app.review import ChangesetDetail, ChangesetSummary, ReviewError
 from notebook_assistant.config import load_config
 from notebook_assistant.domain import digest
+from notebook_assistant.domain import session as session_note
 from notebook_assistant.domain.capture import CapturedFile
 from notebook_assistant.domain.changeset import Changeset
 from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.domain.ids import new_note_id
+from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import Host
 from notebook_assistant.ports.email import EmailReader
-from notebook_assistant.ports.llm import LanguageModel, LLMError
+from notebook_assistant.ports.llm import ChatModel, LanguageModel, LLMError
 from notebook_assistant.ports.search import DocKind, Hit, SearchIndex
 from notebook_assistant.ports.vault import VaultError, VaultStore
 
 HEARTBEAT_SECONDS = 15.0
+RETENTION_SECONDS = 24 * 60 * 60  # session retention runs once a day (Handbook §16.6)
 LOCAL_HOSTS = ("127.0.0.1", "localhost")
 CLIENT_HEADER = "notebook-assistant"  # the X-Requested-With value the web app sends on POSTs
 NOT_BUILT = (
@@ -102,6 +111,25 @@ class ApplyRequest:
 @dataclass(frozen=True)
 class MoveRequest:
     note: str | None = None  # the planned note to move the atom to; None drops it
+
+
+@dataclass(frozen=True)
+class NewSession:
+    title: str  # the first question, shortened
+    scope: str = "all"  # all, or a Handbook §4.1 scope
+
+
+@dataclass(frozen=True)
+class TurnRequest:
+    text: str
+    pinned: list[str] = field(default_factory=list)  # notes pinned with @, by title or path
+
+
+@dataclass(frozen=True)
+class Transcript:
+    session: chats.SessionSummary
+    turns: list[session_note.Turn]
+    changesets: list[str]
 
 
 @dataclass(frozen=True)
@@ -215,11 +243,30 @@ def create_app(
     model: Callable[[], LanguageModel] = AnthropicModel,
     emails: EmailReader = read_email,
     search: SearchIndex | None = None,
+    chat: Callable[[], ChatModel] = AnthropicModel,
+    retention: bool = False,
 ) -> FastAPI:
     events = bus or EventBus()
     index_cache: SearchIndex = search or SqliteSearch(":memory:")
     jobs = JobRunner(events)
-    app = FastAPI(title="notebook-assistant", version=__version__)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        task = asyncio.create_task(daily_retention()) if retention else None
+        yield
+        if task is not None:
+            task.cancel()
+
+    async def daily_retention() -> None:
+        """The one automatic job (Handbook §16.6): propose old sessions' deletion once a day."""
+        while True:
+            await asyncio.to_thread(
+                run_retention, store, load_rules(), now=clock(), machine=host.machine.name
+            )
+            events.publish(Event("counts"))
+            await asyncio.sleep(RETENTION_SECONDS)
+
+    app = FastAPI(title="notebook-assistant", version=__version__, lifespan=lifespan)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
     app.state.events = events
     writes = [Depends(require_client)]
@@ -485,6 +532,69 @@ def create_app(
         by_path = {s.path: s for s in listed}
         hits = finder.search(store, index_cache, rules, q, limit=50, kind="session")
         return [SessionRow(by_path[h.path], h.snippet) for h in hits if h.path in by_path]
+
+    @app.post("/api/sessions", dependencies=writes)
+    def new_session(request: NewSession) -> chats.SessionSummary:
+        rules = load_rules()
+        if request.scope != "all" and request.scope not in rules.common_enums["scope"]:
+            raise HTTPException(status_code=400, detail=f"unknown scope {request.scope!r}")
+        note = chatting.start_session(
+            store,
+            rules,
+            title=request.title.strip(),
+            now=clock(),
+            device=host.machine.name,
+            model=load_config(store).models.chat,
+            scope=request.scope,
+        )
+        return chats.summary(note)
+
+    @app.get("/api/sessions/view/{ref:path}")
+    def view_session(ref: str) -> Transcript:
+        note = VaultIndex.build(store).note(PurePosixPath(ref))
+        if note is None or not finder.is_session(note.path.as_posix(), load_rules()):
+            raise HTTPException(status_code=404, detail=f"no session {ref!r}")
+        proposed = note.frontmatter.get_list("changesets") if note.frontmatter else []
+        return Transcript(chats.summary(note), session_note.turns(note), [str(c) for c in proposed])
+
+    @app.post("/api/sessions/turn/{ref:path}", dependencies=writes)
+    async def ask(ref: str, request: TurnRequest) -> JobView:
+        if not request.text.strip():
+            raise HTTPException(status_code=400, detail="nothing to ask")
+        loop = asyncio.get_running_loop()
+
+        def emit(data: JsonObject) -> None:
+            loop.call_soon_threadsafe(events.publish, Event("chat", {**data, "session": ref}))
+
+        def work(progress: Progress) -> JobResult:
+            try:
+                done = chatting.answer(
+                    store,
+                    ref,
+                    request.text,
+                    pinned=request.pinned,
+                    chat=chat(),
+                    planner=model,
+                    search_index=index_cache,
+                    config=load_config(store),
+                    rules=load_rules(),
+                    handbook=handbook_text(),
+                    now=clock(),
+                    emit=emit,
+                )
+            except (chatting.ChatError, LLMError) as exc:
+                emit({"type": "error", "text": str(exc)})
+                return JobResult(False, str(exc))
+            return JobResult(
+                True,
+                f"{len(done.changesets)} change(s) proposed",
+                next(iter(done.changesets), None),
+            )
+
+        try:
+            return job_view(jobs.start("chat", ref, work))
+        except JobBusyError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.get("/api/views/tasks")
     def tasks_view() -> views.TasksView:

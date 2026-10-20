@@ -319,6 +319,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         vault_label=str(folder),
         web_dir=default_web_dir(),
         search=SqliteSearch(index_path(folder)),
+        retention=True,
     )
     print(f"notebook-assistant on http://127.0.0.1:{port} · vault {folder} · {host.profile.value}")
     # An open page holds its event stream forever; without a deadline, stopping the service

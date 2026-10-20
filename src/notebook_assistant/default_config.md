@@ -10,6 +10,7 @@ models:                       # one entry per task; any model ID the API accepts
 limits:
   monthly_spend_usd: 30       # AI jobs pause when reached; the UI shows month-to-date cost
   max_tokens_per_job: 60000
+  tool_calls_per_turn: 12     # chat: most tool calls the model may make while answering once
 checks:
   preservation_similarity: 0.9  # content-preservation check: how closely a sentence must survive
   duplicate_similarity: 0.85    # deep pass: how alike two titles must be to list them as duplicates
