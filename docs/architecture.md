@@ -121,6 +121,7 @@ src/notebook_assistant/
 │              its eval; later digest, capture, sweep, ask)
 ├─ handbook.py loads docs/handbook.md, the single source of the rules
 ├─ config.py   loads a vault's Config.md over default_config.md (§4.1.1)
+├─ machine.py  this PC's config.yaml (§4.1.1, §5.3); host.py resolves it with the profile (§5.1)
 ├─ ports/      interfaces (vault, llm; later index, secrets, events)
 ├─ adapters/   implementations (filesystem and in-memory vault, the Claude API and a scripted model;
 │              later SQLite, Bitwarden, email import, SSE)
@@ -211,7 +212,7 @@ Models, limits, thresholds and toggles are read from this note at startup and wh
 **Settings and defaults:** [`src/notebook_assistant/default_config.md`](../src/notebook_assistant/default_config.md) is the default `Config.md`: it lists every setting with a comment and its default value, and it is the only place those values are written. The settings' names and types are the dataclasses in `domain/config.py`. A vault's `Config.md` needs only the keys it changes; the rest keep their defaults. An unknown section or key, a value of the wrong type, or a number out of range stops loading with an error naming the key.
 
 **Not in `Config.md`:**
-- **Per-machine settings** (vault path, profile, `machine_id` (§5.3), `features.bitwarden`, search option) live in `config.yaml` in the OS config directory, via `platformdirs`: `%APPDATA%\notebook-assistant\` on Windows, `~/.config/notebook-assistant/` on Linux and WSL, `~/Library/Application Support/notebook-assistant/` on macOS (`NA_CONFIG_DIR` moves it). It's created on first run; its settings and their meaning are in `src/notebook_assistant/machine.py`: `machine_id`, `name`, `vault`, `profile`, `features.bitwarden`, `search` and `port`.
+- **Per-machine settings** (vault path, profile, `machine_id` and name (§5.3), `features.bitwarden`, search option, the service's port) live in `config.yaml` in the OS config directory, via `platformdirs`: `%APPDATA%\notebook-assistant\` on Windows, `~/.config/notebook-assistant/` on Linux and WSL, `~/Library/Application Support/notebook-assistant/` on macOS (`NA_CONFIG_DIR` moves it). It's created on first run; each setting's meaning and type are in `src/notebook_assistant/machine.py`.
 - **Anything the handbook decides** (e.g. manual-only sweeps and settle time, Handbook §16; session retention, Handbook §8.4; which email formats are captured, Handbook §12) is a rule, not configuration, and is not repeated here. Rules are the same for every vault: the handbook ships inside the release (`handbook.py`), no vault can override it, and a rule changes only through a handbook pull request (Handbook §15). `Config.md` holds only what a vault's owner may tune.
 
 **Sessions** (one file per conversation):
