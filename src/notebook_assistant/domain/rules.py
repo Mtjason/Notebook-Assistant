@@ -81,6 +81,7 @@ class Rules:
     code_folders: frozenset[str]  # folder names that hold project code (§11)
     inbox: str  # where unprocessed or uncertain notes go (§3 row 1, §0.3)
     assistant_managed: frozenset[str]  # properties only the assistant writes (§4.1)
+    default_origin: str  # `origin` when a note doesn't say (§4.1)
     digest_flow: tuple[str, ...]  # digest states in order, the queue first (§19.1)
     digestion: DigestionRules  # §19.2, §19.3, §19.5
     direct_capture_digest: tuple[
@@ -310,6 +311,13 @@ def _assistant_managed(text: str) -> frozenset[str]:
     return frozenset(keys)
 
 
+def _default_origin(text: str) -> str:
+    m = re.search(r"^origin:.*\(default: ([\w-]+)\)", _section(text, "4.1"), re.M)
+    if not m:
+        raise HandbookFormatError("§4.1 doesn't give origin's default")
+    return m.group(1)
+
+
 def _common(text: str) -> tuple[tuple[str, ...], dict[str, frozenset[str]]]:
     block = re.search(r"```yaml\n(.*?)\n```", _section(text, "4.1"), re.S)
     if not block:
@@ -526,6 +534,7 @@ def parse_handbook(text: str) -> Rules:
         code_folders=_code_folders(text),
         inbox=_inbox(text),
         assistant_managed=_assistant_managed(text),
+        default_origin=_default_origin(text),
         digest_flow=_digest_flow(text),
         digestion=_digestion(text),
         direct_capture_digest=_direct_capture_digest(text),

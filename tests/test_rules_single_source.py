@@ -36,6 +36,7 @@ def test_parsed_rules_are_complete() -> None:
     assert rules.inbox == "00-Inbox"
     assert rules.direct_capture_digest == ("knowledge", "review")
     assert rules.assistant_managed == {"id", "assistant_hash"}
+    assert rules.default_origin == "own" and "own" in rules.common_enums["origin"]
     assert rules.digest_flow == ("pending", "approved", "review", "graduated")
     assert set(rules.digest_flow) == rules.common_enums["digest"]  # §19.1 agrees with §4.1
     d = rules.digestion
