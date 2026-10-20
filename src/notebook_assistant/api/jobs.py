@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from notebook_assistant.api.events import Event, EventBus
 from notebook_assistant.domain.ids import new_ulid
 from notebook_assistant.domain.jsontypes import JsonObject, JsonValue
+from notebook_assistant.domain.names import name_key
 
 Progress = Callable[[str], None]
 
@@ -21,7 +22,7 @@ Progress = Callable[[str], None]
 class Job:
     id: str
     kind: str  # e.g. "digest"
-    ref: str  # the note it works on
+    ref: str  # the note it works on (its vault path)
     state: str = "running"  # running | done | failed
     steps: list[str] = field(default_factory=list)
     message: str = ""
@@ -58,7 +59,11 @@ class JobRunner:
         return self._jobs.get(job_id)
 
     def running_on(self, ref: str) -> Job | None:
-        return next((j for j in self._jobs.values() if j.ref == ref and j.state == "running"), None)
+        key = name_key(ref)
+        return next(
+            (j for j in self._jobs.values() if name_key(j.ref) == key and j.state == "running"),
+            None,
+        )
 
     def start(self, kind: str, ref: str, work: Callable[[Progress], JobResult]) -> Job:
         """Run ``work`` in a worker thread; must be called from the service's event loop."""

@@ -75,6 +75,7 @@ def test_approve_runs_as_a_job_then_graduate(vault: MemoryVault) -> None:
         assert started.status_code == 200 and started.json()["state"] == "running"
         job = finished(api, started.json()["id"])
         assert job["state"] == "done" and job["steps"][0] == "Approved on test-pc"
+        assert job["ref"] == STUB.as_posix()
         assert job["steps"][-1] == "Draft ready"
         graduated = api.post(f"/api/digest/graduate/{STUB}", headers=WRITE).json()
         assert graduated == {"ok": True, "status": "graduated", "problems": []}
@@ -132,7 +133,7 @@ def test_one_job_per_note_at_a_time() -> None:
 
         first = runner.start("digest", "a.md", slow)
         with pytest.raises(JobBusyError):
-            runner.start("digest", "a.md", slow)
+            runner.start("digest", "A.MD", slow)  # the same note, spelled differently
         other = runner.start("digest", "b.md", lambda progress: JobResult(False, "boom"))
         release.set()
         for _ in range(100):
@@ -142,3 +143,11 @@ def test_one_job_per_note_at_a_time() -> None:
         return [first.state, other.state, other.message]
 
     assert asyncio.run(scenario()) == ["done", "failed", "boom"]
+
+
+def test_the_item_endpoint(vault: MemoryVault) -> None:
+    with client(vault, []) as api:
+        view = api.get(f"/api/digest/item/{STUB}").json()
+        assert view["item"]["state"] == "pending" and view["draft"] is None
+        assert view["screenshots"] == ["Attachments/Polars with_columns - 1.png"]
+        assert api.get("/api/digest/item/nowhere.md").status_code == 404

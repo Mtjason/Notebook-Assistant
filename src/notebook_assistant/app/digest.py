@@ -190,6 +190,41 @@ def draft_request(
     )
 
 
+@dataclass(frozen=True)
+class DigestView:
+    """One item side by side (design.html, Digest): what you wrote and its screenshots, next
+    to the draft (an in-place draft above its kept original, or a learn task's draft note)."""
+
+    item: digest.DigestItem
+    original: str
+    draft: str | None
+    screenshots: list[str]  # vault paths of the images the note embeds
+
+
+def digest_view(store: VaultStore, ref: str, rules: Rules) -> DigestView:
+    index = VaultIndex.build(store)
+    note = _note(index, ref)
+    item = digest.item_of(note, rules)
+    if item is None:
+        raise DigestError(f"{note.title} isn't in the digest queue")
+    kept = digest.original_of(note.body, rules)
+    draft: str | None = None
+    original = note.body
+    if kept is not None:
+        original = kept
+        draft = note.body[: note.body.find(rules.digestion.original_box)].rstrip() + "\n"
+    elif item.draft:
+        links = find_links(item.draft)
+        draft_note = _titled(index, links[0].target) if links else None
+        draft = draft_note.body if draft_note else None
+    images: list[str] = []
+    for link in find_links(original):
+        target = index.resolver.resolve(link, note.path) if link.embed else None
+        if target is not None and target.suffix.lower() in IMAGE_TYPES:
+            images.append(target.as_posix())
+    return DigestView(item=item, original=original, draft=draft, screenshots=images)
+
+
 def is_learn_task(note: Note) -> bool:
     """A learn task's draft is a new note; any other note is drafted in place (§19.3)."""
     return note.type == TASK and note.prop("kind") == LEARN

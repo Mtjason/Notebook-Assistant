@@ -239,3 +239,24 @@ def test_a_canvas_gets_a_companion_note_whose_kind_you_choose(vault: MemoryVault
     assert again.ok
     with pytest.raises(DigestError, match="no canvas"):
         buttons.graduate_as_is(vault, "missing.canvas", rules=RULES, click=CLICK)
+
+
+def test_the_side_by_side_view(vault: MemoryVault) -> None:
+    before = buttons.digest_view(vault, STUB.as_posix(), RULES)
+    assert before.draft is None and before.original == Note.parse(STUB, STUB_TEXT).body
+    assert before.screenshots == ["Attachments/Polars with_columns - 1.png"]
+    approve(vault, STUB.as_posix(), ScriptedModel([{"body": DRAFT}]))
+    after = buttons.digest_view(vault, STUB.as_posix(), RULES)
+    assert after.draft == DRAFT and after.original == before.original
+    assert after.screenshots == before.screenshots
+    with pytest.raises(DigestError, match="isn't in the digest queue"):
+        buttons.digest_view(vault, MOC.as_posix(), RULES)
+
+
+def test_a_learn_tasks_view_shows_its_draft_note(vault: MemoryVault) -> None:
+    text = vault.read_text(TASK).replace("status: todo\n", "status: todo\ndigest: pending\n")
+    vault.write_text(TASK, text)
+    approve(vault, TASK.as_posix(), ScriptedModel([kedro_plan(note(vault, TASK).body)]))
+    view = buttons.digest_view(vault, TASK.as_posix(), RULES)
+    assert view.draft is not None and view.draft.startswith("## Summary")
+    assert view.original == note(vault, TASK).body

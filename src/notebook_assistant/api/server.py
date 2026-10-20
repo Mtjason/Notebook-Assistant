@@ -54,7 +54,6 @@ from notebook_assistant.domain import digest
 from notebook_assistant.domain.changeset import Changeset
 from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.domain.ids import new_note_id
-from notebook_assistant.domain.names import name_key
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import Host
 from notebook_assistant.ports.llm import LanguageModel
@@ -280,6 +279,13 @@ def create_app(
             kinds=buttons.companion_kinds(rules),
         )
 
+    @app.get("/api/digest/item/{ref:path}")
+    def digest_item(ref: str) -> buttons.DigestView:
+        try:
+            return buttons.digest_view(store, ref, load_rules())
+        except buttons.DigestError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     @app.post("/api/digest/approve/{ref:path}", dependencies=writes)
     async def approve(ref: str) -> JobView:
         rules = load_rules()
@@ -304,7 +310,7 @@ def create_app(
         if note.prop(digest.DIGEST) != rules.digest_flow[0]:
             raise HTTPException(status_code=409, detail=f"{note.title} isn't waiting in the queue")
         try:
-            return job_view(jobs.start("digest", name_key(note.path.as_posix()), work))
+            return job_view(jobs.start("digest", note.path.as_posix(), work))
         except JobBusyError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 
