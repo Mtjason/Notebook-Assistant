@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
@@ -99,3 +100,16 @@ def sanitize_title(title: str, rules: NameRules) -> str:
     if len(text) > rules.max_name - 3:  # leave room for ".md"
         text = text[: rules.max_name - 3].rstrip(" .")
     return text or "Untitled"
+
+
+def respell_folders(path: PurePosixPath, existing: Iterable[PurePosixPath]) -> PurePosixPath:
+    """``path`` with each folder spelled as an existing folder of the same name (case- and
+    NFC-insensitive), as NTFS and APFS do when you create a file in ``10-TASKS/``."""
+    parts = list(path.parts)
+    for stored in existing:
+        folders = stored.parts[:-1]
+        for i in range(min(len(folders), len(parts) - 1)):
+            if name_key(folders[i]) != name_key(parts[i]):
+                break
+            parts[i] = folders[i]
+    return PurePosixPath(*parts)

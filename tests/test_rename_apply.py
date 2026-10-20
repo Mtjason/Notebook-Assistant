@@ -7,6 +7,7 @@ import pytest
 
 from notebook_assistant.adapters.fs_vault import FsVault
 from notebook_assistant.adapters.memory_vault import MemoryVault
+from notebook_assistant.adapters.overlay_vault import OverlayVault
 from notebook_assistant.app.apply import apply_changeset, undo_changeset
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.app.rename import PlanError, plan_move
@@ -17,7 +18,7 @@ from notebook_assistant.domain.note import Note
 from tests.conftest import NOW
 
 P = PurePosixPath
-Store = FsVault | MemoryVault
+Store = FsVault | MemoryVault | OverlayVault
 POLARS = P("60-Knowledge/Software/Polars with_columns.md")
 
 

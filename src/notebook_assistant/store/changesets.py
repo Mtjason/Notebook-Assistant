@@ -5,6 +5,7 @@ Each record is a readable note:
 - frontmatter with status, who proposed it, when, on which machine, and the targets;
 - the reason as the heading;
 - what the reviewer needs beyond the diff (e.g. a capture's split map), under ``## Review``;
+- for a planned capture: the capture and its split plan, so it can be recompiled;
 - a unified diff per changed text file (what you review);
 - the operations and, once applied, the reverse operations as JSON (what the code runs).
 """
@@ -16,7 +17,7 @@ import json
 import re
 from pathlib import PurePosixPath
 
-from notebook_assistant.domain.changeset import Changeset, Operation, Status
+from notebook_assistant.domain.changeset import CaptureSource, Changeset, Operation, Status
 from notebook_assistant.domain.frontmatter import Frontmatter
 from notebook_assistant.domain.note import Note
 from notebook_assistant.ports.vault import VaultStore
@@ -24,7 +25,10 @@ from notebook_assistant.store import ASSISTANT_DIR
 
 CHANGESETS_DIR = ASSISTANT_DIR / "Changesets"
 _REVIEW = re.compile(r"^## Review\n\n(.*?)\n(?=## Summary\n)", re.S | re.M)
-_JSON_BLOCK = re.compile(r"^## (Operations|Reverse operations)\n+```json\n(.*?)\n```", re.S | re.M)
+_JSON_BLOCK = re.compile(
+    r"^## (Operations|Reverse operations|Split plan)\n+```json\n(.*?)\n```", re.S | re.M
+)
+_CAPTURE = re.compile(r"^## Capture\n\n(`{4,})text\n(.*?)\n\1$", re.S | re.M)
 
 
 def record_path(cs: Changeset) -> PurePosixPath:
@@ -71,6 +75,8 @@ def render(cs: Changeset, diffs: dict[int, str] | None = None) -> str:
         ("applied_at", cs.applied),
         ("error", cs.error),
         ("targets", [p.as_posix() for p in cs.targets]),
+        ("capture_origin", cs.source.origin if cs.source else None),
+        ("capture_name", cs.source.name if cs.source else None),
     ):
         if value not in (None, "", []):
             fm.set(key, value)
@@ -93,6 +99,13 @@ def render(cs: Changeset, diffs: dict[int, str] | None = None) -> str:
     if cs.reverse_ops:
         rev = json.dumps([op.to_json() for op in cs.reverse_ops], ensure_ascii=False, indent=1)
         parts.append(f"## Reverse operations\n\n```json\n{rev}\n```\n")
+    if cs.source is not None:
+        fence = "`" * max(
+            4, 1 + max((len(r) for r in re.findall(r"`+", cs.source.text)), default=0)
+        )
+        parts.append(f"## Capture\n\n{fence}text\n{cs.source.text}\n{fence}\n")
+        plan = json.dumps(cs.source.plan, ensure_ascii=False, indent=1)
+        parts.append(f"## Split plan\n\n```json\n{plan}\n```\n")
     return f"---\n{fm.render()}\n---\n" + "\n".join(parts)
 
 
@@ -102,6 +115,17 @@ def parse(text: str) -> Changeset:
     heading = re.search(r"^# (.+)$", note.body, re.M)
     blocks = {m.group(1): json.loads(m.group(2)) for m in _JSON_BLOCK.finditer(note.body)}
     review = _REVIEW.search(note.body)
+    capture = _CAPTURE.search(note.body)
+    source = (
+        CaptureSource(
+            text=capture.group(2),
+            origin=str(props.get("capture_origin", "")),
+            name=str(props.get("capture_name", "")),
+            plan=blocks.get("Split plan", {}),
+        )
+        if capture
+        else None
+    )
     return Changeset(
         reason=heading.group(1) if heading else "",
         created_by=str(props.get("created_by", "")),
@@ -114,6 +138,7 @@ def parse(text: str) -> Changeset:
         applied=props.get("applied_at"),
         error=props.get("error"),
         review=review.group(1).strip() if review else "",
+        source=source,
     )
 
 
@@ -140,6 +165,11 @@ def save(store: VaultStore, cs: Changeset, *, with_diff: bool = True) -> PurePos
 
 def load(store: VaultStore, path: PurePosixPath) -> Changeset:
     return parse(store.read_text(path))
+
+
+def find(store: VaultStore, cs_id: str) -> PurePosixPath | None:
+    """The record of changeset ``cs_id``, wherever its month folder is."""
+    return next((p for p in list_records(store) if p.stem == cs_id), None)
 
 
 def list_records(store: VaultStore) -> list[PurePosixPath]:

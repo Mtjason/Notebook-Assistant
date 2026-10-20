@@ -5,6 +5,7 @@ from notebook_assistant.adapters.memory_vault import MemoryVault
 from notebook_assistant.app.apply import apply_changeset
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.app.rename import plan_move
+from notebook_assistant.domain.changeset import CaptureSource, Changeset
 from notebook_assistant.domain.invariants import is_checked
 from notebook_assistant.handbook import load_rules
 from notebook_assistant.store import changesets, lease, runs, snapshots
@@ -98,3 +99,14 @@ def test_runs_and_snapshots(memory_vault: MemoryVault) -> None:
     snapshots.save(memory_vault, "n-1", "body")
     assert snapshots.load(memory_vault, "n-1") == "body"
     assert snapshots.load(memory_vault, "n-2") is None
+
+
+def test_a_capture_and_its_plan_survive_the_record(memory_vault: MemoryVault) -> None:
+    text = "Install:\n\n```sh\ncurl … | sh\n```\n\nand a ```` fence of four\n"
+    cs = Changeset(reason="Digest a", created_by="user:cli", created=NOW.isoformat())
+    cs.source = CaptureSource(text, "ai-chat", "a.md", {"atoms": [], "notes": []})
+    path = changesets.save(memory_vault, cs)
+    loaded = changesets.load(memory_vault, path)
+    assert loaded.source == cs.source
+    assert changesets.find(memory_vault, cs.id) == path
+    assert changesets.find(memory_vault, "cs-missing") is None

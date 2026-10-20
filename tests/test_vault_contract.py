@@ -8,9 +8,10 @@ import pytest
 
 from notebook_assistant.adapters.fs_vault import TEMP_SUFFIX, FsVault
 from notebook_assistant.adapters.memory_vault import MemoryVault
+from notebook_assistant.adapters.overlay_vault import OverlayVault
 from notebook_assistant.ports.vault import FileExistsInVaultError, VaultError
 
-Store = FsVault | MemoryVault
+Store = FsVault | MemoryVault | OverlayVault
 P = PurePosixPath
 
 

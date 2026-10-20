@@ -141,10 +141,6 @@ def cmd_plan_move(args: argparse.Namespace) -> int:
     return 0
 
 
-def _find_record(store: FsVault, cs_id: str) -> PurePosixPath | None:
-    return next((p for p in cs_store.list_records(store) if p.stem == cs_id), None)
-
-
 def cmd_changesets(args: argparse.Namespace) -> int:
     store = _vault(args)
     for path in sorted(cs_store.list_records(store)):
@@ -155,7 +151,7 @@ def cmd_changesets(args: argparse.Namespace) -> int:
 
 def cmd_apply(args: argparse.Namespace, *, undo: bool = False) -> int:
     store = _vault(args)
-    path = _find_record(store, args.id)
+    path = cs_store.find(store, args.id)
     if path is None:
         print(f"no changeset {args.id}", file=sys.stderr)
         return 2

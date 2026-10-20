@@ -21,7 +21,7 @@ from datetime import datetime
 from pathlib import PurePosixPath
 
 from notebook_assistant.app.index import VaultIndex, is_state_path
-from notebook_assistant.domain.changeset import Changeset, Operation
+from notebook_assistant.domain.changeset import CaptureSource, Changeset, Operation
 from notebook_assistant.domain.config import Config
 from notebook_assistant.domain.ids import content_hash, new_note_id
 from notebook_assistant.domain.invariants import VaultFacts
@@ -264,6 +264,7 @@ def compile_changeset(
     created_by: str,
     now: datetime,
     review: str,
+    source: CaptureSource | None = None,
 ) -> Changeset:
     """Create operations for new notes, base-hash-guarded writes for patched ones."""
     ops: list[Operation] = []
@@ -289,6 +290,7 @@ def compile_changeset(
         created=now.isoformat(timespec="seconds"),
         ops=ops,
         review=review,
+        source=source,
     )
 
 
@@ -334,6 +336,7 @@ def plan_extraction(
             created_by=created_by,
             now=now,
             review=split_map(plan, outcomes),
+            source=CaptureSource(capture.text, capture.origin, capture.name, answers[-1]),
         )
         return Extraction(plan, outcomes, changeset, attempt, rejected, answers)
     raise ExtractionError(feedback, answers)

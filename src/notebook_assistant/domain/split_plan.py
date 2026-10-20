@@ -278,3 +278,43 @@ def parse_plan(data: JsonObject) -> SplitPlan:
     _unique([a.id for a in atoms], "atoms")
     _unique([n.title for n in notes], "notes")
     return SplitPlan(atoms, notes, _proposal(_field(data, "topic_proposal", "plan")))
+
+
+def plan_to_json(plan: SplitPlan) -> JsonObject:
+    """The plan as :data:`PLAN_SCHEMA` JSON again (``parse_plan(plan_to_json(p)) == p``)."""
+    proposal = plan.topic_proposal
+    return {
+        "atoms": [
+            {
+                "id": a.id,
+                "text": a.text,
+                "role": a.role.value,
+                "notes": list(a.notes),
+                "citation": a.citation,
+            }
+            for a in plan.atoms
+        ],
+        "notes": [
+            {
+                "title": n.title,
+                "op": n.op.value,
+                "folder": n.folder,
+                "properties": [
+                    {"key": k, "value": list(v) if isinstance(v, list) else v}
+                    for k, v in n.properties
+                ],
+                "body": n.body,
+                "sections": [{"heading": s.heading, "content": s.content} for s in n.sections],
+                "history": list(n.history),
+            }
+            for n in plan.notes
+        ],
+        "topic_proposal": None
+        if proposal is None
+        else {
+            "folder": proposal.folder,
+            "answers": proposal.answers,
+            "examples": proposal.examples,
+            "not_here": proposal.not_here,
+        },
+    }
