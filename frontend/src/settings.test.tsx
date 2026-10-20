@@ -8,7 +8,7 @@ import { onJob } from "./useEvents";
 
 const STATUS: ServiceStatus = {
   version: "0.1", handbook_version: "2.14", machine: "laptop", machine_id: "id-1",
-  profile: "linux", watch: "native", vault: "/v",
+  profile: "linux", watch: "native", vault: "/v", search: "keyword", search_options: ["keyword", "e5-small"],
 };
 const REPORT = {
   kind: "lint", ran_at: "2026-10-21T09:00:00+08:00", summary: "13 notes, 1 finding(s), 1 fixable",
@@ -53,6 +53,17 @@ describe("SettingsScreen", () => {
     expect(screen.getByText(/not in the registry/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Open 1 proposal(s) in Review" }));
     expect(onOpenReview).toHaveBeenCalledWith("cs-7");
+  });
+
+  it("saves this PC's search option", async () => {
+    const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={queries}><SettingsScreen status={STATUS} onOpenReview={vi.fn()} /></QueryClientProvider>);
+    const save = screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    await userEvent.selectOptions(screen.getByLabelText("Search option"), "e5-small");
+    await userEvent.click(save);
+    expect(posts).toEqual([{ url: "/api/machine/search", body: { search: "e5-small" } }]);
+    expect(await screen.findByText(/Restart the service to apply/)).toBeTruthy();
   });
 
   it("waits for the status", () => {

@@ -29,6 +29,7 @@ import argparse
 import json
 import subprocess
 import sys
+import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path, PurePosixPath
@@ -39,7 +40,9 @@ from notebook_assistant import __version__
 from notebook_assistant.adapters.anthropic_llm import AnthropicModel
 from notebook_assistant.adapters.fs_vault import FsVault
 from notebook_assistant.adapters.memory_vault import MemoryVault
+from notebook_assistant.adapters.onnx_embedder import OnnxEmbedder
 from notebook_assistant.adapters.sqlite_search import SqliteSearch
+from notebook_assistant.adapters.sqlite_vectors import SqliteVectors
 from notebook_assistant.api.server import create_app, default_web_dir
 from notebook_assistant.app import search
 from notebook_assistant.app.apply import apply_changeset, undo_changeset
@@ -60,9 +63,10 @@ from notebook_assistant.domain.invariants import check_note, is_checked
 from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import current_host
-from notebook_assistant.machine import MachineConfigError, index_path
+from notebook_assistant.machine import SEARCH_OPTIONS, MachineConfigError, cache_dir, index_path
 from notebook_assistant.platform import autostart
 from notebook_assistant.platform.profiles import ProfileError
+from notebook_assistant.ports.embedder import EmbedderError
 from notebook_assistant.ports.llm import LanguageModel, LLMError
 from notebook_assistant.ports.vault import VaultStore
 from notebook_assistant.store import changesets as cs_store
@@ -292,6 +296,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         vault,
         load_config=lambda: load_config(store) if store is not None else None,
         count_models=count_models,
+        time_embedding=lambda: _time_embedding(host.machine.search),
     )
     for check in checks:
         print(f"{_MARKS[check.status]} {check.name:<11} {check.detail}")
@@ -320,6 +325,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         web_dir=default_web_dir(),
         search=SqliteSearch(index_path(folder)),
         retention=True,
+        meaning=_meaning(host.machine.search, folder),
     )
     print(f"notebook-assistant on http://127.0.0.1:{port} · vault {folder} · {host.profile.value}")
     # An open page holds its event stream forever; without a deadline, stopping the service
@@ -334,9 +340,34 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _meaning(option: str, folder: Path) -> search.Meaning | None:
+    """This PC's embeddings for the vault, when its search option names a model (§4.3)."""
+    if option == SEARCH_OPTIONS[0]:
+        return None
+    vectors = SqliteVectors(index_path(folder))
+    return search.Meaning(vectors, OnnxEmbedder(option, cache_dir() / "models"))
+
+
+def _time_embedding(option: str) -> float:
+    """Seconds to embed 16 passages with this PC's model (downloading it the first time)."""
+    embedder = OnnxEmbedder(option, cache_dir() / "models")
+    embedder.embed(["warm up"], query=False)
+    start = time.perf_counter()
+    embedder.embed(["A paragraph of a typical note, about a dozen words long."] * 16, query=False)
+    return time.perf_counter() - start
+
+
 def cmd_index(args: argparse.Namespace) -> int:
     folder = Path(args.vault).expanduser()
-    done = search.rebuild(FsVault(folder), SqliteSearch(index_path(folder)), load_rules())
+    try:
+        host = current_host(args.vault, None)
+        meaning = _meaning(host.machine.search, folder)
+        done = search.rebuild(
+            FsVault(folder), SqliteSearch(index_path(folder)), load_rules(), meaning
+        )
+    except (MachineConfigError, ProfileError, EmbedderError) as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 1
     print(f"indexed {done.indexed} of {done.total} notes and sessions · {index_path(folder)}")
     return 0
 

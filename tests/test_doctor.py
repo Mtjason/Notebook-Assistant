@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import PurePosixPath
 
 import pytest
@@ -27,6 +28,7 @@ from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.host import Host
 from notebook_assistant.machine import MachineConfig
 from notebook_assistant.platform.profiles import Profile
+from notebook_assistant.ports.embedder import EmbedderError
 from notebook_assistant.ports.llm import LLMError
 from notebook_assistant.ports.vault import VaultError
 
@@ -35,7 +37,14 @@ HOST = Host(MachineConfig("id", "test-pc"), Profile.WSL_DRVFS)
 
 def test_profile_and_search_report_this_host() -> None:
     assert check_profile(HOST).detail == "wsl-drvfs · file changes: polling · machine: test-pc"
-    assert check_search(HOST).status is Status.OK
+    assert check_search(HOST, lambda: 0.0).detail == "keyword (full-text index)"
+    on = replace(HOST, machine=replace(HOST.machine, search="e5-small"))
+    assert check_search(on, lambda: 1.25).detail == "e5-small: 16 passages embedded in 1.2s"
+
+    def broken() -> float:
+        raise EmbedderError("not installed")
+
+    assert check_search(on, broken).status is Status.WARN
 
 
 def test_encoding_must_be_utf8() -> None:
@@ -86,10 +95,24 @@ def test_bitwarden_off_found_or_missing(monkeypatch: pytest.MonkeyPatch) -> None
 def test_run_checks_skips_config_without_a_writable_vault_and_worst_wins() -> None:
     names = [
         c.name
-        for c in run_checks(HOST, None, None, load_config=lambda: None, count_models=lambda: 1)
+        for c in run_checks(
+            HOST,
+            None,
+            None,
+            load_config=lambda: None,
+            count_models=lambda: 1,
+            time_embedding=lambda: 0.0,
+        )
     ]
     assert "Config.md" not in names and "vault" in names
-    checks = run_checks(HOST, MemoryVault(), "v", load_config=lambda: None, count_models=lambda: 1)
+    checks = run_checks(
+        HOST,
+        MemoryVault(),
+        "v",
+        load_config=lambda: None,
+        count_models=lambda: 1,
+        time_embedding=lambda: 0.0,
+    )
     assert "Config.md" in [c.name for c in checks]
     assert worst([Check("a", Status.OK, ""), Check("b", Status.WARN, "")]) is Status.WARN
     assert worst([]) is Status.OK

@@ -14,6 +14,34 @@ const RUNS = [
   { kind: "archive", label: "Archive check", what: "Archive candidates, stale tasks, untouched ideas" },
 ] as const;
 
+function SearchOption({ status }: { status: ServiceStatus }) {
+  const [choice, setChoice] = useState(status.search);
+  const save = useMutation({ mutationFn: () => api.setSearch(choice) });
+  return (
+    <p>
+      <label>
+        Search{" "}
+        <select aria-label="Search option" value={choice} onChange={(e) => setChoice(e.target.value)}>
+          {status.search_options.map((o) => (
+            <option key={o} value={o}>
+              {o === "keyword" ? "keyword only" : `keyword + meaning (${o})`}
+            </option>
+          ))}
+        </select>
+      </label>{" "}
+      <button type="button" className="btn" disabled={choice === status.search || save.isPending} onClick={() => save.mutate()}>
+        Save
+      </button>{" "}
+      <span className="muted">
+        {save.isSuccess
+          ? "Saved to this PC's config.yaml. Restart the service to apply; a model downloads once (e5-small ~120 MB, bge-m3 ~570 MB)."
+          : "Per PC (architecture.md §4.3): meaning search runs a small model on the CPU."}
+      </span>
+      {save.isError && <span className="error"> {save.error.message}</span>}
+    </p>
+  );
+}
+
 function RebuildIndex() {
   const rebuild = useMutation({ mutationFn: api.rebuildIndex });
   return (
@@ -50,6 +78,7 @@ function ThisPc({ status }: { status: ServiceStatus }) {
           </div>
         ))}
       </dl>
+      <SearchOption status={status} />
       <RebuildIndex />
     </section>
   );

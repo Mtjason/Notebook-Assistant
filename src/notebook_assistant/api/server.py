@@ -33,7 +33,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from importlib import resources
 from pathlib import Path, PurePosixPath
@@ -80,6 +80,7 @@ from notebook_assistant.domain.ids import new_note_id
 from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import Host
+from notebook_assistant.machine import SEARCH_OPTIONS, load_machine_config, save_machine_config
 from notebook_assistant.ports.email import EmailReader
 from notebook_assistant.ports.llm import ChatModel, LanguageModel, LLMError
 from notebook_assistant.ports.search import DocKind, Hit, SearchIndex
@@ -228,6 +229,13 @@ class ServiceStatus:
     profile: str
     watch: str
     vault: str
+    search: str  # this PC's search option (config.yaml): keyword, or an embedding model
+    search_options: list[str]
+
+
+@dataclass(frozen=True)
+class SearchOption:
+    search: str
 
 
 def create_app(
@@ -245,6 +253,7 @@ def create_app(
     search: SearchIndex | None = None,
     chat: Callable[[], ChatModel] = AnthropicModel,
     retention: bool = False,
+    meaning: finder.Meaning | None = None,
 ) -> FastAPI:
     events = bus or EventBus()
     index_cache: SearchIndex = search or SqliteSearch(":memory:")
@@ -253,6 +262,11 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         task = asyncio.create_task(daily_retention()) if retention else None
+        if meaning is not None:  # the first full pass embeds the vault in the background
+            embedding = asyncio.create_task(
+                asyncio.to_thread(finder.refresh_meaning, store, meaning, load_rules(), wait=True)
+            )
+            embedding.add_done_callback(lambda t: t.cancelled() or t.exception())
         yield
         if task is not None:
             task.cancel()
@@ -290,7 +304,22 @@ def create_app(
             profile=host.profile.value,
             watch=host.watch.value,
             vault=vault_label,
+            search=host.machine.search,
+            search_options=list(SEARCH_OPTIONS),
         )
+
+    @app.post("/api/machine/search", dependencies=writes)
+    def set_search(request: SearchOption) -> ServiceStatus:
+        """Change this PC's search option in its config.yaml; it applies after a restart."""
+        if request.search not in SEARCH_OPTIONS:
+            raise HTTPException(status_code=400, detail=f"one of {', '.join(SEARCH_OPTIONS)}")
+        save_machine_config(
+            replace(
+                load_machine_config(profile=host.profile, bitwarden_found=host.machine.bitwarden),
+                search=request.search,
+            )
+        )
+        return status()
 
     @app.get("/api/counts")
     def get_counts() -> Counts:
@@ -517,11 +546,13 @@ def create_app(
 
     @app.get("/api/search")
     def search_notes(q: str, kind: DocKind | None = None, limit: int = 20) -> list[Hit]:
-        return finder.search(store, index_cache, load_rules(), q, limit=min(limit, 100), kind=kind)
+        return finder.search(
+            store, index_cache, load_rules(), q, limit=min(limit, 100), kind=kind, meaning=meaning
+        )
 
     @app.post("/api/index/rebuild", dependencies=writes)
     def rebuild_index() -> finder.Refreshed:
-        return finder.rebuild(store, index_cache, load_rules())
+        return finder.rebuild(store, index_cache, load_rules(), meaning)
 
     @app.get("/api/sessions")
     def list_sessions(q: str = "") -> list[SessionRow]:
@@ -530,7 +561,9 @@ def create_app(
         if not q.strip():
             return [SessionRow(s, None) for s in listed]
         by_path = {s.path: s for s in listed}
-        hits = finder.search(store, index_cache, rules, q, limit=50, kind="session")
+        hits = finder.search(
+            store, index_cache, rules, q, limit=50, kind="session", meaning=meaning
+        )
         return [SessionRow(by_path[h.path], h.snippet) for h in hits if h.path in by_path]
 
     @app.post("/api/sessions", dependencies=writes)
@@ -576,6 +609,7 @@ def create_app(
                     chat=chat(),
                     planner=model,
                     search_index=index_cache,
+                    meaning=meaning,
                     config=load_config(store),
                     rules=load_rules(),
                     handbook=handbook_text(),

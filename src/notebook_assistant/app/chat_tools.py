@@ -20,6 +20,7 @@ from pathlib import PurePosixPath
 from notebook_assistant.app.browse import find_note
 from notebook_assistant.app.extract import Capture, ExtractionError, plan_extraction
 from notebook_assistant.app.index import VaultIndex, is_state_path
+from notebook_assistant.app.search import Meaning
 from notebook_assistant.app.search import search as find
 from notebook_assistant.domain.changeset import Changeset, Operation
 from notebook_assistant.domain.config import Config
@@ -54,6 +55,7 @@ class ToolContext:
     scope: str  # "all", or a `scope` value the turn is limited to
     created_by: str  # "session:<id>"
     planner: Callable[[], LanguageModel]  # for propose_digest
+    meaning: Meaning | None = None  # this PC's embeddings, if on
     cited: list[str] = field(default_factory=list)  # note titles read
     changesets: list[str] = field(default_factory=list)  # proposed changeset ids
 
@@ -99,8 +101,9 @@ def _text(args: JsonObject, key: str) -> str:
 def _search(ctx: ToolContext, args: JsonObject) -> str:
     index = ctx.index()
     lines: list[str] = []
+    query = _text(args, "query")
     for hit in find(
-        ctx.store, ctx.search_index, ctx.rules, _text(args, "query"), limit=SEARCH_HITS * 2
+        ctx.store, ctx.search_index, ctx.rules, query, limit=SEARCH_HITS * 2, meaning=ctx.meaning
     ):
         note = index.note(PurePosixPath(hit.path))
         if note is None or not in_scope(note, ctx.scope):

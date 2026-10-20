@@ -18,6 +18,7 @@ from pathlib import PurePosixPath
 
 from notebook_assistant.app.chat_tools import TOOLS, ToolContext, in_scope, resolve, run_tool, shown
 from notebook_assistant.app.index import VaultIndex
+from notebook_assistant.app.search import Meaning
 from notebook_assistant.app.search import search as find
 from notebook_assistant.domain import session
 from notebook_assistant.domain.config import Config
@@ -121,6 +122,7 @@ def context(ctx: ToolContext, question: str, pinned: list[str]) -> str:
         limit=RETRIEVED,
         kind="note",
         every_word=False,
+        meaning=ctx.meaning,
     )
     found = [f"- [[{h.title}]] ({h.path}): {h.snippet}" for h in hits]
     if found:
@@ -143,6 +145,7 @@ def answer(
     handbook: str,
     now: datetime,
     emit: Emit,
+    meaning: Meaning | None = None,
 ) -> Answer:
     note = _session(store, session_path)
     scope = str(note.prop("scope") or "all")
@@ -156,6 +159,7 @@ def answer(
         scope,
         created_by=f"session:{note.prop('id')}",
         planner=planner,
+        meaning=meaning,
     )
     messages = [*history(note), ChatMessage("user", context(ctx, question, pinned))]
     tools = tuple(t.spec for t in TOOLS.values())

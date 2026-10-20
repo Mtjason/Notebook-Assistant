@@ -15,6 +15,8 @@ from enum import StrEnum
 
 from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.host import Host
+from notebook_assistant.machine import SEARCH_OPTIONS
+from notebook_assistant.ports.embedder import EmbedderError
 from notebook_assistant.ports.llm import LLMError
 from notebook_assistant.ports.vault import VaultError, VaultStore
 from notebook_assistant.store import ASSISTANT_DIR
@@ -88,8 +90,18 @@ def check_claude_api(count_models: Callable[[], int]) -> Check:
     return Check("Claude API", Status.OK, f"reachable · authenticated · {count} models")
 
 
-def check_search(host: Host) -> Check:
-    return Check("search", Status.OK, f"{host.machine.search} (the index arrives with branch 9)")
+def check_search(host: Host, time_embedding: Callable[[], float]) -> Check:
+    """The search option; with an embedding model, how long 16 passages take on this CPU
+    (docs/architecture.md §4.3), or why the model can't run."""
+    if host.machine.search == SEARCH_OPTIONS[0]:
+        return Check("search", Status.OK, "keyword (full-text index)")
+    try:
+        seconds = time_embedding()
+    except EmbedderError as exc:
+        return Check("search", Status.WARN, f"{host.machine.search}: {exc}")
+    return Check(
+        "search", Status.OK, f"{host.machine.search}: 16 passages embedded in {seconds:.1f}s"
+    )
 
 
 def run_checks(
@@ -99,6 +111,7 @@ def run_checks(
     *,
     load_config: Callable[[], object],
     count_models: Callable[[], int],
+    time_embedding: Callable[[], float],
 ) -> list[Check]:
     checks = [
         check_profile(host),
@@ -107,7 +120,11 @@ def run_checks(
     ]
     if store is not None and checks[-1].status is Status.OK:
         checks.append(check_config(load_config))
-    checks += [check_bitwarden(host), check_claude_api(count_models), check_search(host)]
+    checks += [
+        check_bitwarden(host),
+        check_claude_api(count_models),
+        check_search(host, time_embedding),
+    ]
     return checks
 
 

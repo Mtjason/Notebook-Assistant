@@ -6,7 +6,7 @@ import { App } from "./App";
 
 const STATUS = {
   version: "0.1.0", handbook_version: "2.13", machine: "test-pc", machine_id: "id-1",
-  profile: "wsl-drvfs", watch: "polling", vault: "/mnt/c/Vault",
+  profile: "wsl-drvfs", watch: "polling", vault: "/mnt/c/Vault", search: "keyword", search_options: ["keyword"],
 };
 const NOTES = [
   { path: "60-Knowledge/Software/Polars with_columns.md", title: "Polars with_columns", type: "knowledge", aliases: [] },

@@ -36,6 +36,8 @@ def test_status_names_this_pc_and_the_versions(memory_vault: MemoryVault) -> Non
         "profile": "wsl-drvfs",
         "watch": "polling",
         "vault": "/vault",
+        "search": "keyword",
+        "search_options": ["keyword", "e5-small", "bge-m3"],
     }
 
 
