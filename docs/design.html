@@ -428,7 +428,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
           <li><span class="m">POST</span>/api/capture (multipart) → note in 00-Inbox</li>
           <li><span class="m">GET</span>/api/inbox</li>
           <li><span class="m">POST</span>/api/inbox/{id}/process → changeset</li>
-          <li><span class="m sse">SSE</span>/api/jobs/{job}/events</li>
+          <li><span class="m sse">SSE</span>/api/events · job</li>
         </ul>
       </div>
     </div>
@@ -436,7 +436,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
     <!-- Digest -->
     <div class="scr" id="scr-digest" role="tabpanel" aria-labelledby="t-digest">
       <div class="wf" role="img" aria-label="Digest screen wireframe">
-        <div class="row"><span class="b p">pending 32</span><span class="b">running 1</span><span class="b">review 2</span><span class="b">graduated</span><span class="b">reason ▾</span></div>
+        <div class="row"><span class="b p">Needs digestion 32</span><span class="b">Digesting 1</span><span class="b">Ready to graduate 2</span><span class="b">Graduated</span><span class="b">reason ▾</span></div>
         <div class="gside">
           <div class="wstack">
             <div class="r pend"><span class="t">Terminal setup</span>screenshot-only<div class="row"><span class="b p">Approve to digest</span><span class="b">Graduate as-is</span></div></div>
@@ -456,15 +456,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
         <h3>Digest</h3>
         <p>The queue of notes that aren't finished knowledge yet. Each item has its own buttons; clicking <b>Approve to digest</b> starts that item immediately on this PC, with live steps. Finished canvases or notes skip straight to <b>Graduate as-is</b> (Handbook §19). <a href="#try">Try it ↓</a></p>
         <h4>Components</h4>
-        <ul><li>DigestQueue with state and reason filters</li><li>DigestItem with per-item buttons</li><li>ProgressSteps (fed by SSE)</li><li>SideBySide: original and screenshots vs. draft, with Unverified callouts</li><li>GraduateDialog: placement confirm for unplaced notes; companion note for canvases</li></ul>
+        <ul><li>DigestQueue: tabs by state (<code>digest</code> values, Handbook §19.1), a reason filter, and a <i>Finished drawings?</i> group of canvases</li><li>DigestItem with per-item buttons; the last run's error and your feedback, if any</li><li>ProgressSteps (fed by <code>job</code> events)</li><li>SideBySide: what you wrote and its numbered screenshots vs. the draft, with Unverified callouts</li><li>SendBack: feedback the next draft uses</li><li>GraduateDialog: the companion note's kind for a canvas; placement confirm for unplaced notes (with the Inbox, Branch 6)</li></ul>
         <h4>Calls</h4>
         <ul class="api">
-          <li><span class="m">GET</span>/api/digest?state=pending</li>
-          <li><span class="m">POST</span>/api/digest/{id} {base_hash} → job</li>
-          <li><span class="m sse">SSE</span>/api/jobs/{job}/events · step, draft, error</li>
-          <li><span class="m">POST</span>/api/digest/{id}/graduate</li>
-          <li><span class="m">POST</span>/api/digest/{id}/send-back {feedback}</li>
-          <li><span class="m">POST</span>/api/graduate/{id} (as-is)</li>
+          <li><span class="m">GET</span>/api/digest → items, canvases, kinds</li>
+          <li><span class="m">GET</span>/api/digest/item/{path} → original, screenshots, draft</li>
+          <li><span class="m">POST</span>/api/digest/approve/{path} → job</li>
+          <li><span class="m sse">SSE</span>/api/events · job (steps, done, failed)</li>
+          <li><span class="m">GET</span>/api/jobs/{job}</li>
+          <li><span class="m">POST</span>/api/digest/graduate/{path}</li>
+          <li><span class="m">POST</span>/api/digest/send-back/{path} {feedback}</li>
+          <li><span class="m">POST</span>/api/graduate/{path} {kind} (as-is)</li>
+          <li><span class="m">GET</span>/api/files/{path} (screenshots)</li>
         </ul>
       </div>
     </div>
