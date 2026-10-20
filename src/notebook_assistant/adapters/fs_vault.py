@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import time
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import TypeVar
 
@@ -110,6 +111,12 @@ class FsVault:
         if real is None:
             raise VaultError(f"no such file: {path}")
         return _retry(real.read_bytes, f"read {path}")
+
+    def modified(self, path: PurePosixPath) -> datetime:
+        real = self._find(path)
+        if real is None:
+            raise VaultError(f"no such file: {path}")
+        return datetime.fromtimestamp(real.stat().st_mtime, UTC)
 
     def read_text(self, path: PurePosixPath) -> str:
         return self.read_bytes(path).decode("utf-8")

@@ -6,6 +6,7 @@ changeset here first), so nothing is copied up front and the real vault is never
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import PurePosixPath
 
 from notebook_assistant.domain.names import name_key, respell_folders
@@ -17,6 +18,7 @@ class OverlayVault:
         self._base = base
         self._written: dict[str, tuple[PurePosixPath, bytes]] = {}
         self._deleted: set[str] = set()
+        self._times: dict[str, datetime] = {}
 
     @staticmethod
     def _key(path: PurePosixPath) -> str:
@@ -67,13 +69,23 @@ class OverlayVault:
 
     def write_bytes(self, path: PurePosixPath, data: bytes) -> None:
         self._written[self._key(path)] = (self._stored(path), data)
+        self._times[self._key(path)] = datetime.now(UTC)
+
+    def modified(self, path: PurePosixPath) -> datetime:
+        if self._key(path) in self._written:
+            return self._times[self._key(path)]
+        if not self._base_has(path):
+            raise VaultError(f"no such file: {path}")
+        return self._base.modified(path)
 
     def move(self, src: PurePosixPath, dest: PurePosixPath) -> None:
         data = self.read_bytes(src)
         if self.exists(dest) and self._key(src) != self._key(dest):
             raise FileExistsInVaultError(f"target exists: {dest}")
+        when = self.modified(src)
         self.delete(src)
         self._written[self._key(dest)] = (respell_folders(dest, list(self.iter_files())), data)
+        self._times[self._key(dest)] = when
 
     def delete(self, path: PurePosixPath) -> None:
         if not self.exists(path):

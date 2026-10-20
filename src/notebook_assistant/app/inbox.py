@@ -2,6 +2,7 @@
 processing one through the extraction planner (docs/maintenance-job.md, Extraction).
 
 - :func:`inbox_items`: every note in the Inbox, newest capture first;
+- :func:`is_raw`: what can be planned: an Inbox note, or a note anywhere with no type yet;
 - :func:`process`: plans the note's text (its embedded files read as screenshots) into a pending
   changeset for Review.
   §12 decides what the extracted notes cite: a ``source`` note the Inbox note becomes, or the
@@ -23,6 +24,7 @@ from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.domain import capture
 from notebook_assistant.domain.config import Config
 from notebook_assistant.domain.ids import new_note_id
+from notebook_assistant.domain.invariants import is_checked, is_code_tree_file
 from notebook_assistant.domain.links import find_links
 from notebook_assistant.domain.note import (
     EXCALIDRAW_SUFFIX,
@@ -37,6 +39,7 @@ from notebook_assistant.ports.vault import VaultStore
 from notebook_assistant.store import changesets as cs_store
 
 Progress = Callable[[str], None]
+SKIP = "skip"  # `assistant: skip` keeps a note out of every job (Handbook §16.4)
 PREVIEW = 160  # characters of a note's text shown in the Inbox list
 
 
@@ -59,6 +62,20 @@ class InboxItem:
 
 def _in_inbox(note: Note, rules: Rules) -> bool:
     return note.path.parts[0] == rules.inbox and is_note_path(note.path)
+
+
+def is_raw(note: Note, rules: Rules) -> bool:
+    """A capture to plan (§16.3 row 1): a note in the Inbox, or one anywhere else with no
+    ``type`` yet, outside code trees and never marked ``assistant: skip`` (§16.4)."""
+    if _in_inbox(note, rules):
+        return True
+    return (
+        note.type is None
+        and is_note_path(note.path)
+        and is_checked(note.path, rules)
+        and not is_code_tree_file(note, rules)
+        and note.prop("assistant") != SKIP
+    )
 
 
 def embedded_files(index: VaultIndex, note: Note) -> list[str]:
@@ -185,8 +202,8 @@ def process(
     ``LLMError`` when no acceptable plan comes back."""
     index = VaultIndex.build(store)
     note = find_note(index, ref)
-    if note is None or not _in_inbox(note, rules):
-        raise InboxError(f"{ref} isn't a note in the Inbox")
+    if note is None or not is_raw(note, rules):
+        raise InboxError(f"{ref} isn't a raw note to plan (the Inbox, or a note with no type)")
     blocked = blocked_reason(note.path, note)
     if blocked:
         raise InboxError(f"{note.title} can't be processed yet: {blocked}")

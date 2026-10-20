@@ -14,7 +14,7 @@ drifting silently. Sections read:
   §4.2: per-type required properties and vocabularies; §4.3: allowed statuses; §5: title
   patterns;
 - §2: the attachments folder; §12: which captures keep a ``source`` note, and the email formats;
-- §13: the archive folder;
+- §13: the archive folder and archive ages; §8.4, §16.2, §17.6, §18.4: the review time limits;
 - §19.1: the digestion flow, in order, and the digest reasons; §19.2, §19.3, §19.5: what
   graduating sets, how a learn task closes, the Original capture and Unverified boxes;
 - §19.6: the digest state of notes made from a direct capture.
@@ -75,6 +75,27 @@ class CaptureRules:
 
 
 @dataclass(frozen=True)
+class AgeRule:
+    """Notes of a type in one of ``statuses`` for at least ``days`` (§13 archive table)."""
+
+    statuses: frozenset[str]
+    days: int
+
+
+@dataclass(frozen=True)
+class ReviewRules:
+    """The time limits the review buttons use (Handbook §8.4, §13, §16.2, §17.6, §18.4)."""
+
+    archive: dict[str, AgeRule]  # type → when it's archived (§13)
+    settle_minutes: int  # a note is swept only after this long without edits (§16.2)
+    waiting_nudge_days: int  # `waiting` tasks older than this get a nudge (§17.6)
+    learn_untouched_days: int  # learn tasks untouched this long: someday or dropped (§17.6)
+    idea_untouched_days: int  # ideas untouched this long: parked or dropped (§18.4)
+    session_days: int  # chat sessions older than this are deleted in a batch (§8.4)
+    lint_report: str  # the monthly report's path, with YYYY-MM for the month (§14)
+
+
+@dataclass(frozen=True)
 class Rules:
     version: str
     common_required: tuple[str, ...]
@@ -99,6 +120,7 @@ class Rules:
         str, str
     ]  # (type, digest state) of notes from a direct capture (§19.6)
     capture: CaptureRules  # §12, §2
+    review: ReviewRules  # §8.4, §13, §16.2, §17.6, §18.4
 
     @property
     def container_roots(self) -> frozenset[str]:
@@ -495,6 +517,42 @@ def _capture(text: str) -> CaptureRules:
     return CaptureRules(int(lines.group(1)), ai.group(1), formats, attachments.group(1))
 
 
+def _number(block: str, pattern: str, where: str) -> int:
+    m = re.search(pattern, block)
+    if not m:
+        raise HandbookFormatError(f"{where} doesn't give its time limit")
+    return int(m.group(1))
+
+
+def _review(text: str) -> ReviewRules:
+    archive: dict[str, AgeRule] = {}
+    for row in _table_rows(_section(text, "13")):
+        days = re.search(r"for (\d+)\+ days", row[-1])
+        if "days" in row[-1] and not days:
+            raise HandbookFormatError(f"§13 row {row[0].strip()!r} gives no `for N+ days` age")
+        if days and len(row) > 1:
+            archive[row[0].strip()] = AgeRule(frozenset(_ticks(row[-1])), int(days.group(1)))
+    if not archive:
+        raise HandbookFormatError("§13 gives no archive ages (`for N+ days`)")
+    s176 = _section(text, "17.6")
+    return ReviewRules(
+        archive=archive,
+        settle_minutes=_number(_section(text, "16.2"), r"(\d+) minutes without edits", "§16.2"),
+        waiting_nudge_days=_number(s176, r"`waiting` tasks older than (\d+) days", "§17.6"),
+        learn_untouched_days=_number(s176, r"Learn tasks untouched for (\d+) days", "§17.6"),
+        idea_untouched_days=_number(_section(text, "18.4"), r"untouched for (\d+) days", "§18.4"),
+        session_days=_number(_section(text, "8.4"), r"older than (\d+) days", "§8.4"),
+        lint_report=_lint_report(text),
+    )
+
+
+def _lint_report(text: str) -> str:
+    m = re.search(r"`([^`]*YYYY-MM\.md)`", _section(text, "14"))
+    if not m:
+        raise HandbookFormatError("§14 doesn't name the lint report (`…YYYY-MM.md`)")
+    return m.group(1)
+
+
 def _archive_root(text: str) -> str:
     m = re.search(r"moving a note into `([^`]+)/`", _section(text, "13"))
     if not m:
@@ -565,4 +623,5 @@ def parse_handbook(text: str) -> Rules:
         digestion=_digestion(text),
         direct_capture_digest=_direct_capture_digest(text),
         capture=_capture(text),
+        review=_review(text),
     )

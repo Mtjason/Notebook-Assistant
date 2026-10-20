@@ -55,6 +55,12 @@ def test_parsed_rules_are_complete() -> None:
     c = rules.capture
     assert (c.long_text_lines, c.ai_origin, c.email_formats) == (30, "ai-chat", (".eml", ".msg"))
     assert c.attachments == "Attachments" and c.ai_origin in rules.common_enums["origin"]
+    r = rules.review
+    assert r.archive["task"].statuses == {"done", "dropped"} and r.archive["task"].days == 90
+    assert r.archive["project"].days == 30 and "promoted" in r.archive["idea"].statuses
+    assert (r.settle_minutes, r.waiting_nudge_days, r.session_days) == (30, 14, 90)
+    assert r.learn_untouched_days == 90 and r.idea_untouched_days == 90
+    assert r.lint_report == "99-System/Lint YYYY-MM.md"
     for rule in rules.types.values():
         placed = rule.folders or rule.hub_of or rule.container_member
         assert placed, f"{rule.name} has no folder"
@@ -87,6 +93,8 @@ def test_topic_mocs_match_folders() -> None:
         ("`> [!quote]- Original capture`", "an original box", "§19.3"),
         ("over about 30 lines", "that is long", "§12"),
         ("All embedded files", "Every embed", "§12"),
+        ("30 minutes without edits", "half an hour without edits", "§16.2"),
+        ("for 90+ days |", "for ninety days |", "§13"),
     ],
 )
 def test_unreadable_handbook_edits_fail_loudly(old: str, new: str, message: str) -> None:

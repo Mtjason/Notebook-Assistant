@@ -143,6 +143,14 @@ export interface InboxView {
   default_origin: string;
 }
 
+export interface MaintenanceReport {
+  kind: string;
+  ran_at: string;
+  summary: string;
+  rows: { path: string; label: string; detail: string }[];
+  changesets: string[];
+}
+
 export interface CaptureView {
   paths: string[];
   changeset: string;
@@ -215,6 +223,8 @@ export const api = {
     return post<CaptureView>("/api/capture", form);
   },
   processInbox: (path: string) => post<JobView>(`/api/inbox/process/${pathUrl(path)}`),
+  sweepReports: () => get<Record<string, MaintenanceReport>>("/api/sweep"),
+  runSweep: (kind: string) => post<JobView>("/api/sweep/run", { kind }),
 };
 
 /** An image in the vault, as the page loads it. */
