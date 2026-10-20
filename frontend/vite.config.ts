@@ -1,0 +1,14 @@
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
+
+// In development `npm run dev` serves the app and forwards /api to `notebook-assistant serve`
+// (port 8765 unless config.yaml says otherwise; NA_PORT overrides it here).
+const servicePort = process.env.NA_PORT ?? "8765";
+
+export default defineConfig({
+  plugins: [react()],
+  server: { proxy: { "/api": `http://127.0.0.1:${servicePort}` } },
+  // KaTeX and its fonts make one large chunk; the app is served from this PC, so size is fine.
+  build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 2000 },
+  test: { environment: "jsdom", globals: true },
+});
