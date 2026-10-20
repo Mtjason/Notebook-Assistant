@@ -89,6 +89,41 @@ export interface Outcome {
   problems: string[];
 }
 
+// The Digest screen (src/notebook_assistant/domain/digest.py, app/digest.py, api/jobs.py).
+export interface DigestItem {
+  path: string;
+  title: string;
+  type: string | null;
+  state: string;
+  reasons: string[];
+  error: string | null;
+  feedback: string | null;
+  draft: string | null;
+  runner: string | null;
+}
+
+export interface DigestQueue {
+  items: DigestItem[];
+  canvases: string[];
+  kinds: string[];
+}
+
+export interface DigestView {
+  item: DigestItem;
+  original: string;
+  draft: string | null;
+  screenshots: string[];
+}
+
+export interface JobView {
+  id: string;
+  kind: string;
+  ref: string;
+  state: "running" | "done" | "failed";
+  steps: string[];
+  message: string;
+}
+
 /** The header the service requires on every write (no cross-site requests). */
 export const CLIENT_HEADER = { "X-Requested-With": "notebook-assistant" };
 
@@ -121,12 +156,14 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 const changeset = (id: string) => `/api/changesets/${encodeURIComponent(id)}`;
 
+/** A vault path as URL path segments (slashes kept, everything else encoded). */
+export const pathUrl = (path: string) => path.split("/").map(encodeURIComponent).join("/");
+
 export const api = {
   status: () => get<ServiceStatus>("/api/status"),
   counts: () => get<Counts>("/api/counts"),
   notes: () => get<NoteSummary[]>("/api/notes"),
-  note: (path: string) =>
-    get<NoteDetail>(`/api/notes/${path.split("/").map(encodeURIComponent).join("/")}`),
+  note: (path: string) => get<NoteDetail>(`/api/notes/${pathUrl(path)}`),
   changesets: (history: boolean) =>
     get<ChangesetSummary[]>(`/api/changesets${history ? "?status=history" : ""}`),
   changeset: (id: string) => get<ChangesetDetail>(changeset(id)),
@@ -135,7 +172,18 @@ export const api = {
   revert: (id: string) => post<Outcome>(`${changeset(id)}/revert`),
   moveAtom: (id: string, atom: string, note: string | null) =>
     post<Outcome>(`${changeset(id)}/atoms/${encodeURIComponent(atom)}`, { note }),
+  digest: () => get<DigestQueue>("/api/digest"),
+  digestItem: (path: string) => get<DigestView>(`/api/digest/item/${pathUrl(path)}`),
+  approveToDigest: (path: string) => post<JobView>(`/api/digest/approve/${pathUrl(path)}`),
+  graduate: (path: string) => post<Outcome>(`/api/digest/graduate/${pathUrl(path)}`),
+  sendBack: (path: string, feedback: string) =>
+    post<Outcome>(`/api/digest/send-back/${pathUrl(path)}`, { feedback }),
+  graduateAsIs: (path: string, kind: string | null) =>
+    post<Outcome>(`/api/graduate/${pathUrl(path)}`, { kind }),
 };
+
+/** An image in the vault, as the page loads it. */
+export const fileUrl = (path: string) => `/api/files/${pathUrl(path)}`;
 
 /** The `obsidian://open` link for a note (architecture §2). */
 export function obsidianLink(vaultFolder: string, path: string): string {
