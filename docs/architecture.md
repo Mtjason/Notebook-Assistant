@@ -116,15 +116,16 @@ Each package's role is below; each module's docstring is the reference for what 
 ```
 src/notebook_assistant/
 ├─ domain/     pure logic, no I/O: names, frontmatter, notes, links, rules parsed from the handbook,
-│              invariants, the nothing-lost check, changesets, config, split plans and their checks
+│              invariants, the nothing-lost check, changesets, config, split plans and their checks,
+│              digestion and capture state
 ├─ app/        use cases combining domain logic with ports (index, rename, apply/undo, extract and
-│              its eval; later digest, capture, sweep, ask)
+│              its eval, review, digest, capture and the Inbox; later sweep, ask)
 ├─ handbook.py loads docs/handbook.md, the single source of the rules
 ├─ config.py   loads a vault's Config.md over default_config.md (§4.1.1)
 ├─ machine.py  this PC's config.yaml (§4.1.1, §5.3); host.py resolves it with the profile (§5.1)
-├─ ports/      interfaces (vault, llm; later index, secrets, events)
-├─ adapters/   implementations (filesystem and in-memory vault, the Claude API and a scripted model;
-│              later SQLite, Bitwarden, email import, SSE)
+├─ ports/      interfaces (vault, llm, email; later index, secrets)
+├─ adapters/   implementations (filesystem, in-memory and overlay vault, the Claude API and a
+│              scripted model, .eml/.msg email files; later SQLite, Bitwarden)
 ├─ store/      vault-backed state (§4.1)
 ├─ platform/   the only OS-aware code (§5)
 ├─ jobs/       queue and the one scheduled job

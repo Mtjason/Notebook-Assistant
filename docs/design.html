@@ -408,13 +408,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
     <!-- Inbox -->
     <div class="scr" id="scr-inbox" role="tabpanel" aria-labelledby="t-inbox">
       <div class="wf" role="img" aria-label="Inbox screen wireframe">
-        <div class="r acc" style="text-align:center;padding:18px"><span class="t">Drop zone</span>paste text · drop screenshot · .eml / .msg · meeting transcript</div>
+        <div class="r acc" style="text-align:center;padding:18px"><span class="t">Drop zone</span>paste text · drop screenshot · .eml / .msg · meeting transcript<div class="row" style="justify-content:center;margin-top:6px"><span class="b">origin ▾</span><span class="b">Save to Inbox</span><span class="b p">Save and process</span></div></div>
         <div class="gside">
-          <div class="r"><span class="t">00-Inbox (raw)</span><div class="wstack"><span class="b">2026-09-27 1402.md</span><span class="b">Screenshot 0931.png</span><span class="b">Meeting notes.txt</span></div></div>
-          <div class="r"><span class="t">Proposed placement</span>
-            <div class="r solid" style="margin-bottom:6px">→ 10-Tasks/Ask Amy about recipe access.md<br>type: task · kind: action · due 10-02</div>
-            <div class="r solid" style="margin-bottom:6px">→ 60-Knowledge/Software/Kedro hooks.md<br>type: knowledge · kind: concept · digest: pending</div>
-            <div class="row"><span class="b p">Apply selected</span><span class="b">Edit</span><span class="b">Leave in Inbox</span></div>
+          <div class="r"><span class="t">00-Inbox</span><div class="wstack"><span class="b">2026-09-27 1402</span><span class="b">2026-09-26 email Concur policy</span><span class="b">raw capture</span></div></div>
+          <div class="r"><span class="t">2026-09-27 1402 · text</span>
+            <div class="row" style="margin-bottom:6px"><span class="b p">Process</span></div>
+            <div class="r solid" style="margin-bottom:6px">→ 10-Tasks/Ask Amy about recipe access.md<br>type: task · kind: action · due 2026-10-02</div>
+            <div class="r solid" style="margin-bottom:6px">→ 60-Knowledge/Software/Kedro hooks.md<br>type: knowledge · kind: concept · digest: review</div>
+            <div class="r" style="margin-bottom:6px">→ 01-Daily/2026-09-27.md logs both · the Inbox note is removed</div>
+            <div class="row"><span class="b p">Open in Review</span></div>
           </div>
         </div>
       </div>
@@ -422,13 +424,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
         <h3>Inbox</h3>
         <p>Where anything unorganized lands: captures you drop here, plus raw notes you created in Obsidian's 00-Inbox. Processing one proposes where each piece goes; a capture may split into several notes (Handbook §3, §8).</p>
         <h4>Components</h4>
-        <ul><li>CaptureDropZone (text, image, email, transcript)</li><li>InboxList</li><li>PlacementProposal: one row per resulting note, with a diff</li></ul>
+        <ul><li>CaptureDropZone: paste text, drop or add files (screenshots, <code>.eml</code>/<code>.msg</code>, transcripts), the <code>origin</code> (Handbook §4.1); <b>Save to Inbox</b> or <b>Save and process</b></li><li>InboxList: kind, files, capture date; a note waiting on a handbook gap says so (§0.3)</li><li>InboxItem: the capture as it came, its screenshots, <b>Process</b> with ProgressSteps</li><li>PlacementProposal: the proposed changeset opens on Review, with its split map: the planned notes, plus the capture filed as a <code>source</code> note or logged in its daily note (Handbook §12, §10)</li></ul>
         <h4>Calls</h4>
         <ul class="api">
-          <li><span class="m">POST</span>/api/capture (multipart) → note in 00-Inbox</li>
-          <li><span class="m">GET</span>/api/inbox</li>
-          <li><span class="m">POST</span>/api/inbox/{id}/process → changeset</li>
-          <li><span class="m sse">SSE</span>/api/events · job</li>
+          <li><span class="m">POST</span>/api/capture (multipart: text, origin, files) → notes in 00-Inbox</li>
+          <li><span class="m">GET</span>/api/inbox → items, origins</li>
+          <li><span class="m">POST</span>/api/inbox/process/{path} → job</li>
+          <li><span class="m sse">SSE</span>/api/events · job (steps; done with its changeset)</li>
+          <li><span class="m">GET</span>/api/files/{path} (screenshots)</li>
         </ul>
       </div>
     </div>
@@ -605,7 +608,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
 ├─ NavRail ── ScreenLink ×8 (counts) · SessionList
 ├─ <span class="h">Screen</span> (router)
 │  ├─ ChatScreen ── MessageList · ToolTrace · Composer
-│  ├─ InboxScreen ── CaptureDropZone · PlacementProposal
+│  ├─ InboxScreen ── CaptureDropZone · InboxList · PlacementProposal
 │  ├─ DigestScreen ── DigestQueue · ProgressSteps · SideBySide
 │  ├─ ReviewScreen ── ChangesetList · OperationList · DiffView
 │  ├─ IncubatorScreen ── Board · IdeaCard
