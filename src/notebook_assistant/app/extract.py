@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import PurePosixPath
 
+from notebook_assistant.app.filing import filing_ops
 from notebook_assistant.app.index import VaultIndex, is_state_path
 from notebook_assistant.domain.changeset import CaptureSource, Changeset, Operation
 from notebook_assistant.domain.config import Config
@@ -27,7 +28,7 @@ from notebook_assistant.domain.ids import content_hash, new_note_id
 from notebook_assistant.domain.invariants import VaultFacts
 from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.domain.names import name_key
-from notebook_assistant.domain.note import Note
+from notebook_assistant.domain.note import Note, title_of
 from notebook_assistant.domain.plan_checks import PlanContext, check_plan
 from notebook_assistant.domain.plan_notes import Outcome, build_outcomes
 from notebook_assistant.domain.split_plan import (
@@ -37,7 +38,7 @@ from notebook_assistant.domain.split_plan import (
     SplitPlan,
     parse_plan,
 )
-from notebook_assistant.ports.llm import JsonRequest, LanguageModel
+from notebook_assistant.ports.llm import Image, JsonRequest, LanguageModel
 
 ATTEMPTS = 2  # a failing plan is retried once (docs/maintenance-job.md, Extraction, step 7)
 
@@ -95,6 +96,13 @@ class Capture:
     text: str
     origin: str  # Handbook §4.1 `origin` of the material
     name: str  # what it's called in the changeset's reason, e.g. a file name
+    images: tuple[Image, ...] = ()  # screenshots the model reads with the text
+    cites: PurePosixPath | None = None  # the note new notes name as `source` (Handbook §12)
+    inbox: PurePosixPath | None = None  # the Inbox note it came from, filed with the plan
+
+    @property
+    def source_link(self) -> str | None:
+        return f"[[{title_of(self.cites)}]]" if self.cites else None
 
 
 @dataclass
@@ -165,6 +173,11 @@ def build_request(
         f"## Related notes, in full\n\n{shown or '(none)'}",
         f"## The capture (origin: {capture.origin})\n\n{capture.text}",
     ]
+    if capture.source_link:
+        parts.append(
+            f'## Provenance\n\nEvery note you create gets `source: "{capture.source_link}"`'
+            " (Handbook §12, §15 rule 4); that note exists once the plan is applied."
+        )
     if feedback:
         problems = "\n".join(f"- {p}" for p in feedback)
         parts.append(f"## Your previous plan was rejected; fix these problems\n\n{problems}")
@@ -174,6 +187,7 @@ def build_request(
         prompt="\n\n".join(parts),
         schema=PLAN_SCHEMA,
         max_tokens=config.limits.max_tokens_per_job,
+        images=capture.images,
     )
 
 
@@ -188,9 +202,13 @@ def _existing(index: VaultIndex) -> dict[str, Note]:
     return out
 
 
-def paths_after(index: VaultIndex, outcomes: dict[str, Outcome]) -> tuple[PurePosixPath, ...]:
-    """Every file once the plan is applied: the vault's, plus the notes it creates."""
-    return (*index.files, *(o.after.path for o in outcomes.values() if o.before is None))
+def paths_after(
+    index: VaultIndex, outcomes: dict[str, Outcome], cites: PurePosixPath | None = None
+) -> tuple[PurePosixPath, ...]:
+    """Every file once the plan is applied: the vault's, the notes it creates, and the note its
+    notes cite, which filing the capture creates if needed."""
+    created = [o.after.path for o in outcomes.values() if o.before is None]
+    return (*index.files, *created, *([cites] if cites else []))
 
 
 def evaluate(
@@ -210,8 +228,9 @@ def evaluate(
     ctx = PlanContext(
         capture=capture.text,
         origin=capture.origin,
+        source=capture.source_link,
         facts=VaultFacts(base.rules, counts, base.registered_tags),
-        paths=paths_after(index, outcomes),
+        paths=paths_after(index, outcomes, capture.cites),
         similarity=config.checks.preservation_similarity,
     )
     return outcomes, problems + check_plan(plan, outcomes, ctx)
@@ -266,7 +285,8 @@ def compile_changeset(
     review: str,
     source: CaptureSource | None = None,
 ) -> Changeset:
-    """Create operations for new notes, base-hash-guarded writes for patched ones."""
+    """Create operations for new notes, base-hash-guarded writes for patched ones, then the
+    operations filing the Inbox note the capture came from (:mod:`app.filing`)."""
     ops: list[Operation] = []
     for outcome in outcomes.values():
         after = outcome.after
@@ -284,6 +304,8 @@ def compile_changeset(
                 label="add to note",
             )
         )
+    if source is not None and source.inbox is not None:
+        ops += filing_ops(index, source, outcomes, today=now.date().isoformat())
     return Changeset(
         reason=reason,
         created_by=created_by,
@@ -336,7 +358,14 @@ def plan_extraction(
             created_by=created_by,
             now=now,
             review=split_map(plan, outcomes),
-            source=CaptureSource(capture.text, capture.origin, capture.name, answers[-1]),
+            source=CaptureSource(
+                capture.text,
+                capture.origin,
+                capture.name,
+                answers[-1],
+                inbox=capture.inbox,
+                cites=capture.cites,
+            ),
         )
         return Extraction(plan, outcomes, changeset, attempt, rejected, answers)
     raise ExtractionError(feedback, answers)

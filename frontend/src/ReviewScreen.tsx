@@ -9,6 +9,7 @@ import { MarkdownView } from "./MarkdownView";
 
 interface Props {
   onOpenLink: (target: string) => void;
+  focus?: string | null; // a changeset to open first, e.g. one the Inbox just proposed
 }
 
 function shortTime(iso: string): string {
@@ -206,9 +207,9 @@ function Detail({ id, onOpenLink }: { id: string; onOpenLink: (target: string) =
   );
 }
 
-export function ReviewScreen({ onOpenLink }: Props) {
+export function ReviewScreen({ onOpenLink, focus = null }: Props) {
   const [history, setHistory] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(focus);
   const list = useQuery({ queryKey: ["changesets", history], queryFn: () => api.changesets(history) });
   const chosen = selected ?? list.data?.[0]?.id ?? null;
 

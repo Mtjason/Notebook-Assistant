@@ -7,7 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api, fileUrl, type DigestItem, type Outcome } from "./api";
 import { MarkdownView } from "./MarkdownView";
-import type { Jobs } from "./useEvents";
+import { Steps } from "./Steps";
+import { type Jobs, useJobs } from "./useEvents";
 
 interface Props {
   onOpenLink: (target: string) => void;
@@ -19,18 +20,6 @@ const STATES = [
   { id: "review", label: "Ready to graduate" },
   { id: "graduated", label: "Graduated" },
 ] as const;
-
-function Steps({ steps, running }: { steps: string[]; running: boolean }) {
-  return (
-    <ol className="steps" aria-label="Progress">
-      {steps.map((step, i) => (
-        <li key={i} className={running && i === steps.length - 1 ? "run" : "ok"}>
-          {step}
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 function GraduateAsIs({
   path,
@@ -101,8 +90,7 @@ function ItemPanel({
 }) {
   const queries = useQueryClient();
   const view = useQuery({ queryKey: ["digest-item", item.path], queryFn: () => api.digestItem(item.path) });
-  const jobs = useQuery<Jobs>({ queryKey: ["jobs"], queryFn: () => ({}), staleTime: Infinity });
-  const job = jobs.data?.[item.path];
+  const job = useJobs()[item.path];
   const [feedback, setFeedback] = useState("");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 

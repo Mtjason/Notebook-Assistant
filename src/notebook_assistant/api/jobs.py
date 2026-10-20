@@ -26,6 +26,7 @@ class Job:
     state: str = "running"  # running | done | failed
     steps: list[str] = field(default_factory=list)
     message: str = ""
+    changeset: str | None = None  # the changeset a finished job proposed, for Review
 
     def event(self) -> Event:
         data: JsonObject = {
@@ -35,6 +36,7 @@ class Job:
             "state": self.state,
             "steps": list[JsonValue](self.steps),
             "message": self.message,
+            "changeset": self.changeset,
         }
         return Event("job", data)
 
@@ -43,6 +45,7 @@ class Job:
 class JobResult:
     ok: bool
     message: str
+    changeset: str | None = None
 
 
 class JobBusyError(RuntimeError):
@@ -82,6 +85,7 @@ class JobRunner:
             except Exception as exc:  # the job's failure is reported, never lost
                 result = JobResult(False, f"{type(exc).__name__}: {exc}")
             job.state, job.message = ("done" if result.ok else "failed"), result.message
+            job.changeset = result.changeset
             self._bus.publish(job.event())
             self._bus.publish(Event("counts"))
 

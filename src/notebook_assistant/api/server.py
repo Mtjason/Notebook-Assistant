@@ -8,6 +8,8 @@
   reject, undo, move or drop an atom);
 - ``/api/digest``: the Digest screen (the queue; approve to digest runs as a job whose steps
   arrive as ``job`` events; graduate, send back, graduate as-is); ``/api/jobs/{id}``;
+- ``/api/inbox`` and ``POST /api/capture``: the Inbox screen (what waits there; save a capture;
+  processing one runs as a job that proposes a changeset for Review);
 - ``GET /api/files/{path}``: a note's images, for the screens that show them;
 - ``/``: the built web app.
 
@@ -25,19 +27,21 @@ from dataclasses import dataclass
 from datetime import datetime
 from importlib import resources
 from pathlib import Path, PurePosixPath
+from typing import Annotated
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from notebook_assistant import __version__
 from notebook_assistant.adapters.anthropic_llm import AnthropicModel
+from notebook_assistant.adapters.email_files import read_email
 from notebook_assistant.adapters.overlay_vault import OverlayVault
 from notebook_assistant.api.events import Event, EventBus
 from notebook_assistant.api.jobs import Job, JobBusyError, JobResult, JobRunner, Progress
+from notebook_assistant.app import clicks, images, inbox, review
 from notebook_assistant.app import digest as buttons
-from notebook_assistant.app import review
 from notebook_assistant.app.browse import (
     Counts,
     NoteDetail,
@@ -47,16 +51,20 @@ from notebook_assistant.app.browse import (
     note_detail,
     summaries,
 )
+from notebook_assistant.app.capture import CaptureError, capture_to_inbox
+from notebook_assistant.app.extract import ExtractionError
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.app.review import ChangesetDetail, ChangesetSummary, ReviewError
 from notebook_assistant.config import load_config
 from notebook_assistant.domain import digest
+from notebook_assistant.domain.capture import CapturedFile
 from notebook_assistant.domain.changeset import Changeset
 from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.domain.ids import new_note_id
 from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import Host
-from notebook_assistant.ports.llm import LanguageModel
+from notebook_assistant.ports.email import EmailReader
+from notebook_assistant.ports.llm import LanguageModel, LLMError
 from notebook_assistant.ports.vault import VaultError, VaultStore
 
 HEARTBEAT_SECONDS = 15.0
@@ -111,10 +119,26 @@ class JobView:
     state: str
     steps: list[str]
     message: str
+    changeset: str | None
 
 
 def job_view(job: Job) -> JobView:
-    return JobView(job.id, job.kind, job.ref, job.state, list(job.steps), job.message)
+    return JobView(
+        job.id, job.kind, job.ref, job.state, list(job.steps), job.message, job.changeset
+    )
+
+
+@dataclass(frozen=True)
+class InboxView:
+    items: list[inbox.InboxItem]
+    origins: list[str]  # Handbook §4.1 `origin` values, for the capture form
+    default_origin: str
+
+
+@dataclass(frozen=True)
+class CaptureView:
+    paths: list[str]
+    changeset: str
 
 
 @dataclass(frozen=True)
@@ -152,6 +176,7 @@ def create_app(
     allowed_hosts: Sequence[str] = LOCAL_HOSTS,
     clock: Callable[[], datetime] = lambda: datetime.now().astimezone(),
     model: Callable[[], LanguageModel] = AnthropicModel,
+    emails: EmailReader = read_email,
 ) -> FastAPI:
     events = bus or EventBus()
     jobs = JobRunner(events)
@@ -249,8 +274,8 @@ def create_app(
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         return Outcome(not problems, cs.status.value, problems)
 
-    def click() -> buttons.Button:
-        return buttons.Button(host.machine.name, clock())
+    def click() -> clicks.Button:
+        return clicks.Button(host.machine.name, clock())
 
     def digest_outcome(run: Callable[[], buttons.DigestOutcome]) -> Outcome:
         try:
@@ -343,11 +368,72 @@ def create_app(
             )
         )
 
+    @app.get("/api/inbox")
+    def inbox_list() -> InboxView:
+        rules = load_rules()
+        return InboxView(
+            items=inbox.inbox_items(store, rules),
+            origins=sorted(rules.common_enums["origin"]),
+            default_origin=rules.default_origin,
+        )
+
+    @app.post("/api/capture", dependencies=writes)
+    def capture(
+        origin: Annotated[str, Form()],
+        text: Annotated[str, Form()] = "",
+        files: Annotated[list[UploadFile] | None, File()] = None,
+    ) -> CaptureView:
+        captured = [CapturedFile(f.filename or "file", f.file.read()) for f in files or []]
+        try:
+            outcome = capture_to_inbox(
+                store,
+                text=text,
+                files=captured,
+                origin=origin,
+                rules=load_rules(),
+                click=click(),
+                read_email=emails,
+            )
+        except CaptureError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        changed()
+        return CaptureView(outcome.paths, outcome.changeset)
+
+    @app.post("/api/inbox/process/{ref:path}", dependencies=writes)
+    async def process(ref: str) -> JobView:
+        rules = load_rules()
+        note = find_note(VaultIndex.build(store), ref)
+        if note is None or note.path.parts[0] != rules.inbox:
+            raise HTTPException(status_code=404, detail=f"no Inbox note {ref!r}")
+
+        def work(progress: Progress) -> JobResult:
+            try:
+                result = inbox.process(
+                    store,
+                    ref,
+                    model(),
+                    config=load_config(store),
+                    rules=rules,
+                    handbook=handbook_text(),
+                    now=clock(),
+                    created_by="button:process",
+                    progress=progress,
+                )
+            except (inbox.InboxError, ExtractionError, LLMError) as exc:
+                return JobResult(False, buttons.failure_message(exc))
+            count = len(result.outcomes)
+            return JobResult(True, f"{count} note(s) proposed", result.changeset.id)
+
+        try:
+            return job_view(jobs.start("process", note.path.as_posix(), work))
+        except JobBusyError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
     @app.get("/api/files/{path:path}")
     def get_file(path: str) -> Response:
         """An image the notes embed (only image types; never the assistant's state)."""
         target = PurePosixPath(path)
-        media = buttons.IMAGE_TYPES.get(target.suffix.lower())
+        media = images.media_type(target)
         if media is None or path.startswith(load_rules().state_prefix) or not store.exists(target):
             raise HTTPException(status_code=404, detail=f"no image {path!r}")
         try:

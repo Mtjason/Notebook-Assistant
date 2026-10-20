@@ -86,6 +86,8 @@ class CaptureSource:
     origin: str
     name: str
     plan: JsonObject
+    inbox: PurePosixPath | None = None  # the Inbox note it came from (filed when applied)
+    cites: PurePosixPath | None = None  # the note its notes cite as `source` (Handbook §12)
 
 
 @dataclass

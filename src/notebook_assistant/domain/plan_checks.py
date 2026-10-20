@@ -11,8 +11,9 @@ Extraction, step 7). Deterministic: the model proposes, this code decides.
 - **links both ways:** every instance note links to every principle note and back (§3.1), and
   every link the plan writes resolves;
 - **corrections** cite a source outside the capture, in the notes they correct (step 6);
-- **provenance:** created notes keep the capture's ``origin``, have ``aliases`` (§15 rule 5) and,
-  for the type §19.6 names, its digest state; the plan never sets the assistant's own properties;
+- **provenance:** created notes keep the capture's ``origin`` and name its ``source`` (§15 rule
+  4), have ``aliases`` (§15 rule 5) and, for the type §19.6 names, its digest state; the plan
+  never sets the assistant's own properties;
 - **topic gaps:** a note waiting on a handbook gap is in the Inbox and flagged (§0.3, §2.2), and a
   proposed topic is new and named by such a note;
 - **rules:** no resulting note gains a handbook violation (§0.1, §4, §5, §6).
@@ -39,6 +40,7 @@ class PlanContext:
 
     capture: str
     origin: str  # the capture's origin (Handbook §4.1)
+    source: str | None  # the link created notes name as `source`, if the capture has one (§12)
     facts: VaultFacts  # rules, and title counts *including* the notes the plan creates
     paths: tuple[PurePosixPath, ...]  # every file once the plan is applied
     similarity: float  # checks.preservation_similarity
@@ -198,6 +200,8 @@ def _provenance(outcomes: Mapping[str, Outcome], ctx: PlanContext) -> list[str]:
         props = outcome.after.props
         if props.get("origin") != ctx.origin:
             problems.append(f"{title}: origin must stay {ctx.origin!r} (§12)")
+        if ctx.source and props.get("source") != ctx.source:
+            problems.append(f"{title}: source must be {ctx.source} (§15 rule 4)")
         if not props.get("aliases"):
             problems.append(f"{title}: needs aliases in both languages (§15 rule 5)")
         if props.get("type") == digest_type and props.get("digest") != digest_state:

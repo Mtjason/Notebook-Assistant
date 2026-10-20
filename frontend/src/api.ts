@@ -122,6 +122,29 @@ export interface JobView {
   state: "running" | "done" | "failed";
   steps: string[];
   message: string;
+  changeset: string | null; // what a finished job proposed, for Review
+}
+
+export interface InboxItem {
+  path: string;
+  title: string;
+  kind: string;
+  origin: string;
+  captured: string | null;
+  preview: string;
+  files: string[];
+  gap: string | null;
+}
+
+export interface InboxView {
+  items: InboxItem[];
+  origins: string[];
+  default_origin: string;
+}
+
+export interface CaptureView {
+  paths: string[];
+  changeset: string;
 }
 
 /** The header the service requires on every write (no cross-site requests). */
@@ -147,7 +170,9 @@ async function get<T>(path: string): Promise<T> {
 
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method: "POST", headers: { ...CLIENT_HEADER } };
-  if (body !== undefined) {
+  if (body instanceof FormData) {
+    init.body = body; // the browser sets the multipart boundary
+  } else if (body !== undefined) {
     init.headers = { ...CLIENT_HEADER, "Content-Type": "application/json" };
     init.body = JSON.stringify(body);
   }
@@ -180,6 +205,15 @@ export const api = {
     post<Outcome>(`/api/digest/send-back/${pathUrl(path)}`, { feedback }),
   graduateAsIs: (path: string, kind: string | null) =>
     post<Outcome>(`/api/graduate/${pathUrl(path)}`, { kind }),
+  inbox: () => get<InboxView>("/api/inbox"),
+  capture: (text: string, origin: string, files: File[]) => {
+    const form = new FormData();
+    form.append("text", text);
+    form.append("origin", origin);
+    for (const file of files) form.append("files", file);
+    return post<CaptureView>("/api/capture", form);
+  },
+  processInbox: (path: string) => post<JobView>(`/api/inbox/process/${pathUrl(path)}`),
 };
 
 /** An image in the vault, as the page loads it. */
