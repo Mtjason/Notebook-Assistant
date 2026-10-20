@@ -14,7 +14,7 @@ from anthropic.types import Message, TextBlock, Usage
 
 from notebook_assistant.adapters.anthropic_llm import AnthropicModel
 from notebook_assistant.adapters.fake_llm import ScriptedModel
-from notebook_assistant.ports.llm import JsonRequest, LLMError
+from notebook_assistant.ports.llm import Image, JsonRequest, LLMError
 
 REQUEST = JsonRequest(
     model="claude-test",
@@ -165,3 +165,23 @@ def test_count_models_proves_reach_and_login() -> None:
         failing = AnthropicModel(cast(anthropic.Anthropic, ModelsClient(error)))
         with pytest.raises(LLMError, match=message):
             failing.count_models()
+
+
+def test_images_go_before_the_prompt_each_with_its_label() -> None:
+    model, client = model_with(message('{"ok": true}'))
+    request = JsonRequest(
+        model="m",
+        system=("s",),
+        prompt="describe",
+        schema={"type": "object"},
+        max_tokens=10,
+        images=(Image("screenshot 1: a.png", "image/png", b"\x89PNG"),),
+    )
+    model.complete_json(request)
+    [content] = [m["content"] for m in client.calls[0]["messages"]]
+    assert content[0] == {
+        "type": "image",
+        "source": {"type": "base64", "media_type": "image/png", "data": "iVBORw=="},
+    }
+    assert content[1] == {"type": "text", "text": "screenshot 1: a.png"}
+    assert content[2] == {"type": "text", "text": "describe"}

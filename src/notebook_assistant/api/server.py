@@ -6,6 +6,9 @@
 - ``GET /api/events``: server-sent events from the :class:`~.events.EventBus`;
 - ``/api/changesets``: the Review screen (list, detail with dry-run checks, apply selected,
   reject, undo, move or drop an atom);
+- ``/api/digest``: the Digest screen (the queue; approve to digest runs as a job whose steps
+  arrive as ``job`` events; graduate, send back, graduate as-is); ``/api/jobs/{id}``;
+- ``GET /api/files/{path}``: a note's images, for the screens that show them;
 - ``/``: the built web app.
 
 Every change goes through a changeset (``app/apply.py``). Only this PC's browser may use the
@@ -21,16 +24,19 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from importlib import resources
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from notebook_assistant import __version__
+from notebook_assistant.adapters.anthropic_llm import AnthropicModel
 from notebook_assistant.adapters.overlay_vault import OverlayVault
 from notebook_assistant.api.events import Event, EventBus
+from notebook_assistant.api.jobs import Job, JobBusyError, JobResult, JobRunner, Progress
+from notebook_assistant.app import digest as buttons
 from notebook_assistant.app import review
 from notebook_assistant.app.browse import (
     Counts,
@@ -44,12 +50,14 @@ from notebook_assistant.app.browse import (
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.app.review import ChangesetDetail, ChangesetSummary, ReviewError
 from notebook_assistant.config import load_config
+from notebook_assistant.domain import digest
 from notebook_assistant.domain.changeset import Changeset
 from notebook_assistant.domain.config import ConfigError
 from notebook_assistant.domain.ids import new_note_id
-from notebook_assistant.handbook import load_rules
+from notebook_assistant.handbook import handbook_text, load_rules
 from notebook_assistant.host import Host
-from notebook_assistant.ports.vault import VaultStore
+from notebook_assistant.ports.llm import LanguageModel
+from notebook_assistant.ports.vault import VaultError, VaultStore
 
 HEARTBEAT_SECONDS = 15.0
 LOCAL_HOSTS = ("127.0.0.1", "localhost")
@@ -76,6 +84,37 @@ class ApplyRequest:
 @dataclass(frozen=True)
 class MoveRequest:
     note: str | None = None  # the planned note to move the atom to; None drops it
+
+
+@dataclass(frozen=True)
+class FeedbackRequest:
+    feedback: str = ""
+
+
+@dataclass(frozen=True)
+class AsIsRequest:
+    kind: str | None = None  # a canvas companion note's kind (Handbook §19.5)
+
+
+@dataclass(frozen=True)
+class DigestQueue:
+    items: list[digest.DigestItem]
+    canvases: list[str]  # canvases in topic folders without an owning note (Graduate as-is)
+    kinds: list[str]  # the kinds a canvas's companion note may take
+
+
+@dataclass(frozen=True)
+class JobView:
+    id: str
+    kind: str
+    ref: str
+    state: str
+    steps: list[str]
+    message: str
+
+
+def job_view(job: Job) -> JobView:
+    return JobView(job.id, job.kind, job.ref, job.state, list(job.steps), job.message)
 
 
 @dataclass(frozen=True)
@@ -112,8 +151,10 @@ def create_app(
     heartbeat: float = HEARTBEAT_SECONDS,
     allowed_hosts: Sequence[str] = LOCAL_HOSTS,
     clock: Callable[[], datetime] = lambda: datetime.now().astimezone(),
+    model: Callable[[], LanguageModel] = AnthropicModel,
 ) -> FastAPI:
     events = bus or EventBus()
+    jobs = JobRunner(events)
     app = FastAPI(title="notebook-assistant", version=__version__)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
     app.state.events = events
@@ -207,6 +248,112 @@ def create_app(
         except (ReviewError, ConfigError) as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         return Outcome(not problems, cs.status.value, problems)
+
+    def click() -> buttons.Button:
+        return buttons.Button(host.machine.name, clock())
+
+    def digest_outcome(run: Callable[[], buttons.DigestOutcome]) -> Outcome:
+        try:
+            outcome = run()
+        except buttons.DigestError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        changed()
+        return Outcome(outcome.ok, outcome.state, [] if outcome.ok else [outcome.message])
+
+    @app.get("/api/digest")
+    def digest_queue() -> DigestQueue:
+        rules = load_rules()
+        index = VaultIndex.build(store)
+        items = [item for n in index.notes.values() if (item := digest.item_of(n, rules))]
+        folders = set(rules.types[buttons.KNOWLEDGE].folders)
+        canvases = [
+            p.as_posix()
+            for p in index.files
+            if p.suffix == ".canvas"
+            and p.parent.as_posix() in folders
+            and index.note(p.with_suffix(".md")) is None
+        ]
+        return DigestQueue(
+            items=sorted(items, key=lambda i: i.path),
+            canvases=sorted(canvases),
+            kinds=buttons.companion_kinds(rules),
+        )
+
+    @app.get("/api/digest/item/{ref:path}")
+    def digest_item(ref: str) -> buttons.DigestView:
+        try:
+            return buttons.digest_view(store, ref, load_rules())
+        except buttons.DigestError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.post("/api/digest/approve/{ref:path}", dependencies=writes)
+    async def approve(ref: str) -> JobView:
+        rules = load_rules()
+
+        def work(progress: Progress) -> JobResult:
+            outcome = buttons.approve_to_digest(
+                store,
+                ref,
+                model(),
+                config=load_config(store),
+                rules=rules,
+                handbook=handbook_text(),
+                click=click(),
+                progress=progress,
+            )
+            return JobResult(outcome.ok, outcome.message)
+
+        index = VaultIndex.build(store)
+        note = find_note(index, ref)
+        if note is None:
+            raise HTTPException(status_code=404, detail=f"no note {ref!r}")
+        if note.prop(digest.DIGEST) != rules.digest_flow[0]:
+            raise HTTPException(status_code=409, detail=f"{note.title} isn't waiting in the queue")
+        try:
+            return job_view(jobs.start("digest", note.path.as_posix(), work))
+        except JobBusyError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.get("/api/jobs/{job_id}")
+    def get_job(job_id: str) -> JobView:
+        job = jobs.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail=f"no job {job_id!r}")
+        return job_view(job)
+
+    @app.post("/api/digest/graduate/{ref:path}", dependencies=writes)
+    def graduate(ref: str) -> Outcome:
+        return digest_outcome(
+            lambda: buttons.graduate(store, ref, rules=load_rules(), click=click())
+        )
+
+    @app.post("/api/digest/send-back/{ref:path}", dependencies=writes)
+    def send_back(ref: str, request: FeedbackRequest) -> Outcome:
+        return digest_outcome(
+            lambda: buttons.send_back(
+                store, ref, request.feedback, rules=load_rules(), click=click()
+            )
+        )
+
+    @app.post("/api/graduate/{ref:path}", dependencies=writes)
+    def graduate_as_is(ref: str, request: AsIsRequest) -> Outcome:
+        return digest_outcome(
+            lambda: buttons.graduate_as_is(
+                store, ref, rules=load_rules(), click=click(), kind=request.kind
+            )
+        )
+
+    @app.get("/api/files/{path:path}")
+    def get_file(path: str) -> Response:
+        """An image the notes embed (only image types; never the assistant's state)."""
+        target = PurePosixPath(path)
+        media = buttons.IMAGE_TYPES.get(target.suffix.lower())
+        if media is None or path.startswith(load_rules().state_prefix) or not store.exists(target):
+            raise HTTPException(status_code=404, detail=f"no image {path!r}")
+        try:
+            return Response(store.read_bytes(target), media_type=media)
+        except VaultError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     @app.get("/api/events")
     def get_events() -> StreamingResponse:

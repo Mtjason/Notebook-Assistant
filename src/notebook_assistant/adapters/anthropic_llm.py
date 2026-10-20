@@ -14,10 +14,17 @@ never from the vault.
 
 from __future__ import annotations
 
+import base64
 import json
 
 import anthropic
-from anthropic.types import Message, TextBlockParam
+from anthropic.types import (
+    Base64ImageSourceParam,
+    ContentBlockParam,
+    ImageBlockParam,
+    Message,
+    TextBlockParam,
+)
 
 from notebook_assistant.domain.jsontypes import JsonObject
 from notebook_assistant.ports.llm import JsonRequest, LLMError
@@ -36,7 +43,7 @@ class AnthropicModel:
                 model=request.model,
                 max_tokens=request.max_tokens,
                 system=system,
-                messages=[{"role": "user", "content": request.prompt}],
+                messages=[{"role": "user", "content": _content(request)}],
                 output_config={"format": {"type": "json_schema", "schema": dict(request.schema)}},
             ) as stream:
                 message = stream.get_final_message()
@@ -56,6 +63,24 @@ class AnthropicModel:
             raise LLMError(f"Claude API error {exc.status_code}: {exc.message}") from exc
         except anthropic.APIConnectionError as exc:
             raise LLMError(f"can't reach the Claude API: {exc}") from exc
+
+
+def _content(request: JsonRequest) -> str | list[ContentBlockParam]:
+    """The user turn: each image with its label, then the prompt (plain text when no images)."""
+    if not request.images:
+        return request.prompt
+    blocks: list[ContentBlockParam] = []
+    for image in request.images:
+        source: Base64ImageSourceParam = {
+            "type": "base64",
+            "media_type": image.media_type,
+            "data": base64.standard_b64encode(image.data).decode("ascii"),
+        }
+        block: ImageBlockParam = {"type": "image", "source": source}
+        blocks.append(block)
+        blocks.append({"type": "text", "text": image.label})
+    blocks.append({"type": "text", "text": request.prompt})
+    return blocks
 
 
 def _answer(message: Message) -> JsonObject:
