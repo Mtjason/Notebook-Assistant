@@ -105,12 +105,8 @@ def test_the_inbox_lists_what_waits_there(memory_vault: MemoryVault) -> None:
     items = inbox.inbox_items(memory_vault, RULES)
     assert [i.title for i in items] == ["2026-10-20 1402", "raw capture"]
     first, raw = items
-    assert (first.kind, first.origin, first.files, first.captured) == (
-        "image",
-        "own",
-        1,
-        "2026-10-20",
-    )
+    assert (first.kind, first.origin, first.captured) == ("image", "own", "2026-10-20")
+    assert first.files == ["Attachments/2026-10-20 1402 - 1.png"]
     assert first.preview == "a line ![[2026-10-20 1402 - 1.png]]"
     assert (raw.kind, raw.origin, raw.captured, raw.gap) == ("text", "own", None, None)
 
