@@ -18,13 +18,19 @@ from pathlib import PurePosixPath
 
 from notebook_assistant.app.browse import find_note
 from notebook_assistant.app.extract import Capture, Extraction, plan_extraction
-from notebook_assistant.app.images import embedded_images, screenshots
+from notebook_assistant.app.images import embedded_images, media_type, screenshots
 from notebook_assistant.app.index import VaultIndex
 from notebook_assistant.domain import capture
 from notebook_assistant.domain.config import Config
 from notebook_assistant.domain.ids import new_note_id
 from notebook_assistant.domain.links import find_links
-from notebook_assistant.domain.note import NOTE_SUFFIX, Note, is_note_path
+from notebook_assistant.domain.note import (
+    EXCALIDRAW_SUFFIX,
+    NOTE_SUFFIX,
+    Note,
+    is_canvas_path,
+    is_note_path,
+)
 from notebook_assistant.domain.rules import Rules
 from notebook_assistant.ports.llm import LanguageModel
 from notebook_assistant.ports.vault import VaultStore
@@ -35,7 +41,7 @@ PREVIEW = 160  # characters of a note's text shown in the Inbox list
 
 
 class InboxError(ValueError):
-    """Not an Inbox note, one with no text to plan, or its source note's name is taken."""
+    """Not an Inbox note, one the planner can't take yet, or its source note's name is taken."""
 
 
 @dataclass(frozen=True)
@@ -46,8 +52,9 @@ class InboxItem:
     origin: str
     captured: str | None
     preview: str
-    files: list[str]  # vault paths of the files it embeds, in order
+    files: list[str]  # vault paths of the files it embeds (a bare file: itself), in order
     gap: str | None  # `handbook_gap`, for a note waiting on the handbook (§0.3)
+    blocked: str | None  # why Process can't plan it yet; None when it can
 
 
 def _in_inbox(note: Note, rules: Rules) -> bool:
@@ -78,28 +85,66 @@ def captured_on(note: Note, today: str) -> str:
     return str(note.prop(capture.CAPTURED) or note.prop("created") or today)
 
 
+def is_drawing(path: PurePosixPath) -> bool:
+    """An Excalidraw drawing or a canvas (Handbook §10): listed as a file, never read as text."""
+    return path.name.endswith(EXCALIDRAW_SUFFIX) or is_canvas_path(path)
+
+
+def blocked_reason(path: PurePosixPath, note: Note | None) -> str | None:
+    """Why the planner can't take this Inbox file yet, or None. Drawings and canvases are
+    finished as they are (Graduate as-is, Handbook §19.5); a bare file has no note to hold it."""
+    if is_drawing(path):
+        return "a drawing or canvas: it's graduated as-is (Handbook §19.5), not planned"
+    if note is None:
+        return "a file without a note: capture it on this screen so a note embeds it"
+    if not capture.without_embeds(note.body):
+        return "no text, only files: add a line saying what it is about"
+    return None
+
+
+def _file_item(path: PurePosixPath) -> InboxItem:
+    kind = capture.IMAGE if media_type(path) else capture.FILE
+    return InboxItem(
+        path=path.as_posix(),
+        title=path.name,
+        kind=kind,
+        origin="",
+        captured=None,
+        preview="",
+        files=[path.as_posix()],
+        gap=None,
+        blocked=blocked_reason(path, None),
+    )
+
+
+def _note_item(index: VaultIndex, note: Note, rules: Rules) -> InboxItem:
+    captured = note.prop(capture.CAPTURED) or note.prop("created")
+    gap = note.prop("handbook_gap")
+    return InboxItem(
+        path=note.path.as_posix(),
+        title=note.title,
+        kind=kind_of(index, note),
+        origin=str(note.prop(capture.ORIGIN) or rules.default_origin),
+        captured=str(captured) if captured else None,
+        preview=" ".join(note.body.split())[:PREVIEW],
+        files=embedded_files(index, note),
+        gap=str(gap) if gap else None,
+        blocked=blocked_reason(note.path, note),
+    )
+
+
 def inbox_items(store: VaultStore, rules: Rules) -> list[InboxItem]:
+    """Every file in the Inbox (§10, §12: a file moved there is a capture too), dotfiles aside;
+    newest capture first, then by name."""
     index = VaultIndex.build(store)
     items: list[InboxItem] = []
-    for note in index.notes.values():
-        if not _in_inbox(note, rules):
+    for path in index.files:
+        if not capture.is_inbox_file(path, rules):
             continue
-        text = " ".join(note.body.split())
-        captured = note.prop(capture.CAPTURED) or note.prop("created")
-        gap = note.prop("handbook_gap")
-        items.append(
-            InboxItem(
-                path=note.path.as_posix(),
-                title=note.title,
-                kind=kind_of(index, note),
-                origin=str(note.prop(capture.ORIGIN) or rules.default_origin),
-                captured=str(captured) if captured else None,
-                preview=text[:PREVIEW],
-                files=embedded_files(index, note),
-                gap=str(gap) if gap else None,
-            )
-        )
-    items.sort(key=lambda i: (i.captured or "", i.title), reverse=True)
+        note = index.note(path) if is_note_path(path) and not is_drawing(path) else None
+        items.append(_note_item(index, note, rules) if note else _file_item(path))
+    items.sort(key=lambda i: i.title)
+    items.sort(key=lambda i: i.captured or "", reverse=True)
     return items
 
 
@@ -142,11 +187,10 @@ def process(
     note = find_note(index, ref)
     if note is None or not _in_inbox(note, rules):
         raise InboxError(f"{ref} isn't a note in the Inbox")
+    blocked = blocked_reason(note.path, note)
+    if blocked:
+        raise InboxError(f"{note.title} can't be processed yet: {blocked}")
     text = capture.without_embeds(note.body)
-    if not text:
-        raise InboxError(
-            f"{note.title} has no text, only files; add a line saying what it is about"
-        )
     cites = cited_note(index, note, rules, today=now.date().isoformat())
     images = screenshots(store, index, note)
     progress(f"Reading the capture and {len(images)} screenshot(s)")

@@ -10,7 +10,12 @@ const PATH = "00-Inbox/2026-10-20 1402.md";
 const ITEM = {
   path: PATH, title: "2026-10-20 1402", kind: "image", origin: "own", captured: "2026-10-20",
   preview: "Kedro hooks run before and after each node.", files: ["Attachments/2026-10-20 1402 - 1.png", "Attachments/a.pdf"],
-  gap: null,
+  gap: null, blocked: null,
+};
+const DRAWING = {
+  path: "00-Inbox/Untitled.canvas", title: "Untitled.canvas", kind: "file", origin: "", captured: null,
+  preview: "", files: ["00-Inbox/Untitled.canvas"], gap: null,
+  blocked: "a drawing or canvas: it's graduated as-is (Handbook §19.5), not planned",
 };
 let posts: { url: string; body: BodyInit | null | undefined }[] = [];
 
@@ -24,7 +29,7 @@ beforeEach(() => {
         id: "job-1", kind: "process", ref: PATH, state: "running", steps: [], message: "", changeset: null,
       }));
     }
-    return new Response(JSON.stringify({ items: [ITEM], origins: ["ai-chat", "own"], default_origin: "own" }));
+    return new Response(JSON.stringify({ items: [ITEM, DRAWING], origins: ["ai-chat", "own"], default_origin: "own" }));
   }));
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -44,6 +49,14 @@ describe("InboxScreen", () => {
       "/api/files/Attachments/2026-10-20%201402%20-%201.png",
     );
     expect(screen.getByText(/a\.pdf/)).toBeTruthy();
+  });
+
+  it("says why an item can't be processed, with Process disabled", async () => {
+    renderInbox();
+    await userEvent.click(await screen.findByRole("button", { name: /Untitled\.canvas/ }));
+    expect(await screen.findByText(/Can't process yet: a drawing or canvas/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Process" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("file")).toBeTruthy(); // no origin or date for a bare file
   });
 
   it("saves a capture as multipart with its origin and files", async () => {

@@ -101,8 +101,10 @@ code, kbd { font: 0.88em var(--mono); }
 .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
 .tabs button { border: 1px solid var(--rule); background: var(--surface); border-radius: 999px; padding: 5px 14px; cursor: pointer; }
 .tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.review-cols > * { min-width: 0; }
 .review-cols { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 16px; align-items: start; }
-.cs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; min-width: 0; }
+.cs-list .cs-reason { overflow-wrap: anywhere; } /* long file names wrap instead of widening the column */
 .cs-list button { width: 100%; text-align: left; display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); cursor: pointer; }
 .cs-list button[aria-current="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
 .cs-reason { font-weight: 600; font-size: 0.9rem; }

@@ -117,16 +117,23 @@ function ItemPanel({ item, onOpenReview }: { item: InboxItem; onOpenReview: (id:
       <header>
         <h3>{item.title}</h3>
         <p className="muted">
-          {item.kind} · origin {item.origin}
+          {item.kind}
+          {item.origin ? ` · origin ${item.origin}` : ""}
           {item.captured ? ` · captured ${item.captured}` : ""}
         </p>
         {item.gap && <p className="error">Waiting on the handbook: {item.gap}</p>}
       </header>
       <div className="actions">
-        <button type="button" className="btn primary" disabled={running || process.isPending} onClick={() => process.mutate()}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={item.blocked !== null || running || process.isPending}
+          onClick={() => process.mutate()}
+        >
           Process
         </button>
       </div>
+      {item.blocked && <p className="muted">Can't process yet: {item.blocked}.</p>}
       {job && <Steps steps={job.steps} running={running} />}
       {job?.state === "failed" && <p className="error">{job.message}</p>}
       {job?.state === "done" && job.changeset && (

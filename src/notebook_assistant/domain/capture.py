@@ -3,6 +3,7 @@
 A capture is first saved to the Inbox as it came (an Inbox note, its files in the attachments
 folder); processing it later decides what is kept:
 
+- :func:`is_inbox_file`: what counts as waiting in the Inbox;
 - :func:`inbox_title`, :func:`attachment_name`, :func:`inbox_note`: the Inbox note for a capture,
   and :func:`email_note` for an email (its headers as properties, §12);
 - :func:`keeps_source`: whether processing keeps a ``source`` note or the extracted notes cite
@@ -45,6 +46,12 @@ class Email:
     date: str  # YYYY-MM-DD
     body: str  # Markdown
     attachments: tuple[CapturedFile, ...]
+
+
+def is_inbox_file(path: PurePosixPath, rules: Rules) -> bool:
+    """A capture waiting in the Inbox: any file there (§10, §12), but not a dotfile such as the
+    ``.keep`` that holds an empty folder."""
+    return bool(path.parts) and path.parts[0] == rules.inbox and not path.name.startswith(".")
 
 
 def inbox_title(now: datetime, taken: Callable[[str], bool]) -> str:

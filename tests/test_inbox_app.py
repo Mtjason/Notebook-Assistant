@@ -234,12 +234,43 @@ def test_what_cant_be_processed(memory_vault: MemoryVault) -> None:
     with pytest.raises(inbox.InboxError, match="isn't a note in the Inbox"):
         process(memory_vault, "60-Knowledge/Software/Polars with_columns.md", {})
     only_files = save(memory_vault, "", [CapturedFile("x.png", b"\x89PNG")])
-    with pytest.raises(inbox.InboxError, match="has no text"):
+    with pytest.raises(inbox.InboxError, match="no text, only files"):
         process(memory_vault, only_files, {})
     long = save(memory_vault, "\n".join(f"line {i}" for i in range(40)))
     memory_vault.write_text(P("70-Sources/2026-10-20 text line 0.md"), "x")
     with pytest.raises(inbox.InboxError, match="already exists"):
         process(memory_vault, long, {})
+
+
+def test_every_inbox_file_is_listed_with_why_it_can_t_be_processed(
+    memory_vault: MemoryVault,
+) -> None:
+    for name, data in [
+        (".keep", b""),
+        (
+            "Drawing 2026-10-04 23.08.20.excalidraw.md",
+            b"---\nexcalidraw-plugin: parsed\n---\n# Text\nhi\n",
+        ),
+        ("Untitled.canvas", b"{}"),
+        ("technician_resource_check_shared.7z", b"7z"),
+        ("Screenshot 0931.png", b"\x89PNG"),
+        ("empty.md", b""),
+    ]:
+        memory_vault.write_bytes(P(f"00-Inbox/{name}"), data)
+    items = {i.title: i for i in inbox.inbox_items(memory_vault, RULES)}
+    assert ".keep" not in items and len(items) == 6
+    assert items["raw capture"].blocked is None
+    drawing = items["Drawing 2026-10-04 23.08.20.excalidraw.md"]
+    assert (drawing.kind, drawing.origin, drawing.preview) == ("file", "", "")
+    assert "graduated as-is" in str(drawing.blocked)
+    assert "graduated as-is" in str(items["Untitled.canvas"].blocked)
+    bare = items["technician_resource_check_shared.7z"]
+    assert (bare.kind, bare.files) == ("file", ["00-Inbox/technician_resource_check_shared.7z"])
+    assert "without a note" in str(bare.blocked)
+    assert items["Screenshot 0931.png"].kind == "image"
+    assert "no text" in str(items["empty"].blocked)
+    with pytest.raises(inbox.InboxError, match="graduated as-is"):
+        process(memory_vault, "00-Inbox/Drawing 2026-10-04 23.08.20.excalidraw.md", {})
 
 
 def test_the_cited_note_follows_section_12(memory_vault: MemoryVault) -> None:

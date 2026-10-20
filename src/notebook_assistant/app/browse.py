@@ -15,6 +15,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from notebook_assistant.app.index import VaultIndex, is_state_path
+from notebook_assistant.domain.capture import is_inbox_file
 from notebook_assistant.domain.changeset import Status
 from notebook_assistant.domain.names import name_key
 from notebook_assistant.domain.note import Note
@@ -49,7 +50,7 @@ class NoteDetail:
 
 def counts(index: VaultIndex, store: VaultStore) -> Counts:
     rules = load_rules()
-    inbox = sum(1 for p in index.files if p.parts and p.parts[0] == rules.inbox)
+    inbox = sum(1 for p in index.files if is_inbox_file(p, rules))
     queue = rules.digest_flow[0]
     digest = sum(1 for n in index.notes.values() if n.prop("digest") == queue)
     pending = sum(

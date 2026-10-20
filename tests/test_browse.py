@@ -19,6 +19,8 @@ def test_counts_inbox_digest_queue_and_pending_changesets(memory_vault: MemoryVa
     assert counts(index, memory_vault).review == 0
     inbox_files = sum(1 for p in index.files if p.parts[0] == "00-Inbox")
     assert counts(index, memory_vault).inbox == inbox_files >= 1
+    memory_vault.write_text(PurePosixPath("00-Inbox/.keep"), "")  # holds the folder; no capture
+    assert counts(VaultIndex.build(memory_vault), memory_vault).inbox == inbox_files
     memory_vault.write_text(
         P("60-Knowledge/Software/Draft.md"),
         "---\ntype: knowledge\ndigest: pending\n---\nstub\n",
