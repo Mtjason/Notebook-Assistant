@@ -67,18 +67,18 @@ footer{margin-top:48px;color:var(--muted);font-size:.82rem;border-top:1px solid 
 <div class="wrap">
 
 <h1>Notebook Assistant: status</h1>
-<p class="sub">2026-10-20 · <code>main</code> at <code>62a15e8</code> (PR #11)</p>
-<p class="lead">Branches 1 and 2 of the eleven feature branches are merged: the vault core and the
-extraction planner. The next step is Branch 3, the service and web app shell; it has not started.
-Several checks were deliberately skipped or deferred along the way; they are listed in their own
-section below so they come back.</p>
+<p class="sub">2026-10-21 · <code>main</code> at <code>45f0b9f</code> (PR #23)</p>
+<p class="lead">All eleven feature branches are merged: the proof of concept is complete and every
+screen of the web app works on a copy of the real vault. What's left is your test pass (the
+checkpoints), a handful of features the branches left out, and the decisions collected in
+<em>Skipped or deferred</em> below.</p>
 
 <div class="kpis">
-  <div class="kpi"><b>2 / 11</b><span>feature branches merged</span></div>
-  <div class="kpi"><b>11</b><span>pull requests merged</span></div>
-  <div class="kpi"><b>248</b><span>tests passing (2 skipped: real-vault, local only)</span></div>
+  <div class="kpi"><b>11 / 11</b><span>feature branches merged</span></div>
+  <div class="kpi"><b>23</b><span>pull requests merged</span></div>
+  <div class="kpi"><b>514 + 47</b><span>Python and web tests passing (2 skipped: real-vault, local only)</span></div>
   <div class="kpi"><b>3 × 2</b><span>CI: Linux, Windows, macOS × Python 3.11, 3.12</span></div>
-  <div class="kpi"><b>2.13</b><span>Vault Handbook version</span></div>
+  <div class="kpi"><b>2.14</b><span>Vault Handbook version</span></div>
 </div>
 
 <h2>What's done</h2>
@@ -86,49 +86,70 @@ section below so they come back.</p>
 <thead><tr><th>PR</th><th>Merged</th><th>What it delivered</th></tr></thead>
 <tbody>
 <tr><td class="num">#1</td><td class="num">09-27</td><td><b>Branch 1, core vault:</b> note model, frontmatter with minimal diffs, rules parsed from the handbook, invariant checker, nothing-lost check, link-safe rename and move, changesets with apply and undo, vault-backed store</td></tr>
-<tr><td class="num">#2–#7</td><td class="num">09-27</td><td><b>Design:</b> extraction made a core requirement, test checkpoints, the <code>design.html</code> review page, single source of truth (code reads rules from the handbook), decisions of 2026-09-28, merge criteria (Handbook 2.11–2.12)</td></tr>
-<tr><td class="num">#8</td><td class="num">09-27</td><td><b>Docs agree with each other:</b> Handbook 2.13 (changelog becomes a view over changesets); <code>Config.md</code> per vault holds only tunables; a docs consistency test in CI; a Stop hook that sends Claude to a consistency review whenever docs change; CLAUDE.md rules for configuration and clean code</td></tr>
-<tr><td class="num">#9</td><td class="num">09-29</td><td><b>Branch 2, extraction:</b> the planner (model proposes a split plan, code checks it: nothing lost, no duplicated principle, links both ways, cited corrections, no rule broken), apply re-checks the rules, <code>Config.md</code> loader with packaged defaults, model port with Claude API and scripted adapters, <code>digest</code> and <code>eval-extract</code> commands</td></tr>
-<tr><td class="num">#10</td><td class="num">10-16</td><td><b>First real-model runs:</b> raw model answers saved (<code>--save-answers</code>), fairer eval scoring (a renamed note costs one item), eval marked experimental, the two-stage check proposal</td></tr>
-<tr><td class="num">#11</td><td class="num">10-16</td><td><b>Decision:</b> test checkpoints are called by Jason once the proof of concept is done; branches don't wait for them</td></tr>
+<tr><td class="num">#2–#8</td><td class="num">09-27</td><td><b>Design and docs:</b> extraction as a core requirement, test checkpoints, the <code>design.html</code> review page, single source of truth, Handbook 2.11–2.13, per-vault <code>Config.md</code>, docs consistency test and Stop hook</td></tr>
+<tr><td class="num">#9–#11</td><td class="num">09-29 – 10-16</td><td><b>Branch 2, extraction:</b> the planner (model proposes a split plan, code checks it), <code>digest</code> and <code>eval-extract</code> commands, first real-model runs; checkpoints called by you after the POC</td></tr>
+<tr><td class="num">#12</td><td class="num">10-19</td><td><b>Handbook 2.14:</b> <code>97-Transfer/</code> for files passing between devices</td></tr>
+<tr><td class="num">#13</td><td class="num">10-20</td><td><b>Branch 3, service shell:</b> local FastAPI service on 127.0.0.1, web app shell, platform profiles, <code>doctor</code>, start at login, release wheel with the web app inside</td></tr>
+<tr><td class="num">#14</td><td class="num">10-20</td><td><b>Branch 4, Review:</b> changesets with diffs and dry-run checks, split map with move or drop an atom, apply selected, reject, undo</td></tr>
+<tr><td class="num">#15</td><td class="num">10-20</td><td><b>Branch 5, Digest:</b> approve to digest (note + screenshots), approve to graduate, send back with feedback, graduate as-is (canvas companion notes)</td></tr>
+<tr><td class="num">#16–#18</td><td class="num">10-20</td><td><b>Branch 6, Inbox:</b> capture text, files and <code>.eml</code>/<code>.msg</code>; processing through the planner files the capture as a source note or in the daily note; every Inbox file listed; the service stops promptly with a page open</td></tr>
+<tr><td class="num">#19</td><td class="num">10-20</td><td><b>Branch 7, maintenance:</b> Sweep changes, Lint (fixes and monthly report as one batch), Deep pass (duplicates, missing links), Archive check (§13 candidates, stale tasks and ideas)</td></tr>
+<tr><td class="num">#20</td><td class="num">10-20</td><td><b>Branch 8, views:</b> Tasks screen (the six §17.5 views, inline confirm, <code>produced</code> rule) and Incubator board (moves, Promote to a project)</td></tr>
+<tr><td class="num">#21</td><td class="num">10-20</td><td><b>Branch 9, search:</b> per-PC SQLite FTS5 index with jieba, full-text search in Ctrl+K, Sessions screen, <code>index rebuild</code></td></tr>
+<tr><td class="num">#22</td><td class="num">10-20</td><td><b>Branch 10, chat:</b> answers with citations, tool trace, changeset cards, <code>@</code> pins, <code>/digest</code>, scope; session notes; daily session retention</td></tr>
+<tr><td class="num">#23</td><td class="num">10-20</td><td><b>Branch 11, embeddings:</b> optional e5-small or bge-m3 on the CPU, fused with keyword search; Settings switch; <code>doctor</code> timing</td></tr>
 </tbody>
 </table></div>
 
 <h2>Roadmap</h2>
-<p class="lead">From <a href="../../docs/architecture.md">architecture.md</a> §5.4.1.</p>
+<p class="lead">From <a href="../../docs/architecture.md">architecture.md</a> §5.4.1. All branches are merged.</p>
 <div class="tblwrap"><table>
 <thead><tr><th>#</th><th>Branch</th><th>Delivers</th><th>Status</th></tr></thead>
 <tbody>
 <tr><td class="num">1</td><td><code>feat/core-vault</code></td><td>Note model, rules, invariants, link-safe rename, changesets</td><td><span class="pill done">done</span></td></tr>
 <tr><td class="num">2</td><td><code>feat/extract</code></td><td>Paste-to-digest: extraction planner, checks, <code>digest</code> CLI</td><td><span class="pill done">done</span></td></tr>
-<tr><td class="num">3</td><td><code>feat/service-shell</code></td><td>FastAPI service, SSE, web app shell, platform profiles, <code>doctor</code>, release wheel</td><td><span class="pill next">next</span></td></tr>
-<tr><td class="num">4</td><td><code>feat/review</code></td><td>Review screen: changesets, diff view, split map, apply, undo</td><td><span class="pill later">later</span></td></tr>
-<tr><td class="num">5</td><td><code>feat/digest</code></td><td>Digest screen: approve to digest, graduate, send back</td><td><span class="pill later">later</span></td></tr>
-<tr><td class="num">6</td><td><code>feat/capture</code></td><td>Inbox: text, screenshots, <code>.eml</code>, <code>.msg</code></td><td><span class="pill later">later</span></td></tr>
-<tr><td class="num">7</td><td><code>feat/sweep</code></td><td>Sweep, Lint, Deep pass, Archive check, session retention</td><td><span class="pill later">later</span></td></tr>
-<tr><td class="num">8</td><td><code>feat/views</code></td><td>Tasks and Incubator screens</td><td><span class="pill later">later</span></td></tr>
-<tr><td class="num">9</td><td><code>feat/search</code></td><td>Per-PC search index, global search, Sessions screen</td><td><span class="pill later">later</span></td></tr>
-<tr><td class="num">10</td><td><code>feat/chat</code></td><td>Chat with citations and changeset cards</td><td><span class="pill later">later</span></td></tr>
-<tr><td class="num">11</td><td><code>feat/embeddings</code></td><td>Optional CPU embeddings per PC</td><td><span class="pill later">later</span></td></tr>
+<tr><td class="num">3</td><td><code>feat/service-shell</code></td><td>Service, SSE, web app shell, profiles, <code>doctor</code>, release wheel</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">4</td><td><code>feat/review</code></td><td>Review screen: changesets, diff view, split map, apply, undo</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">5</td><td><code>feat/digest</code></td><td>Digest screen: approve to digest, graduate, send back</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">6</td><td><code>feat/capture</code></td><td>Inbox: text, screenshots, <code>.eml</code>, <code>.msg</code></td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">7</td><td><code>feat/sweep</code></td><td>Sweep, Lint, Deep pass, Archive check</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">8</td><td><code>feat/views</code></td><td>Tasks and Incubator screens</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">9</td><td><code>feat/search</code></td><td>Per-PC search index, global search, Sessions screen</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">10</td><td><code>feat/chat</code></td><td>Chat with citations and changeset cards; session retention</td><td><span class="pill done">done</span></td></tr>
+<tr><td class="num">11</td><td><code>feat/embeddings</code></td><td>Optional CPU embeddings per PC</td><td><span class="pill done">done</span></td></tr>
 </tbody>
 </table></div>
 
-<h2>To do next: Branch 3</h2>
+<h2>How to try it</h2>
 <ul class="plain">
-  <li>Per-machine <code>config.yaml</code> and platform profiles: <code>windows</code>, <code>wsl-drvfs</code>, <code>linux</code>, <code>macos</code>, with the <code>NA_PROFILE</code> override</li>
-  <li><code>doctor</code>: profile, vault write test, encoding, file-watch mode, <code>bw</code>, API reachability</li>
-  <li>FastAPI service and <code>serve</code> on <code>127.0.0.1</code>: status, counts, note preview, SSE event bus</li>
-  <li>Web app shell in React + TypeScript + Vite: top bar, nav rail, main pane, context panel, Markdown renderer</li>
-  <li>CI builds the frontend and bundles it into one release wheel, so neither PC needs Node</li>
+  <li>Open <a href="http://127.0.0.1:8765">http://127.0.0.1:8765</a> while the service runs. It serves <code>~/na-vault-copy</code>, a copy of the real vault, so nothing you apply touches the real one.</li>
+  <li>Start it yourself: <code>uv run notebook-assistant serve --vault ~/na-vault-copy</code> in the repo (Ctrl+C stops it within 2 s).</li>
+  <li>Calls to the Claude API cost credit: Chat, Inbox → Process, Approve to digest, Sweep changes. Everything else is free.</li>
+  <li>This PC's <code>config.yaml</code> has <code>search: e5-small</code> (meaning search on); Settings switches it back.</li>
 </ul>
 
+<h2>Not built yet</h2>
+<p class="lead">Left out of the branches on purpose; each is noted where it belongs in the docs.</p>
+<div class="tblwrap"><table>
+<thead><tr><th>Area</th><th>What's missing</th></tr></thead>
+<tbody>
+<tr><td>Chat</td><td>Credential cards (Bitwarden), the other <code>/</code> commands, dropping files into chat, Save to vault</td></tr>
+<tr><td>Inbox</td><td>Planning a capture with only images; Graduate as-is with placement for unplaced notes (§19.5)</td></tr>
+<tr><td>Sweep</td><td>Integrating text appended to organized notes (diff against snapshots); <code>type</code> change after your move</td></tr>
+<tr><td>Deep pass</td><td>Contradictions between notes, image descriptions (need the model); misspelled folder names in Lint</td></tr>
+<tr><td>Digest</td><td>The generalize step for in-place drafts (§19.3)</td></tr>
+<tr><td>Rendering</td><td>Shiki code highlighting, Mermaid diagrams, sandboxed HTML frames</td></tr>
+<tr><td>Operations</td><td>Spend badge and job tray in the top bar; <code>update</code> command</td></tr>
+</tbody>
+</table></div>
+
 <h2>Skipped or deferred: check back</h2>
-<p class="lead">Each of these was a conscious decision to move on. None blocks Branch 3, but each needs a
-decision or a test before the proof of concept is called done.</p>
+<p class="lead">Each of these was a conscious decision to move on. Each needs a decision or a test
+before the proof of concept is called done.</p>
 <div class="cards">
   <div class="card">
     <h3>Test checkpoint 1: real captures</h3>
-    <p>Digest 2–3 of your own captures on the real vault, judge the split maps, then apply and undo. Only fixture runs have happened so far.</p>
+    <p>Digest 2–3 of your own captures on the real vault, judge the split maps, then apply and undo. Now possible from the Inbox screen.</p>
     <p class="when">Deferred 10-16 · You call it after the POC (architecture §5.4.2). Checkpoints 2–4 follow the same rule.</p>
   </div>
   <div class="card">
@@ -152,9 +173,9 @@ decision or a test before the proof of concept is called done.</p>
     <p class="when">Since 10-16 · Limits listed in <code>app/extract_eval.py</code></p>
   </div>
   <div class="card">
-    <h3>Digest takes about 5 minutes</h3>
-    <p>Too slow for paste-to-digest. Ideas: atoms point to line numbers instead of retyping text; an effort setting; a different model per task.</p>
-    <p class="when">Measured 10-16 · Revisit with the eval</p>
+    <h3>Planning a capture takes minutes</h3>
+    <p>Inbox → Process took 273 s on a two-line capture (the first plan failed its checks and was retried). Drafting one note in place takes ~15 s. Ideas: atoms point to line numbers instead of retyping text; an effort setting; a different model per task.</p>
+    <p class="when">Measured 10-16 and 10-20 · Revisit with the eval</p>
   </div>
   <div class="card">
     <h3>Monthly spend cap isn't enforced</h3>
@@ -168,8 +189,8 @@ decision or a test before the proof of concept is called done.</p>
   </div>
   <div class="card">
     <h3>Credentials for the unattended service</h3>
-    <p>Today: <code>ant auth login</code> (expires, needs a browser). Once the service starts at login (Branch 3+), use an API key in a dedicated workspace with a spend limit, never in the vault.</p>
-    <p class="when">Revisit in Branch 3</p>
+    <p>Today: <code>ant auth login</code> (expires, needs a browser). Before using <code>autostart</code>, set an API key from a dedicated workspace with a spend limit, never in the vault.</p>
+    <p class="when">Before the service runs unattended</p>
   </div>
   <div class="card">
     <h3>Refusal fallback not enabled</h3>
@@ -183,7 +204,7 @@ decision or a test before the proof of concept is called done.</p>
   </div>
   <div class="card">
     <h3>Housekeeping</h3>
-    <p>The docs Stop hook doesn't watch <code>notes/</code>; merged branches from PRs #1–#7 remain on GitHub; the real-vault golden tests (<code>NA_REAL_VAULT</code>) haven't been run in these sessions.</p>
+    <p>The docs Stop hook doesn't watch <code>notes/</code>; merged branches from PRs #1–#7 remain on GitHub; the real-vault golden tests (<code>NA_REAL_VAULT</code>) haven't been run in these sessions; mypy now type-checks for Python 3.12 (numpy's stubs need it) while CI still runs the tests on 3.11.</p>
     <p class="when">Low priority</p>
   </div>
 </div>
@@ -197,7 +218,7 @@ decision or a test before the proof of concept is called done.</p>
   <li>Working rules for Claude: <a href="../../CLAUDE.md">CLAUDE.md</a></li>
 </ul>
 
-<footer>A snapshot on 2026-10-20, not a source of truth: for anything that has changed since, the documents above win.</footer>
+<footer>A snapshot on 2026-10-21, not a source of truth: for anything that has changed since, the documents above win.</footer>
 </div>
 </body>
 </html>
